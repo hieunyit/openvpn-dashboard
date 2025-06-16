@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { UserCircle2, Eye, EyeOff, Settings } from "lucide-react" // Changed User to UserCircle2 for header, Added Settings
+import { UserCircle2, Eye, EyeOff, Settings } from "lucide-react" 
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation" 
@@ -34,22 +34,19 @@ import {
   Edit,
   Save,
   X,
-  CheckCircle,
   XCircle,
   RefreshCcw,
-  KeyRound, // Changed from Key
-  CalendarDays, // Changed from Calendar
+  KeyRound, 
+  CalendarDays, 
   Mail,
   Shield,
   Clock,
   Network,
   Users,
-  Link as LinkIcon, // Changed from LinkSimple
+  Link as LinkIcon, 
   LockKeyhole,
   UnlockKeyhole,
   Info,
-  UserCheck, // Added for Enable action
-  UserX as UserXIcon, // Added for Disable action
 } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, formatDateForInput } from "@/lib/utils"
@@ -72,7 +69,6 @@ interface UserDetail {
 
 interface Group {
   groupName: string
-  // authMethod and role can be omitted if not used in the select dropdown display
 }
 
 export default function UserDetailPage() {
@@ -99,10 +95,6 @@ export default function UserDetailPage() {
   
   const [isConfirmAccessActionDialogOpen, setIsConfirmAccessActionDialogOpen] = useState(false)
   const [confirmAccessActionDetails, setConfirmAccessActionDetails] = useState<{ action: "allow" | "deny"; username: string } | null>(null)
-
-  const [isConfirmEnableDisableDialogOpen, setIsConfirmEnableDisableDialogOpen] = useState(false);
-  const [enableDisableActionDetails, setEnableDisableActionDetails] = useState<{ action: "enable" | "disable"; username: string } | null>(null);
-
 
   useEffect(() => {
     setCurrentAuthUser(getCurrentAuthUser());
@@ -253,44 +245,6 @@ export default function UserDetailPage() {
     }
   };
   
-  const initiateEnableDisableAction = (action: "enable" | "disable") => {
-    if (!user) return;
-    if (user.username === currentAuthUser?.username) {
-      toast({
-        title: "Action Prevented",
-        description: `You cannot ${action} your own account.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    setEnableDisableActionDetails({ action, username: user.username });
-    setIsConfirmEnableDisableDialogOpen(true);
-  };
-
-  const executeEnableDisableAction = async () => {
-    if (!enableDisableActionDetails || !user) return;
-    const { action, username: targetUsername } = enableDisableActionDetails;
-    setSaving(true);
-    try {
-      await performUserAction(targetUsername, action);
-      toast({
-        title: `User ${action === "enable" ? "Enabled" : "Disabled"}`,
-        description: `User ${targetUsername} has been successfully ${action === "enable" ? "enabled" : "disabled"}.`,
-      });
-      fetchUser(); // Refresh user data
-    } catch (error: any) {
-      toast({
-        title: "Action Failed",
-        description: error.message || `Failed to ${action} user. Please try again.`,
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-      setIsConfirmEnableDisableDialogOpen(false);
-      setEnableDisableActionDetails(null);
-    }
-  };
-
   const handleOtpReset = async () => {
     if (!user) return;
     setSaving(true);
@@ -503,18 +457,10 @@ export default function UserDetailPage() {
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  {user.isEnabled ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />} System Status
-                </div>
-                <Badge variant={user.isEnabled ? "default" : "outline"} className={!user.isEnabled ? "border-yellow-500 text-yellow-700 dark:text-yellow-300" : "bg-green-600/10 text-green-700 dark:text-green-400 border-green-600/30"}>
-                  {user.isEnabled ? "Enabled" : "Disabled"}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                   {user.denyAccess ? <LockKeyhole className="h-4 w-4 text-destructive" /> : <UnlockKeyhole className="h-4 w-4 text-green-600" />} VPN Access
                 </div>
                 <Badge variant={user.denyAccess ? "destructive" : "default"} className={user.denyAccess ? "bg-destructive/80 text-destructive-foreground" : "bg-green-600/10 text-green-700 dark:text-green-400 border-green-600/30"}>
-                  {user.denyAccess ? "Denied" : "Allowed"}
+                  {user.denyAccess ? "Denied" : (user.isEnabled ? "Allowed" : "Allowed (Account Disabled)")}
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
@@ -537,6 +483,13 @@ export default function UserDetailPage() {
                   <span className="text-sm text-muted-foreground">{formatDateForDisplay(user.createdAt)}</span>
                 </div>
               )}
+               {!user.isEnabled && (
+                <div className="p-2.5 bg-yellow-500/10 rounded-md text-center">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                        Note: This user account is currently system-disabled. VPN access actions might be restricted until enabled.
+                    </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -552,15 +505,6 @@ export default function UserDetailPage() {
               ) : (
                 <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400" onClick={() => initiateDenyAccessAction("deny")} disabled={saving || isSelf || !user.isEnabled} title={isSelf ? "Cannot deny self" : (!user.isEnabled ? "User account is system disabled" : "Deny VPN access")}>
                   <LockKeyhole className="mr-2 h-4 w-4" /> Deny VPN Access
-                </Button>
-              )}
-               {user.isEnabled ? (
-                <Button variant="outline" className="w-full justify-start hover:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400" onClick={() => initiateEnableDisableAction("disable")} disabled={saving || isSelf} title={isSelf ? "Cannot disable self" : "Disable this user account"}>
-                  <UserXIcon className="mr-2 h-4 w-4" /> Disable User Account
-                </Button>
-              ) : (
-                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400" onClick={() => initiateEnableDisableAction("enable")} disabled={saving || isSelf} title={isSelf ? "Cannot re-enable self" : "Enable this user account"}>
-                  <UserCheck className="mr-2 h-4 w-4" /> Enable User Account
                 </Button>
               )}
               <Button variant="outline" className="w-full justify-start hover:bg-blue-500/10 border-blue-500 text-blue-700 dark:text-blue-400" onClick={handleOtpReset} disabled={saving}>
@@ -597,28 +541,6 @@ export default function UserDetailPage() {
             <AlertDialogCancel onClick={() => setIsConfirmAccessActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={executeDenyAccessAction} disabled={saving} className={confirmAccessActionDetails?.action === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
               {saving ? "Processing..." : `Confirm ${confirmAccessActionDetails?.action === "allow" ? "Allow Access" : "Deny Access"}`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={isConfirmEnableDisableDialogOpen} onOpenChange={setIsConfirmEnableDisableDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm User Status Change</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to {enableDisableActionDetails?.action} user "{enableDisableActionDetails?.username}"?
-              {enableDisableActionDetails?.action === "disable" && " This will prevent the user from authenticating."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmEnableDisableDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeEnableDisableAction}
-              disabled={saving}
-              className={enableDisableActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
-            >
-              {saving ? "Processing..." : `Confirm ${enableDisableActionDetails?.action === "enable" ? "Enable" : "Disable"} User`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
