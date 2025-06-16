@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 27% 95%; /* Light gray #F2F0F7 */
+    --foreground: 265 15% 20%; /* Dark text for light background */
+
+    --card: 255 27% 98%; /* Slightly off-white, or very light gray */
+    --card-foreground: 265 15% 20%;
+
+    --popover: 255 27% 98%;
+    --popover-foreground: 265 15% 20%;
+
+    --primary: 265 34% 48%; /* Deep purple #6750A4 */
+    --primary-foreground: 255 27% 98%; /* Light color for on-primary text */
+
+    --secondary: 258 30% 90%; /* Lighter purple/gray */
+    --secondary-foreground: 265 15% 30%; /* Darker text for secondary */
+
+    --muted: 258 30% 92%; /* Very light gray / off-white */
+    --muted-foreground: 255 10% 45%; /* Medium gray text */
+
+    --accent: 180 100% 32%; /* Teal #00A3A4 */
+    --accent-foreground: 0 0% 100%; /* White text for on-accent */
+
+    --destructive: 0 72% 51%; /* Standard red */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 258 20% 85%; /* Slightly darker gray than background for borders */
+    --input: 258 20% 88%; /* Similar to border for input backgrounds */
+    --ring: 265 34% 55%; /* Slightly lighter/brighter primary for focus rings */
+
+    --radius: 0.5rem;
+
+    --chart-1: 265 34% 48%;
+    --chart-2: 180 100% 32%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    /* For dark mode, we'll invert and adjust. These are placeholders and might need refinement. */
+    --background: 265 15% 15%; /* Dark purple/gray */
+    --foreground: 255 27% 90%; /* Light text */
+
+    --card: 265 15% 20%;
+    --card-foreground: 255 27% 90%;
+
+    --popover: 265 15% 18%;
+    --popover-foreground: 255 27% 90%;
+
+    --primary: 265 40% 60%; /* Lighter purple for dark mode */
+    --primary-foreground: 265 15% 10%; /* Dark text for on-primary */
+
+    --secondary: 265 15% 25%;
+    --secondary-foreground: 255 27% 85%;
+
+    --muted: 265 15% 22%;
+    --muted-foreground: 255 15% 60%;
+
+    --accent: 180 100% 40%; /* Slightly lighter teal */
+    --accent-foreground: 265 15% 10%;
+
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 265 15% 30%;
+    --input: 265 15% 30%;
+    --ring: 265 40% 65%;
+
+    --chart-1: 265 40% 60%;
+    --chart-2: 180 100% 40%;
+    --chart-3: 30 70% 65%;
+    --chart-4: 43 70% 70%;
+    --chart-5: 27 80% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+  }
+}
