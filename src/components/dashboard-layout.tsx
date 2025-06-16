@@ -5,13 +5,9 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { getUser, logout } from "@/lib/auth"
-import { useRouter } from "next/navigation"
-import { LayoutDashboard, Users, FolderKanban, Search, Settings, Menu, LogOut, Shield, Server } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -23,45 +19,40 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/components/ui/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
+import { getUser, logout } from "@/lib/auth"
+import { cn } from "@/lib/utils"
+import {
+  LayoutDashboard,
+  Users,
+  FolderKanban,
+  Search as SearchIcon,
+  Settings,
+  Menu,
+  LogOut,
+  ShieldCheck,
+  Server,
+  UserCircle2,
+  LifeBuoy,
+} from "lucide-react"
 
 interface NavItem {
   title: string
   href: string
-  icon: React.ReactNode
+  icon: React.ElementType
 }
 
 const navItems: NavItem[] = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: <LayoutDashboard className="h-5 w-5" />,
-  },
-  {
-    title: "Users",
-    href: "/dashboard/users",
-    icon: <Users className="h-5 w-5" />,
-  },
-  {
-    title: "Groups",
-    href: "/dashboard/groups",
-    icon: <FolderKanban className="h-5 w-5" />,
-  },
-  {
-    title: "VPN Status",
-    href: "/dashboard/status",
-    icon: <Server className="h-5 w-5" />,
-  },
-  {
-    title: "Advanced Search",
-    href: "/dashboard/search",
-    icon: <Search className="h-5 w-5" />,
-  },
-  {
-    title: "Settings",
-    href: "/dashboard/settings",
-    icon: <Settings className="h-5 w-5" />,
-  },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Users", href: "/dashboard/users", icon: Users },
+  { title: "Groups", href: "/dashboard/groups", icon: FolderKanban },
+  { title: "VPN Status", href: "/dashboard/status", icon: Server },
+  { title: "Advanced Search", href: "/dashboard/search", icon: SearchIcon },
 ]
+
+const bottomNavItems: NavItem[] = [
+  { title: "Settings", href: "/dashboard/settings", icon: Settings },
+];
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -69,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { toast } = useToast()
   const isMobile = useMobile()
   const [user, setUser] = useState<any>(null)
-  const [open, setOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     const userData = getUser()
@@ -79,100 +70,127 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleLogout = () => {
     logout()
     toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your account.",
+      title: "Logged Out Successfully",
+      description: "You have been securely logged out of your account.",
     })
     router.push("/login")
   }
 
-  const getInitials = (username: string) => {
-    return username ? username.substring(0, 2).toUpperCase() : "U"
+  const getInitials = (username?: string) => {
+    if (!username) return "U";
+    const names = username.split(" ");
+    if (names.length === 1) return names[0].substring(0, 2).toUpperCase();
+    return names[0][0].toUpperCase() + names[names.length -1][0].toUpperCase();
   }
 
-  const SidebarContentNav = () => (
+  const SidebarContent = ({ isMobileNav = false }: { isMobileNav?: boolean}) => (
     <>
-      <div className="flex items-center gap-2 p-6 border-b border-border">
-        <Shield className="h-6 w-6 text-primary" />
-        <span className="font-semibold text-lg text-foreground">OpenVPN Admin</span>
+      <div className="flex items-center gap-3 p-4 border-b h-16">
+        <ShieldCheck className="h-8 w-8 text-primary" />
+        <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
       </div>
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => isMobile && setOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "text-foreground hover:bg-muted hover:text-accent-foreground",
-                )}
-              >
-                {item.icon}
-                {item.title}
-              </Link>
-            </li>
-          ))}
-        </ul>
+      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => isMobileNav && setMobileNavOpen(false)}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all",
+              pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard")
+                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            {item.title}
+          </Link>
+        ))}
       </nav>
-      <div className="p-4 border-t border-border">
-        <Button variant="ghost" className="w-full justify-start text-foreground hover:text-accent-foreground" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
+      <div className="mt-auto p-3 border-t space-y-1.5">
+         {bottomNavItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => isMobileNav && setMobileNavOpen(false)}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all",
+              pathname.startsWith(item.href)
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            {item.title}
+          </Link>
+        ))}
+        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground px-3 py-2.5 text-base" onClick={handleLogout}>
+          <LogOut className="mr-3 h-5 w-5" />
           Logout
         </Button>
       </div>
     </>
-  )
+  );
 
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Mobile Navigation */}
+    <div className="flex min-h-screen w-full bg-muted/40">
       {isMobile ? (
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="fixed top-4 left-4 z-50 md:hidden bg-card hover:bg-muted">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0 bg-card text-card-foreground flex flex-col">
-            <SidebarContentNav />
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          {/* Trigger is part of header for mobile */}
+          <SheetContent side="left" className="w-[280px] p-0 bg-background flex flex-col border-r shadow-lg">
+            <SidebarContent isMobileNav={true} />
           </SheetContent>
         </Sheet>
       ) : (
-        <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card text-card-foreground">
-           <SidebarContentNav />
+        <aside className="hidden md:flex flex-col w-64 bg-background border-r shadow-sm">
+           <SidebarContent />
         </aside>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className={cn(
-          "h-14 border-b border-border bg-card flex items-center justify-end px-4 md:px-6",
-          isMobile && "pl-16" // Add padding to avoid overlap with mobile menu button
-          )}>
+      <div className="flex flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
+          {isMobile && (
+             <Button variant="outline" size="icon" onClick={() => setMobileNavOpen(true)} className="md:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          )}
+          <div className={cn("flex-1", isMobile ? "text-center" : "")}>
+            {/* Optional: Breadcrumbs or page title can go here */}
+          </div>
+          
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary/20 text-primary">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+                  <Avatar className="h-10 w-10 border-2 border-primary/50">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
                       {getInitials(user.username)}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
+              <DropdownMenuContent className="w-64" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal py-2">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.username}</p>
+                    <p className="text-sm font-semibold leading-none">{user.username}</p>
                     <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings" className="cursor-pointer">
+                    <UserCircle2 className="mr-2 h-4 w-4" />
+                    <span>Profile (Settings)</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <LifeBuoy className="mr-2 h-4 w-4" />
+                  <span>Support</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
@@ -180,7 +198,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </DropdownMenu>
           )}
         </header>
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
           {children}
         </main>
       </div>

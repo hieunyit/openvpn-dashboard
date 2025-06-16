@@ -8,14 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/components/ui/use-toast"
-import { getVPNStatus, disconnectUser, bulkDisconnectUsers, updateUser } from "@/lib/api" // Added updateUser
-import { getUser as getCurrentAuthUser } from "@/lib/auth" // Renamed to avoid conflict
+import { getVPNStatus, disconnectUser, bulkDisconnectUsers, updateUser } from "@/lib/api"
+import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { formatDateForDisplay, formatBytes } from "@/lib/utils"
-import { Server, Users, Globe, Clock, ArrowDownCircle, ArrowUpCircle, Wifi, AlertTriangle, FileText, PowerOff, Users2, MoreHorizontal, LockKeyhole } from "lucide-react" // Changed UserX to LockKeyhole
+import { Server, Users, Globe, Clock, ArrowDownCircle, ArrowUpCircle, Wifi, AlertTriangle, FileText, PowerOff, MoreHorizontal, LockKeyhole, Activity, RefreshCw, UserCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  AlertDialog, // Added AlertDialog components
+  AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
@@ -27,7 +27,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription as DisconnectDialogDescription, // Alias to avoid conflict
+  DialogDescription as DisconnectDialogDescription,
   DialogFooter as DisconnectDialogFooter,
   DialogHeader as DisconnectDialogHeader,
   DialogTitle as DisconnectDialogTitle,
@@ -91,14 +91,13 @@ export default function VPNStatusPage() {
     setCurrentAuthUser(getCurrentAuthUser());
   }, []);
 
-  const fetchStatus = useCallback(async (showLoading = true) => {
+  const fetchStatus = useCallback(async (showLoadingIndicator = true) => {
     try {
-      if(showLoading) setLoading(true);
+      if(showLoadingIndicator) setLoading(true);
       setError(null)
       const statusData = await getVPNStatus()
       setStatus(statusData)
     } catch (err: any) {
-      console.error("Failed to fetch VPN status:", err)
       setError(err.message || "Failed to load VPN status. Please try again.")
       toast({
         title: "Error Loading VPN Status",
@@ -106,13 +105,13 @@ export default function VPNStatusPage() {
         variant: "destructive",
       })
     } finally {
-      if(showLoading) setLoading(false);
+      if(showLoadingIndicator) setLoading(false);
     }
   }, [toast])
 
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(() => fetchStatus(false), 30000)
+    const interval = setInterval(() => fetchStatus(false), 30000) // Refresh every 30 seconds
     return () => clearInterval(interval)
   }, [fetchStatus])
 
@@ -123,11 +122,7 @@ export default function VPNStatusPage() {
   }
 
   const handleSelectAllUsers = (checked: boolean) => {
-    if (checked && status?.connected_users) {
-      setSelectedUsers(status.connected_users.map((u) => u.username))
-    } else {
-      setSelectedUsers([])
-    }
+    setSelectedUsers(checked && status?.connected_users ? status.connected_users.map(u => u.username) : []);
   }
 
   const openSingleDisconnectDialog = (user: ConnectedUser) => {
@@ -151,10 +146,10 @@ export default function VPNStatusPage() {
     try {
       const result = await disconnectUser(userToDisconnect.username, disconnectMessage)
       toast({
-        title: "Disconnect Action",
+        title: "User Disconnected",
         description: result.message || `Disconnect command sent for ${userToDisconnect.username}.`,
       })
-      fetchStatus(false)
+      fetchStatus(false) // Refresh list
       setIsSingleDisconnectDialogOpen(false)
       setUserToDisconnect(null)
     } catch (err: any) {
@@ -174,17 +169,13 @@ export default function VPNStatusPage() {
       const result = await bulkDisconnectUsers(selectedUsers, disconnectMessage)
       let description = `${result.disconnected_users?.length || 0} user(s) disconnected successfully.`;
       if (result.skipped_users?.length > 0) {
-        description += ` ${result.skipped_users.length} user(s) skipped (e.g., not found or not connected).`;
+        description += ` ${result.skipped_users.length} user(s) skipped.`;
       }
-      if (result.validation_errors?.length > 0) {
-        description += ` ${result.validation_errors.length} had validation issues.`;
-      }
-
       toast({
-        title: "Bulk Disconnect Action",
+        title: "Bulk Disconnect Complete",
         description: result.message || description,
       })
-      fetchStatus(false)
+      fetchStatus(false) // Refresh list
       setIsBulkDisconnectDialogOpen(false)
       setSelectedUsers([])
     } catch (err: any) {
@@ -219,9 +210,9 @@ export default function VPNStatusPage() {
       await updateUser(userToDenyAccess, { denyAccess: true });
       toast({
         title: "VPN Access Denied",
-        description: `VPN access for user ${userToDenyAccess} has been denied. They may be disconnected shortly.`,
+        description: `VPN access for user ${userToDenyAccess} has been denied. They will be disconnected shortly.`,
       });
-      fetchStatus(false); // Refresh status, user might get disconnected by backend
+      fetchStatus(false); 
     } catch (err: any) {
       toast({
         title: "Failed to Deny Access",
@@ -260,85 +251,63 @@ export default function VPNStatusPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center">
-          <Server className="mr-3 h-8 w-8 text-primary" />
-          VPN Server Status
-        </h1>
-        <Button onClick={() => fetchStatus(true)} variant="outline" disabled={loading && !status}>
-          <Wifi className="mr-2 h-4 w-4" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Server className="h-8 w-8 text-primary flex-shrink-0" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">VPN Server Status</h1>
+            <p className="text-muted-foreground mt-1">Live overview of connected users and server activity.</p>
+          </div>
+        </div>
+        <Button onClick={() => fetchStatus(true)} variant="outline" disabled={loading && !status} className="w-full sm:w-auto">
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading && !status ? 'animate-spin' : ''}`} />
           {loading && !status ? "Refreshing..." : "Refresh Status"}
         </Button>
       </div>
 
       {error && !loading && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Update Error</AlertTitle>
-          <AlertDescription>
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/30">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertTitle className="text-destructive">Update Error</AlertTitle>
+          <AlertDescription className="text-destructive/90">
             Failed to refresh VPN status: {error}. Displaying last known data.
-             <Button onClick={() => fetchStatus(true)} size="sm" variant="link" className="ml-2">Retry</Button>
+             <Button onClick={() => fetchStatus(true)} size="sm" variant="link" className="ml-2 text-destructive h-auto p-0">Retry</Button>
           </AlertDescription>
         </Alert>
       )}
 
-
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Users className="h-5 w-5 text-primary" />
-            Summary
-          </CardTitle>
-          <CardDescription>Overview of the VPN server status.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          {loading && !status ? (
-            <>
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 rounded-lg bg-muted p-4">
-                <div className="rounded-full bg-primary/10 p-3">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Connected Users</p>
-                  <p className="text-2xl font-bold text-foreground">{status?.total_connected_users ?? "N/A"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 rounded-lg bg-muted p-4">
-                 <div className="rounded-full bg-primary/10 p-3">
-                   <Clock className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {status?.timestamp ? formatDateForDisplay(status.timestamp) : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+          <Card className="shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Connected Users</CardTitle>
+              <Users className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              {loading && !status ? <Skeleton className="h-8 w-16 mb-1" /> : <div className="text-3xl font-bold text-foreground">{status?.total_connected_users ?? "N/A"}</div>}
+              {loading && !status ? <Skeleton className="h-4 w-24" /> : <p className="text-xs text-muted-foreground">Currently active VPN sessions</p>}
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Last Updated</CardTitle>
+                <Clock className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+                {loading && !status ? <Skeleton className="h-8 w-32 mb-1" /> : <div className="text-xl font-semibold text-foreground">{status?.timestamp ? formatDateForDisplay(status.timestamp) : "N/A"}</div>}
+                {loading && !status ? <Skeleton className="h-4 w-28" /> : <p className="text-xs text-muted-foreground">Data retrieved from server</p>}
+            </CardContent>
+          </Card>
+      </div>
 
       {selectedUsers.length > 0 && (
-        <Card className="shadow-sm">
-          <CardContent className="p-4 flex items-center justify-between">
-            <span className="text-sm font-medium">{selectedUsers.length} user(s) selected</span>
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={openBulkDisconnectDialog}
-                disabled={actionLoading}
-              >
-                <PowerOff className="mr-2 h-4 w-4" />
-                Disconnect Selected
+        <Card className="shadow-sm bg-primary/5 border-primary/20">
+          <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span className="text-sm font-medium text-primary">{selectedUsers.length} user(s) selected for action.</span>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="destructive" size="sm" onClick={openBulkDisconnectDialog} disabled={actionLoading} className="flex-1 sm:flex-none">
+                <PowerOff className="mr-2 h-4 w-4" /> Disconnect Selected
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setSelectedUsers([])} disabled={actionLoading}>
+              <Button variant="outline" size="sm" onClick={() => setSelectedUsers([])} disabled={actionLoading} className="flex-1 sm:flex-none">
                 Clear Selection
               </Button>
             </div>
@@ -346,118 +315,82 @@ export default function VPNStatusPage() {
         </Card>
       )}
 
-      <Card className="shadow-md">
-        <CardHeader>
+      <Card className="shadow-md border-0">
+        <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Wifi className="h-5 w-5 text-primary" />
             Connected Users ({status?.total_connected_users || 0})
           </CardTitle>
-          <CardDescription>
-            Detailed list of currently connected users.
-          </CardDescription>
+          <CardDescription>Detailed list of currently active VPN sessions.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading && !status ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+            <div className="p-6 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (<Skeleton key={i} className="h-14 w-full rounded-md" />))}
             </div>
           ) : !status || !status.connected_users || status.connected_users.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
+            <div className="py-12 text-center text-muted-foreground">
               <FileText className="mx-auto h-12 w-12 opacity-50 mb-2" />
               <p>No users currently connected.</p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={isAllSelected}
-                        onCheckedChange={handleSelectAllUsers}
-                        aria-label="Select all users"
-                      />
+                    <TableHead className="w-12 px-4">
+                      <Checkbox checked={isAllSelected} onCheckedChange={handleSelectAllUsers} aria-label="Select all users"/>
                     </TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Public IP</TableHead>
-                    <TableHead>Virtual IP</TableHead>
-                    <TableHead>Country</TableHead>
-                    <TableHead>Connected Since</TableHead>
+                    <TableHead>User (Cipher)</TableHead>
+                    <TableHead className="hidden md:table-cell">Public IP</TableHead>
+                    <TableHead className="hidden lg:table-cell">Virtual IP</TableHead>
+                    <TableHead className="hidden sm:table-cell">Country</TableHead>
+                    <TableHead className="hidden md:table-cell">Connected Since</TableHead>
                     <TableHead>Duration</TableHead>
-                    <TableHead>Data Sent</TableHead>
-                    <TableHead>Data Received</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Sent</TableHead>
+                    <TableHead>Received</TableHead>
+                    <TableHead className="text-right px-4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {status.connected_users.map((user) => (
-                    <TableRow key={user.client_id} className={selectedUsers.includes(user.username) ? "bg-muted/80" : ""}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedUsers.includes(user.username)}
-                          onCheckedChange={(checked) => handleSelectUser(user.username, Boolean(checked))}
-                          aria-label={`Select user ${user.username}`}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                           <Users2 className="h-4 w-4 text-muted-foreground" />
-                          {user.username || user.common_name}
-                        </div>
-                        <Badge variant="outline" className="mt-1 text-xs">{user.data_channel_cipher}</Badge>
-                      </TableCell>
-                      <TableCell>{user.real_address}</TableCell>
-                      <TableCell>{user.virtual_address}</TableCell>
-                      <TableCell>
-                        {user.country ? (
-                           <div className="flex items-center gap-1">
-                            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                            {user.country}
-                          </div>
-                        ) : "N/A"}
-                      </TableCell>
-                      <TableCell>{formatDateForDisplay(user.connected_since)}</TableCell>
-                      <TableCell>{user.connection_duration}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                          <ArrowUpCircle className="h-4 w-4" />
-                          {formatBytes(user.bytes_sent)}
-                        </div>
+                    <TableRow key={user.client_id} className={selectedUsers.includes(user.username) ? "bg-muted hover:bg-muted/80" : "hover:bg-muted/50 transition-colors"}>
+                      <TableCell className="px-4">
+                        <Checkbox checked={selectedUsers.includes(user.username)} onCheckedChange={(checked) => handleSelectUser(user.username, Boolean(checked))} aria-label={`Select user ${user.username}`}/>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                          <ArrowDownCircle className="h-4 w-4" />
-                          {formatBytes(user.bytes_received)}
-                        </div>
+                        <div className="font-medium text-foreground">{user.username || user.common_name}</div>
+                        <Badge variant="outline" className="mt-1 text-xs">{user.data_channel_cipher || "N/A"}</Badge>
                       </TableCell>
-                       <TableCell className="text-right">
+                      <TableCell className="hidden md:table-cell text-sm">{user.real_address}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{user.virtual_address}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm">
+                        {user.country ? (<div className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-muted-foreground" />{user.country}</div>) : "N/A"}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{formatDateForDisplay(user.connected_since)}</TableCell>
+                      <TableCell className="text-sm">{user.connection_duration}</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex items-center gap-1 text-green-600 dark:text-green-400"><ArrowUpCircle className="h-4 w-4" />{formatBytes(user.bytes_sent)}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400"><ArrowDownCircle className="h-4 w-4" />{formatBytes(user.bytes_received)}</div>
+                      </TableCell>
+                       <TableCell className="text-right px-4">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionLoading}>
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open actions for {user.username}</span>
+                              <MoreHorizontal className="h-4 w-4" /> <span className="sr-only">Actions for {user.username}</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() => openSingleDisconnectDialog(user)}
-                              className="text-orange-600 hover:!text-orange-600 focus:!text-orange-600 dark:text-orange-500 dark:hover:!text-orange-500 dark:focus:!text-orange-500"
-                            >
-                              <PowerOff className="mr-2 h-4 w-4" />
-                              Disconnect User
+                            <DropdownMenuLabel>User Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openSingleDisconnectDialog(user)} className="text-orange-600 focus:text-orange-600 focus:bg-orange-500/10">
+                              <PowerOff className="mr-2 h-4 w-4" /> Disconnect User
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {user.username !== currentAuthUser?.username && (
-                            <DropdownMenuItem
-                              onClick={() => initiateDenyAccessAction(user.username)}
-                              className="text-red-600 hover:!text-red-600 focus:!text-red-600 dark:text-red-500 dark:hover:!text-red-500 dark:focus:!text-red-500"
-                              disabled={actionLoading}
-                            >
-                              <LockKeyhole className="mr-2 h-4 w-4" />
-                              <span>Deny VPN Access</span>
+                            <DropdownMenuItem onClick={() => initiateDenyAccessAction(user.username)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={actionLoading}>
+                              <LockKeyhole className="mr-2 h-4 w-4" /> Deny VPN Access
                             </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -472,7 +405,6 @@ export default function VPNStatusPage() {
         </CardContent>
       </Card>
 
-      {/* Single Disconnect Dialog */}
       <Dialog open={isSingleDisconnectDialogOpen} onOpenChange={setIsSingleDisconnectDialogOpen}>
         <DialogContent>
           <DisconnectDialogHeader>
@@ -482,26 +414,19 @@ export default function VPNStatusPage() {
             </DisconnectDialogDescription>
           </DisconnectDialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="disconnectMessageSingle">Optional Message</Label>
-            <Input
-              id="disconnectMessageSingle"
-              value={disconnectMessage}
-              onChange={(e) => setDisconnectMessage(e.target.value)}
-              placeholder="e.g., Maintenance"
-            />
+            <Label htmlFor="disconnectMessageSingle">Optional Message to User</Label>
+            <Input id="disconnectMessageSingle" value={disconnectMessage} onChange={(e) => setDisconnectMessage(e.target.value)} placeholder="e.g., Scheduled maintenance" disabled={actionLoading}/>
           </div>
           <DisconnectDialogFooter>
-            <DialogClose asChild>
-                <Button variant="outline" disabled={actionLoading}>Cancel</Button>
-            </DialogClose>
+            <DialogClose asChild><Button variant="outline" disabled={actionLoading}>Cancel</Button></DialogClose>
             <Button variant="destructive" onClick={handleSingleDisconnectUser} disabled={actionLoading}>
+              {actionLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin"/> : <PowerOff className="mr-2 h-4 w-4" />}
               {actionLoading ? "Disconnecting..." : "Disconnect"}
             </Button>
           </DisconnectDialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Disconnect Dialog */}
       <Dialog open={isBulkDisconnectDialogOpen} onOpenChange={setIsBulkDisconnectDialogOpen}>
         <DialogContent>
           <DisconnectDialogHeader>
@@ -511,55 +436,42 @@ export default function VPNStatusPage() {
             </DisconnectDialogDescription>
           </DisconnectDialogHeader>
            <div className="py-2">
-            <p className="text-sm text-muted-foreground mb-1">Users to disconnect:</p>
-            <div className="max-h-32 overflow-y-auto rounded-md border p-2 text-sm">
+            <Label className="text-sm font-medium">Users to disconnect:</Label>
+            <div className="max-h-28 overflow-y-auto rounded-md border p-2 text-sm bg-muted/50 mt-1">
                 {selectedUsers.join(", ")}
             </div>
           </div>
           <div className="space-y-2 py-2">
-            <Label htmlFor="disconnectMessageBulk">Optional Message</Label>
-            <Input
-              id="disconnectMessageBulk"
-              value={disconnectMessage}
-              onChange={(e) => setDisconnectMessage(e.target.value)}
-              placeholder="e.g., Server reboot"
-            />
+            <Label htmlFor="disconnectMessageBulk">Optional Message to Users</Label>
+            <Input id="disconnectMessageBulk" value={disconnectMessage} onChange={(e) => setDisconnectMessage(e.target.value)} placeholder="e.g., Server rebooting soon" disabled={actionLoading}/>
           </div>
           <DisconnectDialogFooter>
-             <DialogClose asChild>
-                <Button variant="outline" disabled={actionLoading}>Cancel</Button>
-            </DialogClose>
+             <DialogClose asChild><Button variant="outline" disabled={actionLoading}>Cancel</Button></DialogClose>
             <Button variant="destructive" onClick={handleBulkDisconnectUsers} disabled={actionLoading}>
-              {actionLoading ? "Disconnecting..." : "Disconnect All"}
+              {actionLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin"/> : <PowerOff className="mr-2 h-4 w-4" />}
+              {actionLoading ? "Disconnecting..." : "Disconnect All Selected"}
             </Button>
           </DisconnectDialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Deny Access Confirmation Dialog */}
       <AlertDialog open={isConfirmDenyAccessDialogOpen} onOpenChange={setIsConfirmDenyAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Deny VPN Access</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deny VPN access for user "{userToDenyAccess}"? This will prevent them from connecting to the VPN.
+              Denying VPN access for "{userToDenyAccess}" will prevent them from future connections and disconnect their current session. Are you sure?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsConfirmDenyAccessDialogOpen(false)} disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeDenyAccessAction}
-              disabled={actionLoading}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {actionLoading ? "Denying Access..." : "Confirm Deny Access"}
+            <AlertDialogAction onClick={executeDenyAccessAction} disabled={actionLoading} className="bg-destructive hover:bg-destructive/90">
+              {actionLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin"/> : <LockKeyhole className="mr-2 h-4 w-4" />}
+              {actionLoading ? "Denying..." : "Confirm Deny Access"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   )
 }
-
-    

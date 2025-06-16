@@ -1,3 +1,4 @@
+
 "use client"
 
 import type React from "react"
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Shield } from "lucide-react"
+import { ShieldCheck, LogIn } from "lucide-react"
 import { login } from "@/lib/auth"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
@@ -28,93 +29,85 @@ export default function LoginPage() {
     setError(null)
 
     if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password")
+      setError("Please enter both username and password.")
       setIsLoading(false)
       return
     }
 
     try {
-      console.log("Starting login process...")
       const user = await login(username.trim(), password)
-
-      console.log("Login successful, user:", user)
-
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.username}!`,
       })
-
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 500)
-    } catch (error) {
-      console.error("Login failed:", error)
-
+      router.push("/dashboard")
+    } catch (loginError: any) {
       let errorMessage = "Invalid username or password. Please try again."
-
-      if (error instanceof Error) {
-        if (error.message.includes("fetch")) {
+      if (loginError instanceof Error) {
+        if (loginError.message.includes("fetch") || loginError.message.includes("NetworkError")) {
           errorMessage = "Unable to connect to the server. Please check your connection."
-        } else if (error.message.includes("JSON")) {
+        } else if (loginError.message.includes("JSON")) {
           errorMessage = "Server returned an invalid response. Please try again."
-        } else if (error.message.includes("401")) {
+        } else if (loginError.message.includes("401")) {
           errorMessage = "Invalid username or password."
-        } else if (error.message.includes("500")) {
+        } else if (loginError.message.includes("500")) {
           errorMessage = "Server error. Please try again later."
-        } else {
-          errorMessage = error.message
+        } else if (loginError.message !== "SESSION_EXPIRED") { // Avoid duplicate toast for session expiry
+            errorMessage = loginError.message;
         }
       }
-
       setError(errorMessage)
-      toast({
-        title: "Login Failed",
-        description: errorMessage,
-        variant: "destructive",
-      })
+      if (errorMessage !== "SESSION_EXPIRED") { // Avoid duplicate toast for session expiry
+          toast({
+            title: "Login Failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="space-y-2 flex flex-col items-center pt-8">
-          <div className="bg-primary/10 p-4 rounded-full">
-            <Shield className="h-8 w-8 text-primary" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background to-muted/70 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 rounded-xl">
+        <CardHeader className="space-y-2 text-center pt-8 pb-4">
+          <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-full mx-auto mb-3">
+            <ShieldCheck className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold text-center text-foreground">OpenVPN Access Server</CardTitle>
-          <CardDescription className="text-center text-muted-foreground">
-            Enter your credentials to access the management dashboard
+          <CardTitle className="text-3xl font-bold text-foreground">
+            OpenVPN Access Server
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-base">
+            Sign in to manage your VPN
           </CardDescription>
         </CardHeader>
-        {error && (
-          <div className="px-6 pb-0">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </div>
-        )}
+        
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6 pt-6">
+          <CardContent className="space-y-6 px-8">
+            {error && (
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/30">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+                <AlertTitle className="text-destructive">Login Error</AlertTitle>
+                <AlertDescription className="text-destructive/90">{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-sm font-medium text-muted-foreground">Username</Label>
               <Input
                 id="username"
-                placeholder="Enter your username"
+                placeholder="e.g., adminuser"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
                 autoComplete="username"
-                className="text-base"
+                className="text-base h-12 focus:border-primary"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -124,30 +117,25 @@ export default function LoginPage() {
                 required
                 disabled={isLoading}
                 autoComplete="current-password"
-                className="text-base"
+                className="text-base h-12 focus:border-primary"
               />
             </div>
           </CardContent>
-          <CardFooter className="pb-8">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+          <CardFooter className="px-8 pb-8 pt-2">
+            <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading}>
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground mr-2"></div>
+              ) : (
+                <LogIn className="mr-2 h-5 w-5" />
+              )}
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </CardFooter>
         </form>
-
-        {process.env.NODE_ENV === "development" && (
-          <CardContent className="pt-0 text-xs text-muted-foreground">
-            <details>
-              <summary className="cursor-pointer">Debug Info</summary>
-              <div className="mt-2 space-y-1 bg-muted p-2 rounded-md">
-                <p>API URL: /api/proxy/auth/login</p>
-                <p>Username: {username || "N/A"}</p>
-                <p>Loading: {isLoading.toString()}</p>
-              </div>
-            </details>
-          </CardContent>
-        )}
       </Card>
+      <p className="text-center text-xs text-muted-foreground mt-8">
+        &copy; {new Date().getFullYear()} Your Company Name. All rights reserved.
+      </p>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { User, Eye, EyeOff } from "lucide-react" 
+import { UserCircle2, Eye, EyeOff } from "lucide-react" // Changed User to UserCircle2 for header
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation" 
@@ -14,9 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Checkbox } from "@/components/ui/checkbox" // Keep for editing denyAccess
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { getUser as fetchApiUser, updateUser, getGroups, performUserAction } from "@/lib/api" // performUserAction still needed for OTP/Password
+import { getUser as fetchApiUser, updateUser, getGroups, performUserAction } from "@/lib/api"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { ChangePasswordDialog } from "@/components/change-password-dialog"
 import {
@@ -37,16 +37,19 @@ import {
   CheckCircle,
   XCircle,
   RefreshCcw,
-  Key,
-  Calendar,
+  KeyRound, // Changed from Key
+  CalendarDays, // Changed from Calendar
   Mail,
   Shield,
   Clock,
   Network,
   Users,
-  LinkSimple,
+  Link as LinkIcon, // Changed from LinkSimple
   LockKeyhole,
-  UnlockKeyhole
+  UnlockKeyhole,
+  Info,
+  UserCheck, // Added for Enable action
+  UserX as UserXIcon, // Added for Disable action
 } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, formatDateForInput } from "@/lib/utils"
@@ -61,7 +64,7 @@ interface UserDetail {
   mfa: boolean
   macAddresses: string[]
   accessControl: string[]
-  isEnabled: boolean // Still part of the detailed user object from API
+  isEnabled: boolean
   denyAccess?: boolean
   lastLogin?: string
   createdAt?: string
@@ -69,8 +72,7 @@ interface UserDetail {
 
 interface Group {
   groupName: string
-  authMethod: string
-  role: string
+  // authMethod and role can be omitted if not used in the select dropdown display
 }
 
 export default function UserDetailPage() {
@@ -98,6 +100,9 @@ export default function UserDetailPage() {
   const [isConfirmAccessActionDialogOpen, setIsConfirmAccessActionDialogOpen] = useState(false)
   const [confirmAccessActionDetails, setConfirmAccessActionDetails] = useState<{ action: "allow" | "deny"; username: string } | null>(null)
 
+  const [isConfirmEnableDisableDialogOpen, setIsConfirmEnableDisableDialogOpen] = useState(false);
+  const [enableDisableActionDetails, setEnableDisableActionDetails] = useState<{ action: "enable" | "disable"; username: string } | null>(null);
+
 
   useEffect(() => {
     setCurrentAuthUser(getCurrentAuthUser());
@@ -121,8 +126,8 @@ export default function UserDetailPage() {
       if (userData) {
         const processedUserData = {
           ...userData,
-          isEnabled: typeof userData.isEnabled === 'boolean' ? userData.isEnabled : true, // Default isEnabled if not present
-          denyAccess: typeof userData.denyAccess === 'boolean' ? userData.denyAccess : false, // Default denyAccess
+          isEnabled: typeof userData.isEnabled === 'boolean' ? userData.isEnabled : true,
+          denyAccess: typeof userData.denyAccess === 'boolean' ? userData.denyAccess : false,
         };
         setUser(processedUserData);
         setFormData({
@@ -134,16 +139,15 @@ export default function UserDetailPage() {
         })
       } else {
         toast({
-          title: "❌ User not found",
-          description: `User ${username} could not be found.`,
+          title: "User Not Found",
+          description: `User ${username} could not be found. Redirecting...`,
           variant: "destructive",
         })
         router.push("/dashboard/users")
       }
     } catch (error: any) {
-      console.error("Failed to fetch user:", error)
       toast({
-        title: "❌ Error loading user",
+        title: "Error Loading User",
         description: error.message || "Failed to load user details. Please try again.",
         variant: "destructive",
       })
@@ -155,12 +159,11 @@ export default function UserDetailPage() {
   const fetchGroups = async () => {
     try {
       setLoadingGroups(true)
-      const data = await getGroups(1, 100)
+      const data = await getGroups(1, 100) // Fetch up to 100 groups
       setGroups(data.groups || [])
     } catch (error: any) {
-      console.error("Failed to fetch groups:", error)
       toast({
-        title: "Error fetching groups",
+        title: "Error Fetching Groups",
         description: error.message || "Could not load groups for selection.",
         variant: "destructive"
       });
@@ -183,37 +186,27 @@ export default function UserDetailPage() {
   }
 
   const handleSave = async () => {
+    if (!user) return;
     try {
       setSaving(true)
-
       const userDataToUpdate = {
         groupName: formData.groupName === "none" ? undefined : formData.groupName,
         userExpiration: formData.userExpiration,
-        macAddresses: formData.macAddresses
-          .split(",")
-          .map((mac) => mac.trim())
-          .filter((mac) => mac),
-        accessControl: formData.accessControl
-          .split(",")
-          .map((ac) => ac.trim())
-          .filter((ac) => ac),
+        macAddresses: formData.macAddresses.split(",").map((mac) => mac.trim()).filter((mac) => mac),
+        accessControl: formData.accessControl.split(",").map((ac) => ac.trim()).filter((ac) => ac),
         denyAccess: formData.denyAccess,
       }
-
-      await updateUser(username, userDataToUpdate)
-
+      await updateUser(user.username, userDataToUpdate)
       toast({
-        title: "✅ User updated successfully",
-        description: `User ${username} has been updated.`,
+        title: "User Updated",
+        description: `User ${user.username} has been updated successfully.`,
       })
-
       setEditing(false)
       fetchUser() 
     } catch (error: any) {
-      console.error("Failed to update user:", error)
       toast({
-        title: "❌ Update failed",
-        description: error.message || "Failed to update user. Please check your input and try again.",
+        title: "Update Failed",
+        description: error.message || "Failed to update user. Please check input and try again.",
         variant: "destructive",
       })
     } finally {
@@ -238,64 +231,99 @@ export default function UserDetailPage() {
   const executeDenyAccessAction = async () => {
     if (!confirmAccessActionDetails || !user) return;
     const { action, username: targetUsername } = confirmAccessActionDetails;
-
+    setSaving(true);
     try {
       const newDenyAccessState = action === "deny";
       await updateUser(targetUsername, { denyAccess: newDenyAccessState });
       toast({
-        title: "✅ VPN Access Updated",
+        title: "VPN Access Updated",
         description: `VPN access for user ${targetUsername} has been ${action === "allow" ? "allowed" : "denied"}.`,
       });
-      fetchUser(); // Refresh user data
+      fetchUser(); 
     } catch (error: any) {
-      console.error(`Failed to ${action} VPN access:`, error);
       toast({
-        title: "❌ Action failed",
+        title: "Action Failed",
         description: error.message || `Failed to ${action} VPN access. Please try again.`,
         variant: "destructive",
       });
     } finally {
+      setSaving(false);
       setIsConfirmAccessActionDialogOpen(false);
       setConfirmAccessActionDetails(null);
     }
   };
   
+  const initiateEnableDisableAction = (action: "enable" | "disable") => {
+    if (!user) return;
+    if (user.username === currentAuthUser?.username) {
+      toast({
+        title: "Action Prevented",
+        description: `You cannot ${action} your own account.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setEnableDisableActionDetails({ action, username: user.username });
+    setIsConfirmEnableDisableDialogOpen(true);
+  };
+
+  const executeEnableDisableAction = async () => {
+    if (!enableDisableActionDetails || !user) return;
+    const { action, username: targetUsername } = enableDisableActionDetails;
+    setSaving(true);
+    try {
+      await performUserAction(targetUsername, action);
+      toast({
+        title: `User ${action === "enable" ? "Enabled" : "Disabled"}`,
+        description: `User ${targetUsername} has been successfully ${action === "enable" ? "enabled" : "disabled"}.`,
+      });
+      fetchUser(); // Refresh user data
+    } catch (error: any) {
+      toast({
+        title: "Action Failed",
+        description: error.message || `Failed to ${action} user. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+      setIsConfirmEnableDisableDialogOpen(false);
+      setEnableDisableActionDetails(null);
+    }
+  };
+
   const handleOtpReset = async () => {
     if (!user) return;
+    setSaving(true);
     try {
       await performUserAction(user.username, "reset-otp");
       toast({
-        title: "✅ OTP Reset",
-        description: `OTP has been reset for user ${user.username}. They will need to re-configure their OTP on next login.`,
+        title: "OTP Reset Successful",
+        description: `OTP for user ${user.username} has been reset. They will need to re-configure on next login.`,
       });
     } catch (error: any) {
-      console.error("Failed to reset OTP:", error);
       toast({
-        title: "❌ OTP Reset Failed",
+        title: "OTP Reset Failed",
         description: error.message || "Could not reset OTP. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/users">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Users
-              </Link>
-            </Button>
-            <Skeleton className="h-8 w-48" />
-          </div>
-          <div className="grid gap-8 md:grid-cols-2">
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
-          </div>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/users"><ArrowLeft className="h-4 w-4 mr-1" />Back</Link>
+          </Button>
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-96 md:col-span-2 rounded-lg" />
+          <Skeleton className="h-96 rounded-lg" />
         </div>
       </div>
     )
@@ -303,24 +331,17 @@ export default function UserDetailPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/users">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Users
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-bold text-foreground">User Not Found</h1>
-          </div>
-          <Card className="shadow-lg border-0 bg-card">
-            <CardContent className="p-8 text-center">
-              <XCircle className="mx-auto h-16 w-16 text-destructive mb-4" />
-              <p className="text-muted-foreground text-lg">The requested user could not be found.</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="space-y-6">
+         <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/users"><ArrowLeft className="h-4 w-4 mr-1" />Back to Users</Link>
+          </Button>
+        <Card className="shadow-lg border-destructive bg-destructive/10">
+          <CardContent className="p-8 text-center">
+            <XCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <CardTitle className="text-xl text-destructive">User Not Found</CardTitle>
+            <CardDescription className="text-destructive/80">The requested user could not be found.</CardDescription>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -328,362 +349,230 @@ export default function UserDetailPage() {
   const isSelf = user.username === currentAuthUser?.username;
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="hover:bg-muted" asChild>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" asChild>
               <Link href="/dashboard/users">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Users
+                <ArrowLeft className="h-5 w-5" />
+                <span className="sr-only">Back to Users</span>
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center">
-                <User className="mr-3 h-8 w-8 text-primary" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center">
+                <UserCircle2 className="mr-3 h-8 w-8 text-primary flex-shrink-0" />
                 {user.username}
               </h1>
-              <p className="text-muted-foreground mt-1">User account details and management</p>
+              <p className="text-muted-foreground mt-1">Manage user account details and configurations.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {editing ? (
-              <>
-                <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => setEditing(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit User
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          {editing ? (
+            <>
+              <Button variant="outline" onClick={() => setEditing(false)} disabled={saving} className="w-full sm:w-auto">
+                <X className="mr-2 h-4 w-4" /> Cancel
               </Button>
-            )}
-          </div>
+              <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setEditing(true)} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+              <Edit className="mr-2 h-4 w-4" /> Edit User
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="shadow-md border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center text-xl"><Info className="mr-2 h-5 w-5 text-primary"/>User Information</CardTitle>
+              <CardDescription>View and edit basic user details and network settings.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <section>
+                <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center"><UserCircle2 className="mr-2 h-5 w-5 text-muted-foreground"/>Basic Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                    <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                      <span className="font-medium text-foreground">{user.username}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                    <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                      <span className="text-foreground">{user.email}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">Auth Method</Label>
+                    <div className="p-2.5 border rounded-md bg-muted/70 text-sm">
+                      <Badge variant={user.authMethod === "local" ? "default" : "secondary"}>{user.authMethod === "local" ? "Local" : "LDAP"}</Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                     <div className="p-2.5 border rounded-md bg-muted/70 text-sm">
+                      <Badge variant={user.role === "Admin" ? "default" : "secondary"}>{user.role}</Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">User Group</Label>
+                    {editing ? (
+                      <Select value={formData.groupName} onValueChange={(value) => handleSelectChange("groupName", value)} disabled={loadingGroups}>
+                        <SelectTrigger><SelectValue placeholder={loadingGroups ? "Loading groups..." : "Select a group"} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Group</SelectItem>
+                          {groups.map((g) => (<SelectItem key={g.groupName} value={g.groupName}>{g.groupName}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                        <span className="text-foreground">{user.groupName && user.groupName !== "none" ? user.groupName : "No group"}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">Expiration Date</Label>
+                    {editing ? (
+                      <Input name="userExpiration" type="date" value={formatDateForInput(formData.userExpiration)} onChange={handleChange} />
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                        <span className="text-foreground">{formatDateForDisplay(user.userExpiration)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center"><Network className="mr-2 h-5 w-5 text-muted-foreground"/>Network Configuration</h3>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">MAC Addresses</Label>
+                    {editing ? (
+                      <Textarea name="macAddresses" value={formData.macAddresses} onChange={handleChange} placeholder="Enter MAC addresses, comma-separated" className="min-h-[70px]" />
+                    ) : (
+                      <div className="p-3 border rounded-md bg-muted/70 min-h-[40px] text-sm">
+                        {user.macAddresses && user.macAddresses.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {user.macAddresses.map((mac, index) => (<Badge key={index} variant="outline" className="bg-background"><LinkIcon className="h-3.5 w-3.5 mr-1.5"/>{mac}</Badge>))}
+                          </div>
+                        ) : (<span className="text-muted-foreground italic">No MAC addresses</span>)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground">Access Control Rules</Label>
+                    {editing ? (
+                      <Textarea name="accessControl" value={formData.accessControl} onChange={handleChange} placeholder="Enter access rules, comma-separated" className="min-h-[70px]" />
+                    ) : (
+                      <div className="p-3 border rounded-md bg-muted/70 min-h-[40px] text-sm">
+                        {user.accessControl && user.accessControl.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {user.accessControl.map((rule, index) => (<Badge key={index} variant="outline" className="bg-background">{rule}</Badge>))}
+                          </div>
+                        ) : (<span className="text-muted-foreground italic">No custom rules</span>)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {editing && (
+                <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border space-y-1.5">
+                  <div className="flex items-center space-x-3">
+                    <Checkbox id="denyAccess" checked={formData.denyAccess} onCheckedChange={(checked) => handleCheckboxChange("denyAccess", checked === true)} disabled={isSelf}/>
+                    <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Deny VPN Access</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-7">If checked, this user will be denied VPN access, regardless of group settings. {isSelf && "(Cannot deny self)"}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* User Information - Takes 2 columns */}
-          <div className="lg:col-span-2">
-            <Card className="shadow-lg border-0 bg-card">
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center text-xl">
-                  <User className="mr-2 h-5 w-5" />
-                  User Information
-                </CardTitle>
-                <CardDescription>
-                  Basic user account details and configuration
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 space-y-8">
-                {/* Basic Info */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-foreground flex items-center border-b border-border pb-2">
-                    <User className="mr-2 h-5 w-5 text-primary" />
-                    Basic Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Username</Label>
-                      <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{user.username}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
-                      <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground">{user.email}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Authentication Method</Label>
-                      <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted">
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                        <Badge variant={user.authMethod === "local" ? "default" : "secondary"}>
-                          {user.authMethod === "local" ? "🔐 Local" : "🏢 LDAP"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Role</Label>
-                      <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted">
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                        <Badge variant={user.role === "Admin" ? "default" : "secondary"}>
-                          {user.role === "Admin" ? "👑 Admin" : "👤 User"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">User Group</Label>
-                      {editing ? (
-                        <Select
-                          value={formData.groupName}
-                          onValueChange={(value) => handleSelectChange("groupName", value)}
-                          disabled={loadingGroups}
-                        >
-                          <SelectTrigger className="border-input focus:border-primary">
-                            <SelectValue placeholder={loadingGroups ? "Loading groups..." : "Select a group"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">👤 No Group</SelectItem>
-                            {groups.map((group) => (
-                              <SelectItem key={group.groupName} value={group.groupName}>
-                                👥 {group.groupName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground">
-                            {user.groupName && user.groupName !== "none" ? user.groupName : "No group assigned"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Expiration Date</Label>
-                      {editing ? (
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            name="userExpiration"
-                            type="date"
-                            value={formatDateForInput(formData.userExpiration)}
-                            onChange={handleChange}
-                            className="pl-10 border-input focus:border-primary"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground">{formatDateForDisplay(user.userExpiration)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+        <div className="space-y-6">
+          <Card className="shadow-md border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center text-lg"><Shield className="mr-2 h-5 w-5 text-primary"/>Account Status</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {user.isEnabled ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />} System Status
                 </div>
-
-                {/* Network Configuration */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-foreground flex items-center border-b border-border pb-2">
-                    <Network className="mr-2 h-5 w-5 text-primary" />
-                    Network Configuration
-                  </h3>
-
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">MAC Addresses</Label>
-                      {editing ? (
-                        <Textarea
-                          name="macAddresses"
-                          value={formData.macAddresses}
-                          onChange={handleChange}
-                          placeholder="Enter MAC addresses separated by commas"
-                          className="border-input focus:border-primary min-h-[100px]"
-                        />
-                      ) : (
-                        <div className="p-4 border rounded-lg bg-muted">
-                          {user.macAddresses && user.macAddresses.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {user.macAddresses.map((mac, index) => (
-                                <Badge key={index} variant="outline" className="bg-card">
-                                  🔗 {mac}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">No MAC addresses configured</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Access Control Rules</Label>
-                      {editing ? (
-                        <Textarea
-                          name="accessControl"
-                          value={formData.accessControl}
-                          onChange={handleChange}
-                          placeholder="Enter access control rules separated by commas"
-                          className="border-input focus:border-primary min-h-[100px]"
-                        />
-                      ) : (
-                        <div className="p-4 border rounded-lg bg-muted">
-                          {user.accessControl && user.accessControl.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {user.accessControl.map((rule, index) => (
-                                <Badge key={index} variant="outline" className="bg-card">
-                                  🔒 {rule}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">No access control rules defined</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                <Badge variant={user.isEnabled ? "default" : "outline"} className={!user.isEnabled ? "border-yellow-500 text-yellow-700 dark:text-yellow-300" : "bg-green-600/10 text-green-700 dark:text-green-400 border-green-600/30"}>
+                  {user.isEnabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {user.denyAccess ? <LockKeyhole className="h-4 w-4 text-destructive" /> : <UnlockKeyhole className="h-4 w-4 text-green-600" />} VPN Access
                 </div>
-
-                {editing && (
-                  <div className="space-y-4 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="denyAccess"
-                        checked={formData.denyAccess}
-                        onCheckedChange={(checked) => handleCheckboxChange("denyAccess", checked === true)}
-                      />
-                      <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">
-                        🚫 Deny VPN Access
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      If checked, this user will be denied access to the VPN service, regardless of group settings.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Status & Actions - Takes 1 column */}
-          <div className="space-y-6">
-            {/* User Status */}
-            <Card className="shadow-lg border-0 bg-card">
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center text-lg">
-                  <Shield className="mr-2 h-5 w-5" />
-                  Account Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                {/* Removed Account Status (isEnabled) display as per request */}
-                {/* VPN Access Status */}
-                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2">
-                    {user.denyAccess ? <LockKeyhole className="h-4 w-4 text-destructive" /> : <UnlockKeyhole className="h-4 w-4 text-green-600" />}
-                    <span className="text-sm font-medium text-foreground">VPN Access</span>
-                  </div>
-                  <Badge variant={user.denyAccess ? "destructive" : "default"} className="px-3 py-1">
-                    {user.denyAccess ? "🚫 Denied" : "✅ Allowed"}
-                  </Badge>
+                <Badge variant={user.denyAccess ? "destructive" : "default"} className={user.denyAccess ? "bg-destructive/80 text-destructive-foreground" : "bg-green-600/10 text-green-700 dark:text-green-400 border-green-600/30"}>
+                  {user.denyAccess ? "Denied" : "Allowed"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <KeyRound className="h-4 w-4" /> MFA Status
                 </div>
-
-
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Key className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">MFA Status</span>
-                  </div>
-                  <Badge variant={user.mfa ? "default" : "outline"} className="px-3 py-1">
-                    {user.mfa ? "🔐 Enabled" : "🔓 Disabled"}
-                  </Badge>
+                <Badge variant={user.mfa ? "default" : "outline"} className={user.mfa ? "bg-blue-600/10 text-blue-700 dark:text-blue-300 border-blue-600/30" : ""}>
+                  {user.mfa ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+              {user.lastLogin && (
+                <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Clock className="h-4 w-4" />Last Login</div>
+                  <span className="text-sm text-muted-foreground">{formatDateForDisplay(user.lastLogin)}</span>
                 </div>
+              )}
+              {user.createdAt && (
+                <div className="flex items-center justify-between p-2.5 bg-muted/50 rounded-md">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground"><CalendarDays className="h-4 w-4" />Created</div>
+                  <span className="text-sm text-muted-foreground">{formatDateForDisplay(user.createdAt)}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                {user.lastLogin && (
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">Last Login</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{formatDateForDisplay(user.lastLogin)}</span>
-                  </div>
-                )}
-
-                {user.createdAt && (
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">Created</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{formatDateForDisplay(user.createdAt)}</span>
-                  </div>
-                )}
-                 {!user.isEnabled && (
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
-                     <div className="flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Overall Account</span>
-                      </div>
-                      <Badge variant="outline" className="px-3 py-1 border-yellow-500 text-yellow-700 dark:text-yellow-300">
-                        System Disabled
-                      </Badge>
-                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* User Actions */}
-            <Card className="shadow-lg border-0 bg-card">
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center text-lg">
-                  <RefreshCcw className="mr-2 h-5 w-5" />
-                  User Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-3">
-                 {user.denyAccess ? (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-card hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20"
-                    onClick={() => initiateDenyAccessAction("allow")}
-                  >
-                    <UnlockKeyhole className="mr-2 h-4 w-4" />
-                    Allow VPN Access
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-card hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20"
-                    onClick={() => initiateDenyAccessAction("deny")}
-                    disabled={isSelf}
-                    title={isSelf ? "You cannot deny VPN access to your own account." : "Deny VPN access for this user"}
-                  >
-                    <LockKeyhole className="mr-2 h-4 w-4" />
-                    Deny VPN Access
-                  </Button>
-                )}
-
-
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-card hover:bg-blue-500/10 border-blue-500 text-blue-700 dark:text-blue-400 dark:border-blue-600 dark:hover:bg-blue-700/20"
-                  onClick={handleOtpReset}
-                >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Reset OTP
+          <Card className="shadow-md border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center text-lg"><Settings className="mr-2 h-5 w-5 text-primary"/>User Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2">
+              {user.denyAccess ? (
+                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400" onClick={() => initiateDenyAccessAction("allow")} disabled={saving || !user.isEnabled} title={!user.isEnabled ? "User account is system disabled" : "Allow VPN access"}>
+                  <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow VPN Access
                 </Button>
-
-                {user.authMethod === "local" && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-card hover:bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-400 dark:border-amber-600 dark:hover:bg-amber-700/20"
-                    onClick={() => setIsChangePasswordDialogOpen(true)}
-                  >
-                    <Key className="mr-2 h-4 w-4" />
-                    Change Password
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              ) : (
+                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400" onClick={() => initiateDenyAccessAction("deny")} disabled={saving || isSelf || !user.isEnabled} title={isSelf ? "Cannot deny self" : (!user.isEnabled ? "User account is system disabled" : "Deny VPN access")}>
+                  <LockKeyhole className="mr-2 h-4 w-4" /> Deny VPN Access
+                </Button>
+              )}
+               {user.isEnabled ? (
+                <Button variant="outline" className="w-full justify-start hover:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400" onClick={() => initiateEnableDisableAction("disable")} disabled={saving || isSelf} title={isSelf ? "Cannot disable self" : "Disable this user account"}>
+                  <UserXIcon className="mr-2 h-4 w-4" /> Disable User Account
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400" onClick={() => initiateEnableDisableAction("enable")} disabled={saving || isSelf} title={isSelf ? "Cannot re-enable self" : "Enable this user account"}>
+                  <UserCheck className="mr-2 h-4 w-4" /> Enable User Account
+                </Button>
+              )}
+              <Button variant="outline" className="w-full justify-start hover:bg-blue-500/10 border-blue-500 text-blue-700 dark:text-blue-400" onClick={handleOtpReset} disabled={saving}>
+                <RefreshCcw className="mr-2 h-4 w-4" /> Reset OTP
+              </Button>
+              {user.authMethod === "local" && (
+                <Button variant="outline" className="w-full justify-start hover:bg-amber-500/10 border-amber-500 text-amber-700 dark:text-amber-400" onClick={() => setIsChangePasswordDialogOpen(true)} disabled={saving}>
+                  <KeyRound className="mr-2 h-4 w-4" /> Change Password
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
       
@@ -692,9 +581,7 @@ export default function UserDetailPage() {
           open={isChangePasswordDialogOpen}
           onOpenChange={setIsChangePasswordDialogOpen}
           username={user.username}
-          onSuccess={() => {
-            setIsChangePasswordDialogOpen(false);
-          }}
+          onSuccess={() => setIsChangePasswordDialogOpen(false)}
         />
       )}
 
@@ -707,12 +594,31 @@ export default function UserDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmAccessActionDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsConfirmAccessActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeDenyAccessAction} disabled={saving} className={confirmAccessActionDetails?.action === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
+              {saving ? "Processing..." : `Confirm ${confirmAccessActionDetails?.action === "allow" ? "Allow Access" : "Deny Access"}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isConfirmEnableDisableDialogOpen} onOpenChange={setIsConfirmEnableDisableDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm User Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {enableDisableActionDetails?.action} user "{enableDisableActionDetails?.username}"?
+              {enableDisableActionDetails?.action === "disable" && " This will prevent the user from authenticating."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsConfirmEnableDisableDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeDenyAccessAction}
-              className={confirmAccessActionDetails?.action === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90"}
+              onClick={executeEnableDisableAction}
+              disabled={saving}
+              className={enableDisableActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
             >
-              Confirm {confirmAccessActionDetails?.action === "allow" ? "Allow Access" : "Deny Access"}
+              {saving ? "Processing..." : `Confirm ${enableDisableActionDetails?.action === "enable" ? "Enable" : "Disable"} User`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

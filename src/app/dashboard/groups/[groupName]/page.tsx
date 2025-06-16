@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, PowerOff as PowerOffIcon, Network, Router } from "lucide-react"
+import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, Network, Router, KeyRound, Info } from "lucide-react"
 import Link from "next/link"
 
 interface Group {
@@ -63,7 +63,6 @@ export default function GroupDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
-    authMethod: "", // Display only
     role: "",
     accessControl: "",
     denyAccess: false,
@@ -75,8 +74,8 @@ export default function GroupDetailPage() {
   const [isConfirmAccessActionDialogOpen, setIsConfirmAccessActionDialogOpen] = useState(false)
   const [confirmAccessActionDetails, setConfirmAccessActionDetails] = useState<{ action: "allow" | "deny"; groupName: string } | null>(null)
 
-  const [isConfirmEnableDisableDialogOpen, setIsConfirmEnableDisableDialogOpen] = useState(false);
-  const [enableDisableActionDetails, setEnableDisableActionDetails] = useState<{ action: "enable" | "disable"; groupName: string } | null>(null);
+  const [isConfirmEnableActionDialogOpen, setIsConfirmEnableActionDialogOpen] = useState(false);
+  const [enableActionDetails, setEnableActionDetails] = useState<{ groupName: string } | null>(null);
 
 
   useEffect(() => {
@@ -100,7 +99,6 @@ export default function GroupDetailPage() {
         };
         setGroup(processedGroupData)
         setFormData({
-          authMethod: processedGroupData.authMethod || "", // Display only
           role: processedGroupData.role || "User",
           accessControl: processedGroupData.accessControl?.join(", ") || "",
           denyAccess: processedGroupData.denyAccess,
@@ -111,7 +109,7 @@ export default function GroupDetailPage() {
       } else {
         toast({
           title: "Group not found",
-          description: `Group ${groupName} could not be found.`,
+          description: `Group ${groupName} could not be found. Redirecting...`,
           variant: "destructive",
         })
         router.push("/dashboard/groups")
@@ -119,7 +117,7 @@ export default function GroupDetailPage() {
     } catch (error: any) {
       console.error("Failed to fetch group:", error)
       toast({
-        title: "Error",
+        title: "Error Loading Group",
         description: error.message || "Failed to load group details. Please try again.",
         variant: "destructive",
       })
@@ -130,12 +128,12 @@ export default function GroupDetailPage() {
 
   const fetchGroupMembers = async () => {
     try {
-      const usersData = await getUsers(1, 100, { groupName })
+      const usersData = await getUsers(1, 100, { groupName }) // Fetch up to 100 members for preview
       setMembers(usersData.users || [])
     } catch (error: any) {
       console.error("Failed to fetch group members:", error)
        toast({
-        title: "Error fetching members",
+        title: "Error Fetching Members",
         description: error.message || "Could not load group members.",
         variant: "destructive"
       });
@@ -156,6 +154,7 @@ export default function GroupDetailPage() {
   }
 
   const handleSave = async () => {
+    if (!group) return;
     try {
       setSaving(true)
       const groupDataToUpdate: {
@@ -174,19 +173,19 @@ export default function GroupDetailPage() {
         groupSubnet: formData.groupSubnet.split(",").map((s) => s.trim()).filter((s) => s),
       }
 
-      await updateGroup(groupName, groupDataToUpdate)
+      await updateGroup(group.groupName, groupDataToUpdate)
 
       toast({
-        title: "Group updated",
-        description: `Group ${groupName} has been updated successfully.`,
+        title: "Group Updated",
+        description: `Group ${group.groupName} has been updated successfully.`,
       })
 
       setEditing(false)
-      fetchGroup()
+      fetchGroup() // Refresh data
     } catch (error: any) {
       console.error("Failed to update group:", error)
       toast({
-        title: "Error",
+        title: "Update Failed",
         description: error.message || "Failed to update group. Please check your input and try again.",
         variant: "destructive",
       })
@@ -213,11 +212,11 @@ export default function GroupDetailPage() {
         title: "VPN Access Updated",
         description: `VPN access for group ${targetGroupName} has been ${action === "allow" ? "allowed" : "denied"}.`,
       });
-      fetchGroup();
+      fetchGroup(); // Refresh data
     } catch (error: any) {
       console.error(`Failed to ${action} VPN access for group:`, error);
       toast({
-        title: "Action failed",
+        title: "Action Failed",
         description: error.message || `Failed to ${action} VPN access for group. Please try again.`,
         variant: "destructive",
       });
@@ -228,56 +227,51 @@ export default function GroupDetailPage() {
     }
   };
 
-  const initiateEnableDisableAction = (action: "enable" | "disable") => {
+  const initiateEnableAction = () => {
     if (!group) return;
-    setEnableDisableActionDetails({ action, groupName: group.groupName });
-    setIsConfirmEnableDisableDialogOpen(true);
+    setEnableActionDetails({ groupName: group.groupName });
+    setIsConfirmEnableActionDialogOpen(true);
   };
 
-  const executeEnableDisableAction = async () => {
-    if (!enableDisableActionDetails || !group) return;
-    const { action, groupName: targetGroupName } = enableDisableActionDetails;
+  const executeEnableAction = async () => {
+    if (!enableActionDetails || !group) return;
+    const { groupName: targetGroupName } = enableActionDetails;
 
     try {
       setSaving(true);
-      await performGroupAction(targetGroupName, action);
+      await performGroupAction(targetGroupName, "enable");
       toast({
-        title: `Group ${action === "enable" ? "Enabled" : "Disabled"}`,
-        description: `Group ${targetGroupName} has been successfully ${action === "enable" ? "enabled" : "disabled"}.`,
+        title: `Group Enabled`,
+        description: `Group ${targetGroupName} has been successfully enabled.`,
       });
-      fetchGroup();
+      fetchGroup(); // Refresh data
     } catch (error: any) {
-      console.error(`Failed to ${action} group:`, error);
+      console.error(`Failed to enable group:`, error);
       toast({
         title: "Action Failed",
-        description: error.message || `Failed to ${action} group. Please try again.`,
+        description: error.message || `Failed to enable group. Please try again.`,
         variant: "destructive",
       });
     } finally {
       setSaving(false);
-      setIsConfirmEnableDisableDialogOpen(false);
-      setEnableDisableActionDetails(null);
+      setIsConfirmEnableActionDialogOpen(false);
+      setEnableActionDetails(null);
     }
   };
 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/groups">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Groups
-              </Link>
-            </Button>
-            <Skeleton className="h-8 w-48" />
-          </div>
-          <div className="grid gap-8 md:grid-cols-2">
-            <Skeleton className="h-96" />
-            <Skeleton className="h-96" />
-          </div>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/groups"><ArrowLeft className="h-4 w-4 mr-1" />Back</Link>
+          </Button>
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-96 md:col-span-2 rounded-lg" />
+          <Skeleton className="h-80 rounded-lg" />
         </div>
       </div>
     )
@@ -285,365 +279,247 @@ export default function GroupDetailPage() {
 
   if (!group) {
     return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/groups">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Groups
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-bold text-foreground">Group Not Found</h1>
-          </div>
-          <Card className="shadow-lg border-0 bg-card">
-            <CardContent className="p-8 text-center">
-              <X className="mx-auto h-16 w-16 text-destructive mb-4" />
-              <p className="text-muted-foreground text-lg">The requested group could not be found.</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="space-y-6">
+         <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/groups"><ArrowLeft className="h-4 w-4 mr-1" />Back to Groups</Link>
+          </Button>
+        <Card className="shadow-lg border-destructive bg-destructive/10">
+          <CardContent className="p-8 text-center">
+            <X className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <CardTitle className="text-xl text-destructive">Group Not Found</CardTitle>
+            <CardDescription className="text-destructive/80">The requested group could not be found or you do not have permission to view it.</CardDescription>
+          </CardContent>
+        </Card>
       </div>
     )
   }
   
   const getStatusBadge = () => {
     if (group.isEnabled === false) {
-      return <Badge variant="outline" className="text-yellow-700 border-yellow-500 dark:text-yellow-300"><Activity className="mr-1 h-3 w-3" />System Disabled</Badge>;
+      return <Badge variant="outline" className="text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="mr-1.5 h-3 w-3" />System Disabled</Badge>;
     }
     if (group.denyAccess) {
-      return <Badge variant="secondary"><LockKeyhole className="mr-1 h-3 w-3" /> Access Denied</Badge>;
+      return <Badge variant="secondary" className="bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="mr-1.5 h-3 w-3" /> Access Denied</Badge>;
     }
-    return <Badge variant="default"><UnlockKeyhole className="mr-1 h-3 w-3" /> Access Allowed</Badge>;
+    return <Badge variant="default" className="bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="mr-1.5 h-3 w-3" /> Access Allowed</Badge>;
   };
 
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Button variant="ghost" size="sm" className="mr-2 hover:bg-muted" asChild>
-              <Link href="/dashboard/groups">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back
-              </Link>
-            </Button>
-            <div className="flex flex-col">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center">
-                    <FolderKanban className="mr-3 h-8 w-8 text-primary" />
-                    Group: {group.groupName}
-                </h1>
-                <div className="mt-1 ml-12">{getStatusBadge()}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {editing ? (
-              <>
-                <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => setEditing(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Group
-              </Button>
-            )}
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" className="h-9 w-9 flex-shrink-0" asChild>
+            <Link href="/dashboard/groups">
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back to Groups</span>
+            </Link>
+          </Button>
+          <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center">
+                  <FolderKanban className="mr-3 h-7 w-7 text-primary flex-shrink-0" />
+                  {group.groupName}
+              </h1>
+              <div className="mt-1.5">{getStatusBadge()}</div>
           </div>
         </div>
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          {editing ? (
+            <>
+              <Button variant="outline" onClick={() => setEditing(false)} disabled={saving} className="w-full sm:w-auto">
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setEditing(true)} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Group
+            </Button>
+          )}
+        </div>
+      </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Card className="shadow-lg border-0 bg-card">
-              <CardHeader className="border-b">
-                <CardTitle className="text-xl font-semibold text-foreground">Group Information</CardTitle>
-                <CardDescription className="text-muted-foreground">Basic group settings and configuration</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                <div className="space-y-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="shadow-md border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="text-xl font-semibold text-foreground flex items-center"><Info className="mr-2 h-5 w-5 text-primary"/>Group Information</CardTitle>
+              <CardDescription className="text-muted-foreground">View and edit group settings and configuration.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
                   <Label htmlFor="groupName" className="text-sm font-medium text-muted-foreground">Group Name</Label>
-                  <Input id="groupName" value={group.groupName} disabled className="bg-muted"/>
+                  <Input id="groupName" value={group.groupName} disabled className="bg-muted/70 cursor-not-allowed"/>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="authMethod" className="text-sm font-medium text-muted-foreground">Authentication Method</Label>
-                  <div className="p-3 border rounded-lg bg-muted">
+                  <div className="p-2.5 border rounded-md bg-muted/70 text-sm">
                       <Badge variant="outline">{group.authMethod}</Badge>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="role" className="text-sm font-medium text-muted-foreground">Role</Label>
                   {editing ? (
                     <Select value={formData.role} onValueChange={(value) => handleSelectChange("role", value)}>
-                      <SelectTrigger id="role">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
+                      <SelectTrigger id="role"><SelectValue placeholder="Select role" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="User">User</SelectItem>
-                        <SelectItem value="Admin">Admin</SelectItem>
+                        <SelectItem value="User">👤 User</SelectItem>
+                        <SelectItem value="Admin">👑 Admin</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
-                   <div className="p-3 border rounded-lg bg-muted">
+                   <div className="p-2.5 border rounded-md bg-muted/70 text-sm">
                       <Badge variant={group.role === "Admin" ? "default" : "secondary"}>{group.role}</Badge>
                   </div>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="accessControl" className="text-sm font-medium text-muted-foreground">Access Control Rules</Label>
-                  {editing ? (
-                    <Textarea
-                      id="accessControl"
-                      name="accessControl"
-                      value={formData.accessControl}
-                      onChange={handleChange}
-                      placeholder="Enter access control rules separated by commas"
-                      rows={3}
-                      className="border-input focus:border-primary min-h-[80px]"
-                    />
-                  ) : (
-                    <div className="p-3 border rounded-lg bg-muted min-h-[40px]">
-                      {group.accessControl && group.accessControl.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {group.accessControl.map((rule, index) => (
-                            <Badge key={index} variant="outline" className="bg-card">
-                              {rule}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No access control rules</span>
-                      )}
-                    </div>
-                  )}
-                </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="groupRange" className="text-sm font-medium text-muted-foreground">Group Range</Label>
-                  {editing ? (
-                    <Textarea
-                      id="groupRange"
-                      name="groupRange"
-                      value={formData.groupRange}
-                      onChange={handleChange}
-                      placeholder="Enter group IP ranges separated by commas"
-                      rows={3}
-                      className="border-input focus:border-primary min-h-[80px]"
+                 <div className="flex items-center space-x-3 pt-3 md:pt-5">
+                    <Checkbox
+                        id="mfa"
+                        checked={editing ? formData.mfa : group.mfa}
+                        onCheckedChange={(checked) => editing && handleCheckboxChange("mfa", Boolean(checked))}
+                        disabled={!editing}
                     />
-                  ) : (
-                    <div className="p-3 border rounded-lg bg-muted min-h-[40px]">
-                      {group.groupRange && group.groupRange.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {group.groupRange.map((range, index) => (
-                            <Badge key={index} variant="outline" className="bg-card flex items-center">
-                             <Network className="h-3 w-3 mr-1" /> {range}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No group ranges defined</span>
-                      )}
-                    </div>
-                  )}
+                    <Label htmlFor="mfa" className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <KeyRound className="h-4 w-4 text-muted-foreground" /> Require MFA
+                    </Label>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="groupSubnet" className="text-sm font-medium text-muted-foreground">Group Subnet</Label>
-                  {editing ? (
-                    <Textarea
-                      id="groupSubnet"
-                      name="groupSubnet"
-                      value={formData.groupSubnet}
-                      onChange={handleChange}
-                      placeholder="Enter group subnets separated by commas"
-                      rows={3}
-                      className="border-input focus:border-primary min-h-[80px]"
-                    />
-                  ) : (
-                    <div className="p-3 border rounded-lg bg-muted min-h-[40px]">
-                      {group.groupSubnet && group.groupSubnet.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {group.groupSubnet.map((subnet, index) => (
-                            <Badge key={index} variant="outline" className="bg-card flex items-center">
-                             <Router className="h-3 w-3 mr-1" /> {subnet}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No group subnets defined</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                {editing && (
-                  <>
-                    <div className="space-y-2 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
-                      <div className="flex items-center space-x-2">
-                         <Checkbox
-                          id="denyAccess"
-                          checked={formData.denyAccess}
-                          onCheckedChange={(checked) => handleCheckboxChange("denyAccess", Boolean(checked))}
-                        />
-                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">
-                          Deny VPN Access to this Group
-                        </Label>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        If checked, users in this group (who are not individually allowed) will be denied VPN access.
-                      </p>
-                    </div>
-                     <div className="space-y-2 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
-                      <div className="flex items-center space-x-2">
-                         <Checkbox
-                          id="mfa"
-                          checked={formData.mfa}
-                          onCheckedChange={(checked) => handleCheckboxChange("mfa", Boolean(checked))}
-                        />
-                        <Label htmlFor="mfa" className="text-sm font-medium text-foreground">
-                          Require MFA for this Group
-                        </Label>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        If checked, Multi-Factor Authentication will be required for users in this group.
-                      </p>
-                    </div>
-                  </>
-                )}
-
-
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">MFA Required</span>
-                    </div>
-                    <Badge variant={group.mfa ? "default" : "outline"}>{group.mfa ? "Yes" : "No"}</Badge>
-                  </div>
-
-                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2">
-                      {group.denyAccess ? <LockKeyhole className="h-4 w-4 text-destructive" /> : <UnlockKeyhole className="h-4 w-4 text-green-600" />}
-                      <span className="text-sm font-medium">VPN Access</span>
-                    </div>
-                    <Badge variant={group.denyAccess ? "destructive" : "default"} className="px-3 py-1">
-                      {group.denyAccess ? "Denied" : "Allowed"}
-                    </Badge>
-                  </div>
-                  
-                  {typeof group.isEnabled === 'boolean' && (
-                     <div className="col-span-2 flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                           {group.isEnabled ? <Power className="h-4 w-4 text-green-600" /> : <PowerOffIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />}
-                           <span className="text-sm font-medium">Overall Group Status</span>
-                         </div>
-                         <Badge variant={group.isEnabled ? "default" : "outline"} className={`px-3 py-1 ${!group.isEnabled && "border-yellow-500 text-yellow-700 dark:text-yellow-300"}`}>
-                           {group.isEnabled ? "System Enabled" : "System Disabled"}
-                         </Badge>
-                      </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Group Actions & Members */}
-          <div className="space-y-6">
-            <Card className="shadow-lg border-0 bg-card">
-              <CardHeader className="border-b">
-                <CardTitle className="text-xl font-semibold text-foreground">Group Actions</CardTitle>
-                <CardDescription className="text-muted-foreground">Manage VPN access and group status</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-6">
-                {group.denyAccess ? (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20"
-                    onClick={() => initiateDenyAccessAction("allow")}
-                    disabled={saving || group.isEnabled === false}
-                    title={group.isEnabled === false ? "Group is system disabled" : "Allow VPN access for this group"}
-                  >
-                    <UnlockKeyhole className="mr-2 h-4 w-4" />
-                    Allow VPN Access
-                  </Button>
+              </div>
+              
+              <div className="space-y-1.5">
+                <Label htmlFor="accessControl" className="text-sm font-medium text-muted-foreground">Access Control Rules</Label>
+                {editing ? (
+                  <Textarea id="accessControl" name="accessControl" value={formData.accessControl} onChange={handleChange} placeholder="e.g., 192.168.1.0/24, 10.0.0.0/8" rows={3} className="min-h-[70px]" />
                 ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20"
-                    onClick={() => initiateDenyAccessAction("deny")}
-                    disabled={saving || group.isEnabled === false}
-                    title={group.isEnabled === false ? "Group is system disabled" : "Deny VPN access for this group"}
-                  >
-                    <LockKeyhole className="mr-2 h-4 w-4" />
-                    Deny VPN Access
-                  </Button>
+                  <div className="p-3 border rounded-md bg-muted/70 min-h-[40px] text-sm">
+                    {group.accessControl && group.accessControl.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.accessControl.map((rule, index) => ( <Badge key={index} variant="outline" className="bg-background">{rule}</Badge> ))}
+                      </div>
+                    ) : (<span className="text-muted-foreground italic">No access control rules</span>)}
+                  </div>
                 )}
-
-                {group.isEnabled === false && (
-                   <Button
-                    variant="outline"
-                    className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20"
-                    onClick={() => initiateEnableDisableAction("enable")}
-                    disabled={saving}
-                    title="Enable this group system-wide"
-                  >
-                    <Power className="mr-2 h-4 w-4" />
-                    Enable Group
-                  </Button>
-                )}
-                
-                {group.isEnabled === false && (
-                    <p className="text-xs text-center text-yellow-600 dark:text-yellow-400 pt-1">
-                        VPN access actions are disabled because the group is system disabled.
-                    </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-lg border-0 bg-card">
-              <CardHeader className="border-b">
-                <CardTitle className="flex items-center gap-2 text-xl font-semibold text-foreground">
-                  <Users className="h-5 w-5" />
-                  Group Members ({members.length})
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">Users assigned to this group</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {members.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No members in this group.</p>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {members.slice(0, 10).map((member) => (
-                      <div key={member.username} className="flex items-center justify-between p-3 border rounded-md bg-muted hover:bg-muted/80">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{member.username}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                    <Label htmlFor="groupRange" className="text-sm font-medium text-muted-foreground">Group IP Range</Label>
+                    {editing ? (
+                        <Textarea id="groupRange" name="groupRange" value={formData.groupRange} onChange={handleChange} placeholder="e.g., 10.8.0.10-10.8.0.100" rows={3} className="min-h-[70px]" />
+                    ) : (
+                        <div className="p-3 border rounded-md bg-muted/70 min-h-[40px] text-sm">
+                        {group.groupRange && group.groupRange.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                            {group.groupRange.map((range, index) => ( <Badge key={index} variant="outline" className="bg-background flex items-center"><Network className="h-3.5 w-3.5 mr-1.5" /> {range}</Badge> ))}
+                            </div>
+                        ) : (<span className="text-muted-foreground italic">No group ranges defined</span>)}
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/users/${member.username}`}>View</Link>
-                        </Button>
-                      </div>
-                    ))}
-                    {members.length > 10 && (
-                      <div className="text-center pt-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/users?groupName=${groupName}`}>View All {members.length} Members</Link>
-                        </Button>
-                      </div>
                     )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <Label htmlFor="groupSubnet" className="text-sm font-medium text-muted-foreground">Group Subnet</Label>
+                    {editing ? (
+                        <Textarea id="groupSubnet" name="groupSubnet" value={formData.groupSubnet} onChange={handleChange} placeholder="e.g., 10.8.0.0/24" rows={3} className="min-h-[70px]" />
+                    ) : (
+                        <div className="p-3 border rounded-md bg-muted/70 min-h-[40px] text-sm">
+                        {group.groupSubnet && group.groupSubnet.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                            {group.groupSubnet.map((subnet, index) => ( <Badge key={index} variant="outline" className="bg-background flex items-center"><Router className="h-3.5 w-3.5 mr-1.5" /> {subnet}</Badge> ))}
+                            </div>
+                        ) : (<span className="text-muted-foreground italic">No group subnets defined</span>)}
+                        </div>
+                    )}
+                </div>
+              </div>
+              
+              {editing && (
+                <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border space-y-1.5">
+                    <div className="flex items-center space-x-3">
+                        <Checkbox id="denyAccess" checked={formData.denyAccess} onCheckedChange={(checked) => handleCheckboxChange("denyAccess", Boolean(checked))} />
+                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Deny VPN Access to this Group</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-7">If checked, users in this group (not individually allowed) will be denied VPN access.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card className="shadow-md border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="text-lg font-semibold text-foreground flex items-center"><Settings className="mr-2 h-5 w-5 text-primary"/>Group Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-6">
+              {group.denyAccess ? (
+                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={() => initiateDenyAccessAction("allow")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Allow VPN access for this group"}>
+                  <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow VPN Access
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20" onClick={() => initiateDenyAccessAction("deny")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Deny VPN access for this group"}>
+                  <LockKeyhole className="mr-2 h-4 w-4" /> Deny VPN Access
+                </Button>
+              )}
+
+              {group.isEnabled === false && (
+                 <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={initiateEnableAction} disabled={saving} title="Enable this group system-wide">
+                  <Power className="mr-2 h-4 w-4" /> Enable Group
+                </Button>
+              )}
+              
+              {group.isEnabled === false && (
+                  <p className="text-xs text-center text-yellow-600 dark:text-yellow-400 pt-1">
+                      VPN access actions are disabled because the group is system disabled.
+                  </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-0">
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Users className="h-5 w-5 text-primary" />
+                Group Members ({members.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {members.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No members in this group.</p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {members.slice(0, 5).map((member) => ( // Show up to 5 members initially
+                    <div key={member.username} className="flex items-center justify-between p-2.5 border rounded-md bg-muted/50 hover:bg-muted/80">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{member.username}</p>
+                        <p className="text-xs text-muted-foreground">{member.email}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/dashboard/users/${member.username}`}>View</Link>
+                      </Button>
+                    </div>
+                  ))}
+                  {members.length > 5 && (
+                    <div className="text-center pt-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/users?groupName=${groupName}`}>View All {members.length} Members</Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -657,39 +533,29 @@ export default function GroupDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsConfirmAccessActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeDenyAccessAction}
-              disabled={saving}
-              className={confirmAccessActionDetails?.action === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90"}
-            >
+            <AlertDialogAction onClick={executeDenyAccessAction} disabled={saving} className={confirmAccessActionDetails?.action === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
               {saving ? "Processing..." : `Confirm ${confirmAccessActionDetails?.action === "allow" ? "Allow Access" : "Deny Access"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmEnableDisableDialogOpen} onOpenChange={setIsConfirmEnableDisableDialogOpen}>
+      <AlertDialog open={isConfirmEnableActionDialogOpen} onOpenChange={setIsConfirmEnableActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Group Status Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Enable Group</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {enableDisableActionDetails?.action === "enable" ? "enable" : "disable"} the group "{enableDisableActionDetails?.groupName}"?
-              {enableDisableActionDetails?.action === "disable" && " This will prevent users in this group from connecting if their access relies solely on this group."}
+              Are you sure you want to enable the group "{enableActionDetails?.groupName}"? This will allow users in this group to connect if not individually denied.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmEnableDisableDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeEnableDisableAction}
-              disabled={saving}
-              className={enableDisableActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
-            >
-              {saving ? "Processing..." : `Confirm ${enableDisableActionDetails?.action === "enable" ? "Enable" : "Disable"} Group`}
+            <AlertDialogCancel onClick={() => setIsConfirmEnableActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeEnableAction} disabled={saving} className={"bg-primary hover:bg-primary/90"}>
+              {saving ? "Processing..." : `Confirm Enable Group`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   )
 }
