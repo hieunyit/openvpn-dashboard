@@ -19,7 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { createUser, getGroups } from "@/lib/api"
-import { User, Mail, Lock, Calendar, Network, Shield } from "lucide-react"
+import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
+import { generateRandomPassword } from "@/lib/utils"
 
 interface Group {
   groupName: string
@@ -86,6 +87,15 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
+  
+  const handleGeneratePassword = () => {
+    const newPassword = generateRandomPassword();
+    setFormData((prev) => ({ ...prev, password: newPassword }));
+    toast({
+      title: "Password Generated",
+      description: "A new random password has been generated and filled.",
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,11 +130,11 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
 
       onOpenChange(false)
       onSuccess()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create user:", error)
       toast({
         title: "❌ Failed to create user",
-        description: "Please check your input and try again.",
+        description: error.message || "Please check your input and try again.",
         variant: "destructive",
       })
     } finally {
@@ -145,7 +155,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center">
@@ -192,16 +202,21 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
               
               {formData.authMethod === 'local' && (
                 <div className="space-y-2">
-                  <Label htmlFor="password-dialog" className="text-sm font-medium">
-                    Password *
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password-dialog" className="text-sm font-medium">
+                      Password *
+                    </Label>
+                    <Button type="button" variant="link" size="sm" onClick={handleGeneratePassword} className="p-0 h-auto text-xs">
+                       <RefreshCw className="mr-1 h-3 w-3"/> Generate
+                    </Button>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password-dialog"
                       name="password"
-                      type="password"
-                      placeholder="Enter secure password"
+                      type="text" 
+                      placeholder="Enter or generate password"
                       value={formData.password}
                       onChange={handleChange}
                       className="pl-10"

@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { createUser, getGroups } from "@/lib/api"
-import { formatDateForInput } from "@/lib/utils"
-import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield } from "lucide-react"
+import { formatDateForInput, generateRandomPassword } from "@/lib/utils"
+import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
 import Link from "next/link"
 
 interface Group {
@@ -69,6 +69,15 @@ export default function NewUserPage() {
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
+
+  const handleGeneratePassword = () => {
+    const newPassword = generateRandomPassword();
+    setFormData((prev) => ({ ...prev, password: newPassword }));
+    toast({
+      title: "Password Generated",
+      description: "A new random password has been generated and filled.",
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -216,16 +225,21 @@ export default function NewUserPage() {
                   
                   {formData.authMethod === 'local' && (
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">
-                        Password *
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">
+                          Password *
+                        </Label>
+                        <Button type="button" variant="link" size="sm" onClick={handleGeneratePassword} className="p-0 h-auto text-xs">
+                          <RefreshCw className="mr-1 h-3 w-3"/> Generate
+                        </Button>
+                      </div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="password"
                           name="password"
-                          type="password"
-                          placeholder="Enter secure password"
+                          type="text" 
+                          placeholder="Enter or generate password"
                           value={formData.password}
                           onChange={handleChange}
                           className="pl-10 border-input focus:border-primary focus:ring-primary"
@@ -383,6 +397,3 @@ export default function NewUserPage() {
     </div>
   )
 }
-
-
-    

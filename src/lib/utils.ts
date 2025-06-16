@@ -84,3 +84,28 @@ export function formatBytes(bytes: number, decimals = 2): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
+
+export function generateRandomPassword(length = 14): string {
+  const lowercaseChars = "abcdefghijklmnopqrstuvwxyz";
+  const uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const numberChars = "0123456789";
+  const symbolChars = "!@#$%^&*()_+-=[]{};':\",./<>?";
+  
+  const allChars = lowercaseChars + uppercaseChars + numberChars + symbolChars;
+  
+  let password = "";
+  
+  // Ensure at least one of each type
+  password += lowercaseChars[Math.floor(Math.random() * lowercaseChars.length)];
+  password += uppercaseChars[Math.floor(Math.random() * uppercaseChars.length)];
+  password += numberChars[Math.floor(Math.random() * numberChars.length)];
+  password += symbolChars[Math.floor(Math.random() * symbolChars.length)];
+  
+  // Fill the rest of the password length
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password to make it more random
+  return password.split('').sort(() => 0.5 - Math.random()).join('');
+}
