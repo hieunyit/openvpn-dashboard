@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getUserExpirations, getUsers, getGroups, getVPNStatus } from "@/lib/api"
-import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity } from "lucide-react"
+import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
@@ -313,7 +313,7 @@ export default function DashboardPage() {
                   <Link href="/dashboard/groups"><FolderKanban className="mr-2 h-4 w-4"/>Manage Groups</Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/search"><SearchIcon className="mr-2 h-4 w-4"/>Advanced Search</Link>
+                  <Link href="/dashboard/search"><Search className="mr-2 h-4 w-4"/>Advanced Search</Link>
                 </Button>
                  <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4"/>System Settings</Link>
@@ -359,3 +359,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+
