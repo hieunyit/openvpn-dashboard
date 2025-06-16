@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, PowerOff as PowerOffIcon } from "lucide-react"
+import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, PowerOff as PowerOffIcon, Network, Router } from "lucide-react"
 import Link from "next/link"
 
 interface Group {
@@ -36,14 +36,13 @@ interface Group {
   mfa: boolean
   denyAccess: boolean
   accessControl: string[]
-  isEnabled?: boolean 
+  groupRange?: string[]
+  groupSubnet?: string[]
+  isEnabled?: boolean
   memberCount?: number
   createdAt?: string
-  // Fields from EnhancedGroupResponse that might not be in GroupResponse
   lastModified?: string;
   lastUsed?: string;
-  groupRange?: string[];
-  groupSubnet?: string[];
 }
 
 interface User {
@@ -64,10 +63,13 @@ export default function GroupDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
-    authMethod: "", 
-    role: "", 
+    authMethod: "", // Display only
+    role: "",
     accessControl: "",
-    denyAccess: false, 
+    denyAccess: false,
+    mfa: false,
+    groupRange: "",
+    groupSubnet: "",
   })
 
   const [isConfirmAccessActionDialogOpen, setIsConfirmAccessActionDialogOpen] = useState(false)
@@ -92,15 +94,19 @@ export default function GroupDetailPage() {
       if (groupData) {
         const processedGroupData = {
             ...groupData,
-            denyAccess: groupData.denyAccess ?? false, 
-            isEnabled: typeof groupData.isEnabled === 'boolean' ? groupData.isEnabled : true // Default to true if undefined
+            denyAccess: groupData.denyAccess ?? false,
+            mfa: groupData.mfa ?? false,
+            isEnabled: typeof groupData.isEnabled === 'boolean' ? groupData.isEnabled : true 
         };
         setGroup(processedGroupData)
         setFormData({
-          authMethod: processedGroupData.authMethod || "",
-          role: processedGroupData.role || "",
+          authMethod: processedGroupData.authMethod || "", // Display only
+          role: processedGroupData.role || "User",
           accessControl: processedGroupData.accessControl?.join(", ") || "",
           denyAccess: processedGroupData.denyAccess,
+          mfa: processedGroupData.mfa,
+          groupRange: processedGroupData.groupRange?.join(", ") || "",
+          groupSubnet: processedGroupData.groupSubnet?.join(", ") || "",
         })
       } else {
         toast({
@@ -124,7 +130,7 @@ export default function GroupDetailPage() {
 
   const fetchGroupMembers = async () => {
     try {
-      const usersData = await getUsers(1, 100, { groupName }) 
+      const usersData = await getUsers(1, 100, { groupName })
       setMembers(usersData.users || [])
     } catch (error: any) {
       console.error("Failed to fetch group members:", error)
@@ -145,16 +151,27 @@ export default function GroupDetailPage() {
     setFormData((prev) => ({ ...prev, [name]: checked }))
   }
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
   const handleSave = async () => {
     try {
       setSaving(true)
-      // Only accessControl and denyAccess are updatable via this PUT route per Swagger for UpdateGroupRequest
-      const groupDataToUpdate: { accessControl: string[]; denyAccess: boolean } = {
-        accessControl: formData.accessControl
-          .split(",")
-          .map((ac) => ac.trim())
-          .filter((ac) => ac),
+      const groupDataToUpdate: {
+        role?: string;
+        mfa?: boolean;
+        accessControl?: string[];
+        denyAccess?: boolean;
+        groupRange?: string[];
+        groupSubnet?: string[];
+      } = {
+        role: formData.role,
+        mfa: formData.mfa,
+        accessControl: formData.accessControl.split(",").map((ac) => ac.trim()).filter((ac) => ac),
         denyAccess: formData.denyAccess,
+        groupRange: formData.groupRange.split(",").map((r) => r.trim()).filter((r) => r),
+        groupSubnet: formData.groupSubnet.split(",").map((s) => s.trim()).filter((s) => s),
       }
 
       await updateGroup(groupName, groupDataToUpdate)
@@ -165,7 +182,7 @@ export default function GroupDetailPage() {
       })
 
       setEditing(false)
-      fetchGroup() 
+      fetchGroup()
     } catch (error: any) {
       console.error("Failed to update group:", error)
       toast({
@@ -189,14 +206,16 @@ export default function GroupDetailPage() {
     const { action, groupName: targetGroupName } = confirmAccessActionDetails;
 
     try {
-      setSaving(true); 
+      setSaving(true);
       const newDenyAccessState = action === "deny";
-      await updateGroup(targetGroupName, { denyAccess: newDenyAccessState }); // Only send denyAccess
+      // We only send denyAccess for this specific action via the buttons,
+      // other fields are updated through the main edit form.
+      await updateGroup(targetGroupName, { denyAccess: newDenyAccessState });
       toast({
         title: "VPN Access Updated",
         description: `VPN access for group ${targetGroupName} has been ${action === "allow" ? "allowed" : "denied"}.`,
       });
-      fetchGroup(); 
+      fetchGroup();
     } catch (error: any) {
       console.error(`Failed to ${action} VPN access for group:`, error);
       toast({
@@ -291,7 +310,7 @@ export default function GroupDetailPage() {
   }
   
   const getStatusBadge = () => {
-    if (group.isEnabled === false) { 
+    if (group.isEnabled === false) {
       return <Badge variant="outline" className="text-yellow-700 border-yellow-500 dark:text-yellow-300"><Activity className="mr-1 h-3 w-3" />System Disabled</Badge>;
     }
     if (group.denyAccess) {
@@ -342,7 +361,6 @@ export default function GroupDetailPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Group Information - Takes 2 columns */}
           <div className="lg:col-span-2">
             <Card className="shadow-lg border-0 bg-card">
               <CardHeader className="border-b">
@@ -364,9 +382,21 @@ export default function GroupDetailPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="role" className="text-sm font-medium text-muted-foreground">Role</Label>
+                  {editing ? (
+                    <Select value={formData.role} onValueChange={(value) => handleSelectChange("role", value)}>
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="User">User</SelectItem>
+                        <SelectItem value="Admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
                    <div className="p-3 border rounded-lg bg-muted">
                       <Badge variant={group.role === "Admin" ? "default" : "secondary"}>{group.role}</Badge>
                   </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -378,8 +408,8 @@ export default function GroupDetailPage() {
                       value={formData.accessControl}
                       onChange={handleChange}
                       placeholder="Enter access control rules separated by commas"
-                      rows={4}
-                      className="border-input focus:border-primary min-h-[100px]"
+                      rows={3}
+                      className="border-input focus:border-primary min-h-[80px]"
                     />
                   ) : (
                     <div className="p-3 border rounded-lg bg-muted min-h-[40px]">
@@ -398,22 +428,97 @@ export default function GroupDetailPage() {
                   )}
                 </div>
                 
-                {editing && (
-                  <div className="space-y-2 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
-                    <div className="flex items-center space-x-2">
-                       <Checkbox
-                        id="denyAccess"
-                        checked={formData.denyAccess}
-                        onCheckedChange={(checked) => handleCheckboxChange("denyAccess", Boolean(checked))}
-                      />
-                      <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">
-                        Deny VPN Access to this Group
-                      </Label>
+                <div className="space-y-2">
+                  <Label htmlFor="groupRange" className="text-sm font-medium text-muted-foreground">Group Range</Label>
+                  {editing ? (
+                    <Textarea
+                      id="groupRange"
+                      name="groupRange"
+                      value={formData.groupRange}
+                      onChange={handleChange}
+                      placeholder="Enter group IP ranges separated by commas"
+                      rows={3}
+                      className="border-input focus:border-primary min-h-[80px]"
+                    />
+                  ) : (
+                    <div className="p-3 border rounded-lg bg-muted min-h-[40px]">
+                      {group.groupRange && group.groupRange.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {group.groupRange.map((range, index) => (
+                            <Badge key={index} variant="outline" className="bg-card flex items-center">
+                             <Network className="h-3 w-3 mr-1" /> {range}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No group ranges defined</span>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      If checked, users in this group (who are not individually allowed) will be denied VPN access.
-                    </p>
-                  </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="groupSubnet" className="text-sm font-medium text-muted-foreground">Group Subnet</Label>
+                  {editing ? (
+                    <Textarea
+                      id="groupSubnet"
+                      name="groupSubnet"
+                      value={formData.groupSubnet}
+                      onChange={handleChange}
+                      placeholder="Enter group subnets separated by commas"
+                      rows={3}
+                      className="border-input focus:border-primary min-h-[80px]"
+                    />
+                  ) : (
+                    <div className="p-3 border rounded-lg bg-muted min-h-[40px]">
+                      {group.groupSubnet && group.groupSubnet.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {group.groupSubnet.map((subnet, index) => (
+                            <Badge key={index} variant="outline" className="bg-card flex items-center">
+                             <Router className="h-3 w-3 mr-1" /> {subnet}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No group subnets defined</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {editing && (
+                  <>
+                    <div className="space-y-2 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
+                      <div className="flex items-center space-x-2">
+                         <Checkbox
+                          id="denyAccess"
+                          checked={formData.denyAccess}
+                          onCheckedChange={(checked) => handleCheckboxChange("denyAccess", Boolean(checked))}
+                        />
+                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">
+                          Deny VPN Access to this Group
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        If checked, users in this group (who are not individually allowed) will be denied VPN access.
+                      </p>
+                    </div>
+                     <div className="space-y-2 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
+                      <div className="flex items-center space-x-2">
+                         <Checkbox
+                          id="mfa"
+                          checked={formData.mfa}
+                          onCheckedChange={(checked) => handleCheckboxChange("mfa", Boolean(checked))}
+                        />
+                        <Label htmlFor="mfa" className="text-sm font-medium text-foreground">
+                          Require MFA for this Group
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        If checked, Multi-Factor Authentication will be required for users in this group.
+                      </p>
+                    </div>
+                  </>
                 )}
 
 
@@ -436,7 +541,6 @@ export default function GroupDetailPage() {
                     </Badge>
                   </div>
                   
-                  {/* Display "System Disabled" or "System Enabled" based on isEnabled */}
                   {typeof group.isEnabled === 'boolean' && (
                      <div className="col-span-2 flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-2">

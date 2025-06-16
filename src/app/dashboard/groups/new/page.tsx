@@ -10,18 +10,22 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { createGroup } from "@/lib/api"
-import { ArrowLeft, Upload, Users, Network, Shield } from "lucide-react" // Added Users, Network, Shield
+import { ArrowLeft, Upload, Users, Network, Shield, Router, KeyRound } from "lucide-react"
 import Link from "next/link"
 
 export default function NewGroupPage() {
   const [formData, setFormData] = useState({
     groupName: "",
     authMethod: "local",
-    // role: "User", // Removed role
+    role: "User",
+    mfa: false,
     accessControl: "",
+    groupRange: "",
+    groupSubnet: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
@@ -35,21 +39,24 @@ export default function NewGroupPage() {
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
+  
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: checked }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      // Format the data for the API
       const groupData = {
         groupName: formData.groupName,
         authMethod: formData.authMethod,
-        // role: formData.role, // Removed role
-        accessControl: formData.accessControl
-          .split(",")
-          .map((ac) => ac.trim())
-          .filter((ac) => ac),
+        role: formData.role,
+        mfa: formData.mfa,
+        accessControl: formData.accessControl.split(",").map((ac) => ac.trim()).filter((ac) => ac),
+        groupRange: formData.groupRange.split(",").map((r) => r.trim()).filter((r) => r),
+        groupSubnet: formData.groupSubnet.split(",").map((s) => s.trim()).filter((s) => s),
       }
 
       await createGroup(groupData)
@@ -73,7 +80,6 @@ export default function NewGroupPage() {
   }
 
   const handleImportGroups = () => {
-    // TODO: Implement import functionality
     toast({
       title: "Coming Soon",
       description: "Import groups functionality will be available soon.",
@@ -112,7 +118,7 @@ export default function NewGroupPage() {
               <div className="space-y-6">
                  <h3 className="text-lg font-semibold text-foreground flex items-center border-b pb-2 mb-4">
                   <Shield className="mr-2 h-5 w-5 text-primary" />
-                  Basic Details
+                  Basic Details & Authentication
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -147,29 +153,87 @@ export default function NewGroupPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="role" className="text-sm font-medium text-muted-foreground">Role *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => handleSelectChange("role", value)}
+                      required
+                    >
+                      <SelectTrigger className="border-input focus:border-primary">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="User">👤 User</SelectItem>
+                        <SelectItem value="Admin">👑 Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2 flex items-center pt-6">
+                     <Checkbox
+                        id="mfa"
+                        checked={formData.mfa}
+                        onCheckedChange={(checked) => handleCheckboxChange("mfa", Boolean(checked))}
+                        className="mr-2"
+                      />
+                      <Label htmlFor="mfa" className="text-sm font-medium text-foreground -mt-1">
+                        Require MFA for this Group
+                      </Label>
+                  </div>
                 </div>
               </div>
               
-              {/* Role field removed */}
 
               <div className="space-y-6">
                  <h3 className="text-lg font-semibold text-foreground flex items-center border-b pb-2 mb-4">
                   <Network className="mr-2 h-5 w-5 text-primary" />
-                  Network Configuration
+                  Network Configuration (Optional)
                 </h3>
                 <div className="space-y-2">
-                  <Label htmlFor="accessControl" className="text-sm font-medium text-muted-foreground">Access Control</Label>
+                  <Label htmlFor="accessControl" className="text-sm font-medium text-muted-foreground">Access Control Rules</Label>
                   <Textarea
                     id="accessControl"
                     name="accessControl"
                     placeholder="Enter access control rules separated by commas (e.g., 192.168.1.0/24, 10.0.0.0/8)"
                     value={formData.accessControl}
                     onChange={handleChange}
-                    rows={4}
-                    className="border-input focus:border-primary min-h-[100px]"
+                    rows={3}
+                    className="border-input focus:border-primary min-h-[80px]"
                   />
-                   <p className="text-xs text-muted-foreground">🔒 Optional: Define network access restrictions for this group</p>
+                   <p className="text-xs text-muted-foreground">🔒 Define network access restrictions for this group</p>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="groupRange" className="text-sm font-medium text-muted-foreground">Group IP Range</Label>
+                        <Textarea
+                            id="groupRange"
+                            name="groupRange"
+                            placeholder="e.g., 172.16.0.0/24, 172.17.0.0/24"
+                            value={formData.groupRange}
+                            onChange={handleChange}
+                            rows={3}
+                            className="border-input focus:border-primary min-h-[80px]"
+                        />
+                        <p className="text-xs text-muted-foreground flex items-center"><Network className="h-3 w-3 mr-1"/>IP ranges for group-specific addressing.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="groupSubnet" className="text-sm font-medium text-muted-foreground">Group Subnets</Label>
+                        <Textarea
+                            id="groupSubnet"
+                            name="groupSubnet"
+                            placeholder="e.g., 10.8.0.0/24, 10.9.0.0/24"
+                            value={formData.groupSubnet}
+                            onChange={handleChange}
+                            rows={3}
+                            className="border-input focus:border-primary min-h-[80px]"
+                        />
+                        <p className="text-xs text-muted-foreground flex items-center"><Router className="h-3 w-3 mr-1"/>Subnets accessible by this group.</p>
+                    </div>
+                </div>
+
               </div>
 
             </CardContent>
