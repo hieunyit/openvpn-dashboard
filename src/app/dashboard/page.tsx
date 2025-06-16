@@ -17,8 +17,8 @@ import { useToast } from "@/components/ui/use-toast"
 
 interface DashboardStats {
   totalUsers: number
-  activeUsers: number
-  inactiveUsers: number
+  // activeUsers: number; // No longer directly displayed as a primary stat card
+  // inactiveUsers: number; // No longer directly displayed as a primary stat card
   totalGroups: number
   expiringUsersCount30Days: number
   currentlyConnectedUsers: number
@@ -126,8 +126,8 @@ ExpiringUsersTable.displayName = "ExpiringUsersTable";
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
-    activeUsers: 0,
-    inactiveUsers: 0,
+    // activeUsers: 0,
+    // inactiveUsers: 0,
     totalGroups: 0,
     expiringUsersCount30Days: 0,
     currentlyConnectedUsers: 0,
@@ -147,7 +147,7 @@ export default function DashboardPage() {
 
       const [
         usersData, 
-        activeUsersData, 
+        // activeUsersData, // No longer fetched for primary stat cards
         groupsData, 
         expiring3DaysData, 
         expiring7DaysData, 
@@ -156,8 +156,8 @@ export default function DashboardPage() {
         vpnStatusData,
         serverInfoData,
       ] = await Promise.allSettled([
-        getUsers(1, 1),
-        getUsers(1, 1, { isEnabled: "true" }),
+        getUsers(1, 1), // Still needed for totalUsers
+        // getUsers(1, 1, { isEnabled: "true" }), // Removed as activeUsers card is removed
         getGroups(1, 1),
         getUserExpirations(3),
         getUserExpirations(7),
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         promiseResult.status === 'fulfilled' ? promiseResult.value : defaultValue;
 
       const usersResult = getResult(usersData, { total: 0 });
-      const activeUsersResult = getResult(activeUsersData, { total: 0 });
+      // const activeUsersResult = getResult(activeUsersData, { total: 0 }); // Removed
       const groupsResult = getResult(groupsData, { total: 0 });
       const expiring3DaysResult = getResult(expiring3DaysData, { count: 0, users: [] });
       const expiring7DaysResult = getResult(expiring7DaysData, { count: 0, users: [] });
@@ -183,8 +183,8 @@ export default function DashboardPage() {
 
       setStats({
         totalUsers: usersResult.total || 0,
-        activeUsers: activeUsersResult.total || 0,
-        inactiveUsers: (usersResult.total || 0) - (activeUsersResult.total || 0),
+        // activeUsers: activeUsersResult.total || 0, // Removed
+        // inactiveUsers: (usersResult.total || 0) - (activeUsersResult.total || 0), // Removed
         totalGroups: groupsResult.total || 0,
         expiringUsersCount30Days: expiring30DaysResult.count || 0,
         currentlyConnectedUsers: vpnStatusResult.total_connected_users || 0,
@@ -195,7 +195,7 @@ export default function DashboardPage() {
       setExpiringUsers14Days(expiring14DaysResult.users || [])
       setServerInfo(serverInfoResult);
       
-      const errors = [usersData, activeUsersData, groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
+      const errors = [usersData, /*activeUsersData,*/ groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
         .filter(r => r.status === 'rejected')
         // @ts-ignore
         .map(r => r.reason?.message || "An API call failed")
@@ -252,11 +252,9 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Total Users" value={stats.totalUsers} icon={Users} description="All registered VPN users" isLoading={loading} link="/dashboard/users" />
-        <StatCard title="Active Users" value={stats.activeUsers} icon={UserCheck} description={`${stats.totalUsers > 0 ? (((stats.activeUsers || 0) / stats.totalUsers) * 100).toFixed(1) : "0.0"}% enabled`} isLoading={loading} link="/dashboard/users?isEnabled=true" />
         <StatCard title="Currently Connected" value={stats.currentlyConnectedUsers} icon={Wifi} description="Live VPN connections" isLoading={loading} link="/dashboard/status" />
-        <StatCard title="Inactive Users" value={stats.inactiveUsers} icon={UserX} description={`${stats.totalUsers > 0 ? (((stats.inactiveUsers || 0) / stats.totalUsers) * 100).toFixed(1) : "0.0"}% disabled`} isLoading={loading} link="/dashboard/users?isEnabled=false" />
         <StatCard title="Total Groups" value={stats.totalGroups} icon={FolderKanban} description="Configured VPN access groups" isLoading={loading} link="/dashboard/groups" />
       </div>
 
@@ -269,18 +267,7 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Active / Inactive Users</CardTitle>
-                <BarChart3 className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                {loading ? <Skeleton className="h-7 w-24 mb-1" /> : <div className="text-2xl font-bold text-foreground">{stats.activeUsers} / {stats.inactiveUsers}</div>}
-                {loading ? <Skeleton className="h-4 w-32" /> : <p className="text-xs text-muted-foreground">Enabled vs. Disabled users</p>}
-              </CardContent>
-            </Card>
-            
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2"> {/* Adjusted grid for remaining cards */}
             <Card className="shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Critical Expiry (3 Days)</CardTitle>
@@ -380,3 +367,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+
