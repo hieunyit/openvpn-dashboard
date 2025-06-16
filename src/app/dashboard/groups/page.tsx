@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { deleteGroup, updateGroup, bulkGroupActions, searchGroups } from "@/lib/api" // Changed performGroupAction to updateGroup
+import { deleteGroup, updateGroup, bulkGroupActions, searchGroups, performGroupAction } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
@@ -52,6 +52,8 @@ import {
   LockKeyhole,
   UnlockKeyhole,
   Activity,
+  Power,
+  PowerOff as PowerOffIcon,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -62,7 +64,7 @@ interface Group {
   mfa: boolean
   denyAccess: boolean
   accessControl: string[]
-  isEnabled?: boolean // EnhancedGroupResponse has this
+  isEnabled?: boolean 
   memberCount?: number
   createdAt?: string
 }
@@ -71,11 +73,12 @@ interface GroupTableRowProps {
   group: Group;
   selectedGroups: string[];
   onSelectGroup: (groupName: string, checked: boolean) => void;
-  onUpdateGroupAccess: (groupName: string, deny: boolean) => void; // Changed from onGroupAction
+  onUpdateGroupAccess: (groupName: string, deny: boolean) => void;
+  onEnableDisableGroup: (groupName: string, enable: boolean) => void;
   onDeleteGroup: (groupName: string) => void;
 }
 
-const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGroupAccess, onDeleteGroup }: GroupTableRowProps) => {
+const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGroupAccess, onEnableDisableGroup, onDeleteGroup }: GroupTableRowProps) => {
   const getStatusBadge = () => {
     if (group.isEnabled === false) {
       return <Badge variant="outline" className="flex items-center gap-1 text-yellow-700 border-yellow-500 dark:text-yellow-300"><Activity className="h-3 w-3" />System Disabled</Badge>;
@@ -164,14 +167,25 @@ const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGrou
             </DropdownMenuItem>
             <DropdownMenuSeparator />
              {group.denyAccess ? (
-              <DropdownMenuItem onClick={() => onUpdateGroupAccess(group.groupName, false)}>
+              <DropdownMenuItem onClick={() => onUpdateGroupAccess(group.groupName, false)} disabled={group.isEnabled === false}>
                 <UnlockKeyhole className="mr-2 h-4 w-4" />
-                Allow Access
+                Allow VPN Access
               </DropdownMenuItem>
             ) : (
-              <DropdownMenuItem onClick={() => onUpdateGroupAccess(group.groupName, true)}>
+              <DropdownMenuItem onClick={() => onUpdateGroupAccess(group.groupName, true)} disabled={group.isEnabled === false}>
                 <LockKeyhole className="mr-2 h-4 w-4" />
-                Deny Access
+                Deny VPN Access
+              </DropdownMenuItem>
+            )}
+            {group.isEnabled === false ? (
+              <DropdownMenuItem onClick={() => onEnableDisableGroup(group.groupName, true)}>
+                <Power className="mr-2 h-4 w-4" />
+                Enable Group
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onEnableDisableGroup(group.groupName, false)}>
+                <PowerOffIcon className="mr-2 h-4 w-4" />
+                Disable Group
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -204,8 +218,15 @@ export default function GroupsPage() {
   const [groupToUpdateAccess, setGroupToUpdateAccess] = useState<{ groupName: string; deny: boolean } | null>(null);
   const [isConfirmSingleAccessDialogOpen, setIsConfirmSingleAccessDialogOpen] = useState(false);
   
+  const [groupToEnableDisable, setGroupToEnableDisable] = useState<{ groupName: string; enable: boolean } | null>(null);
+  const [isConfirmSingleEnableDisableDialogOpen, setIsConfirmSingleEnableDisableDialogOpen] = useState(false);
+
   const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
+  
+  const [bulkEnableDisableActionToConfirm, setBulkEnableDisableActionToConfirm] = useState<"enable" | "disable" | null>(null);
+  const [isConfirmBulkEnableDisableDialogOpen, setIsConfirmBulkEnableDisableDialogOpen] = useState(false);
+
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddGroupDialogOpen, setIsAddGroupDialogOpen] = useState(false)
@@ -244,7 +265,6 @@ export default function GroupsPage() {
         }
       }
       
-      // Convert string "true"/"false" from filters to boolean for API
       if (criteriaForSearch.isEnabled !== undefined && criteriaForSearch.isEnabled !== "any") {
         criteriaForSearch.isEnabled = criteriaForSearch.isEnabled === 'true';
       } else {
@@ -255,7 +275,6 @@ export default function GroupsPage() {
       } else {
         delete criteriaForSearch.hasMFA;
       }
-      // Add denyAccess filter if present
       if (criteriaForSearch.denyAccess !== undefined && criteriaForSearch.denyAccess !== "any") {
         criteriaForSearch.denyAccess = criteriaForSearch.denyAccess === 'true';
       } else {
@@ -267,7 +286,7 @@ export default function GroupsPage() {
       const data = await searchGroups(criteriaForSearch);
       console.log("[GroupsPage] Received data for groups:", data);
 
-      setGroups(data.groups?.map((g: any) => ({ ...g, denyAccess: g.denyAccess ?? false })) || []);
+      setGroups(data.groups?.map((g: any) => ({ ...g, denyAccess: g.denyAccess ?? false, isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true })) || []);
       setTotal(data.total || 0);
     } catch (error: any) {
       console.error("Failed to fetch groups:", error);
@@ -361,6 +380,33 @@ export default function GroupsPage() {
     }
   }, [groupToUpdateAccess, fetchGroupsCallback, toast, currentFilters]);
 
+  const confirmEnableDisableGroup = useCallback((groupName: string, enable: boolean) => {
+    setGroupToEnableDisable({ groupName, enable });
+    setIsConfirmSingleEnableDisableDialogOpen(true);
+  }, []);
+
+  const executeEnableDisableGroup = useCallback(async () => {
+    if (!groupToEnableDisable) return;
+    const { groupName, enable } = groupToEnableDisable;
+    try {
+      await performGroupAction(groupName, enable ? "enable" : "disable");
+      toast({
+        title: `Group ${enable ? "Enabled" : "Disabled"}`,
+        description: `Group ${groupName} has been ${enable ? "enabled" : "disabled"}.`,
+      });
+      fetchGroupsCallback(currentFilters);
+    } catch (error: any) {
+      toast({
+        title: `Error ${enable ? "Enabling" : "Disabling"} Group`,
+        description: error.message || `Failed to ${enable ? "enable" : "disable"} the group.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsConfirmSingleEnableDisableDialogOpen(false);
+      setGroupToEnableDisable(null);
+    }
+  }, [groupToEnableDisable, fetchGroupsCallback, toast, currentFilters]);
+
 
   const confirmBulkUpdateAccess = useCallback((action: "allow" | "deny") => {
     if (selectedGroups.length === 0) {
@@ -383,6 +429,14 @@ export default function GroupsPage() {
 
     for (const groupName of selectedGroups) {
       try {
+        // Check if group is system disabled before denying access
+        const group = groups.find(g => g.groupName === groupName);
+        if (deny && group && group.isEnabled === false) {
+            console.warn(`Skipping deny access for system disabled group: ${groupName}`);
+            // Optionally inform user, or just skip
+            // failCount++; // Or handle as a specific skipped category
+            continue; 
+        }
         await updateGroup(groupName, { denyAccess: deny });
         successCount++;
       } catch (error) {
@@ -407,7 +461,41 @@ export default function GroupsPage() {
 
     fetchGroupsCallback(currentFilters);
     setSelectedGroups([]);
-  }, [bulkAccessActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters]);
+  }, [bulkAccessActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters, groups]);
+
+  const confirmBulkEnableDisable = useCallback((action: "enable" | "disable") => {
+    if (selectedGroups.length === 0) {
+      toast({ title: "No groups selected", description: "Please select groups for this bulk action.", variant: "destructive" });
+      return;
+    }
+    setBulkEnableDisableActionToConfirm(action);
+    setIsConfirmBulkEnableDisableDialogOpen(true);
+  }, [selectedGroups, toast]);
+
+  const executeBulkEnableDisable = useCallback(async () => {
+    if (!bulkEnableDisableActionToConfirm || selectedGroups.length === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const result = await bulkGroupActions(selectedGroups, bulkEnableDisableActionToConfirm);
+      toast({
+        title: `Bulk ${bulkEnableDisableActionToConfirm === "enable" ? "Enable" : "Disable"} Complete`,
+        description: `${result.success || 0} groups ${bulkEnableDisableActionToConfirm === "enable" ? "enabled" : "disabled"}. ${result.failed || 0} failed.`,
+      });
+      fetchGroupsCallback(currentFilters);
+      setSelectedGroups([]);
+    } catch (error: any) {
+      toast({
+        title: `Error Bulk ${bulkEnableDisableActionToConfirm === "enable" ? "Enabling" : "Disabling"}`,
+        description: error.message || "Failed to perform bulk group action.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkActionLoading(false);
+      setIsConfirmBulkEnableDisableDialogOpen(false);
+      setBulkEnableDisableActionToConfirm(null);
+    }
+  }, [bulkEnableDisableActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters]);
 
 
   const handleSelectGroupCallback = useCallback((groupName: string, checked: boolean) => {
@@ -461,7 +549,25 @@ export default function GroupsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{selectedGroups.length} groups selected</span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => confirmBulkEnableDisable("enable")}
+                  disabled={bulkActionLoading}
+                >
+                  <Power className="mr-2 h-4 w-4" />
+                  Enable Groups
+                </Button>
+                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => confirmBulkEnableDisable("disable")}
+                  disabled={bulkActionLoading}
+                >
+                  <PowerOffIcon className="mr-2 h-4 w-4" />
+                  Disable Groups
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -571,6 +677,7 @@ export default function GroupsPage() {
                           selectedGroups={selectedGroups}
                           onSelectGroup={handleSelectGroupCallback}
                           onUpdateGroupAccess={confirmUpdateGroupAccess}
+                          onEnableDisableGroup={confirmEnableDisableGroup}
                           onDeleteGroup={confirmDeleteGroup}
                         />
                       ))
@@ -631,6 +738,26 @@ export default function GroupsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <AlertDialog open={isConfirmSingleEnableDisableDialogOpen} onOpenChange={setIsConfirmSingleEnableDisableDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Group Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {groupToEnableDisable?.enable ? "enable" : "disable"} group "{groupToEnableDisable?.groupName}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsConfirmSingleEnableDisableDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeEnableDisableGroup}
+              className={groupToEnableDisable?.enable ? "bg-primary hover:bg-primary/90" : "bg-destructive hover:bg-destructive/90"}
+            >
+              Confirm {groupToEnableDisable?.enable ? "Enable" : "Disable"} Group
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={isConfirmBulkAccessDialogOpen} onOpenChange={setIsConfirmBulkAccessDialogOpen}>
         <AlertDialogContent>
@@ -638,6 +765,9 @@ export default function GroupsPage() {
             <AlertDialogTitle>Confirm Bulk VPN Access Change</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to {bulkAccessActionToConfirm === "deny" ? "deny" : "allow"} VPN access for {selectedGroups.length} selected group(s)?
+              {bulkAccessActionToConfirm === "deny" && selectedGroups.some(sg => groups.find(g => g.groupName === sg && g.isEnabled === false)) && (
+                 <p className="text-yellow-600 text-sm mt-2">Warning: Some selected groups are system disabled. Denying access might be redundant or have no immediate effect until they are enabled.</p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -648,6 +778,27 @@ export default function GroupsPage() {
               className={bulkAccessActionToConfirm === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90"}
             >
               {bulkActionLoading ? "Processing..." : `Confirm ${bulkAccessActionToConfirm === "deny" ? "Deny Access" : "Allow Access"}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={isConfirmBulkEnableDisableDialogOpen} onOpenChange={setIsConfirmBulkEnableDisableDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Bulk Group Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {bulkEnableDisableActionToConfirm === "enable" ? "enable" : "disable"} {selectedGroups.length} selected group(s)?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsConfirmBulkEnableDisableDialogOpen(false)} disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeBulkEnableDisable}
+              disabled={bulkActionLoading}
+              className={bulkEnableDisableActionToConfirm === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
+            >
+              {bulkActionLoading ? "Processing..." : `Confirm ${bulkEnableDisableActionToConfirm === "enable" ? "Enable" : "Disable"} Groups`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

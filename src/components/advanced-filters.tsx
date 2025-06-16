@@ -16,11 +16,11 @@ interface FilterProps {
   onFiltersChange: (filters: any) => void
   type: "users" | "groups"
   availableGroups?: string[]
-  initialFilters?: any // For parent components to control/reset filters
+  initialFilters?: any 
 }
 
 export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = [], initialFilters }: FilterProps) => {
-  const defaultFilters = useMemo(() => ({
+  const defaultUserFilters = useMemo(() => ({
     searchText: "",
     authMethod: "any",
     role: "any",
@@ -28,10 +28,31 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
     isEnabled: "any",
     hasMFA: "any",
     isExpired: "any",
-    expiringInDays: "", // Ensure this is an empty string
-    sortBy: type === "users" ? "username" : "groupName",
+    expiringInDays: "", 
+    sortBy: "username",
     sortOrder: "asc",
-  }), [type]);
+    denyAccess: "any",
+  }), []);
+
+  const defaultGroupFilters = useMemo(() => ({
+    searchText: "",
+    authMethod: "any",
+    role: "any",
+    isEnabled: "any", 
+    hasMFA: "any",
+    denyAccess: "any",
+    hasAccessControl: "any",
+    accessControlPattern: "",
+    minMemberCount: "",
+    maxMemberCount: "",
+    hasMembers: "any",
+    createdAfter: "",
+    createdBefore: "",
+    sortBy: "groupName",
+    sortOrder: "asc",
+  }), []);
+  
+  const defaultFilters = type === "users" ? defaultUserFilters : defaultGroupFilters;
 
   const [internalFilters, setInternalFilters] = useState<any>(() => ({
     ...defaultFilters,
@@ -40,8 +61,6 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   const [activeFilterBadges, setActiveFilterBadges] = useState<string[]>([])
 
   useEffect(() => {
-    // When initialFilters prop changes (e.g., parent wants to reset/update filters)
-    // Re-initialize internalFilters by merging defaultFilters with the new initialFilters
     setInternalFilters({
       ...defaultFilters,
       ...(initialFilters || {}),
@@ -70,8 +89,14 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   }, []);
 
   const handleApplyFilters = useCallback(() => {
-    onFiltersChange(internalFilters)
-    updateActiveFilterBadges(internalFilters)
+    const filtersToApply = { ...internalFilters };
+    // Ensure numeric fields are numbers or undefined
+    if (filtersToApply.expiringInDays && filtersToApply.expiringInDays !== "") filtersToApply.expiringInDays = Number(filtersToApply.expiringInDays); else delete filtersToApply.expiringInDays;
+    if (filtersToApply.minMemberCount && filtersToApply.minMemberCount !== "") filtersToApply.minMemberCount = Number(filtersToApply.minMemberCount); else delete filtersToApply.minMemberCount;
+    if (filtersToApply.maxMemberCount && filtersToApply.maxMemberCount !== "") filtersToApply.maxMemberCount = Number(filtersToApply.maxMemberCount); else delete filtersToApply.maxMemberCount;
+    
+    onFiltersChange(filtersToApply)
+    updateActiveFilterBadges(filtersToApply)
   }, [internalFilters, onFiltersChange, updateActiveFilterBadges]);
 
   const handleClearFilters = useCallback(() => {
@@ -82,7 +107,7 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
 
   const removeFilterBadge = useCallback((key: string) => {
     const newFilters = { ...internalFilters, [key]: defaultFilters[key] || "any" }
-    if (key === "searchText" || key === "expiringInDays") {
+    if (key === "searchText" || key === "expiringInDays" || key === "accessControlPattern" || key === "minMemberCount" || key === "maxMemberCount" || key === "createdAfter" || key === "createdBefore") {
         newFilters[key] = "";
     }
     setInternalFilters(newFilters)
@@ -109,7 +134,7 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
             <div className="flex flex-wrap gap-2">
               {activeFilterBadges.map((key) => (
                 <Badge key={key} variant="secondary" className="flex items-center gap-1">
-                  {key}: {typeof internalFilters[key] === 'boolean' ? (internalFilters[key] ? 'Yes' : 'No') : internalFilters[key]}
+                  {key}: {String(internalFilters[key])}
                   <X className="h-3 w-3 cursor-pointer" onClick={() => removeFilterBadge(key)} />
                 </Badge>
               ))}
@@ -118,12 +143,12 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor={`searchText-${type}`}>Search Text</Label>
             <Input
               id={`searchText-${type}`}
-              placeholder={`Search ${type}...`}
+              placeholder={`Search by name/email...`}
               value={internalFilters.searchText || ""}
               onChange={(e) => handleInputChange("searchText", e.target.value)}
             />
@@ -142,47 +167,90 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
               </SelectContent>
             </Select>
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor={`role-${type}`}>Role</Label>
+            <Select value={internalFilters.role} onValueChange={(value) => handleInputChange("role", value)}>
+              <SelectTrigger id={`role-${type}`}>
+                <SelectValue placeholder="Any role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any role</SelectItem>
+                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="User">User</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {type === "users" && (
+            <div className="space-y-2">
+              <Label htmlFor="groupName-users">Group</Label>
+              <Select value={internalFilters.groupName} onValueChange={(value) => handleInputChange("groupName", value)}>
+                <SelectTrigger id="groupName-users">
+                  <SelectValue placeholder="Any group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any group</SelectItem>
+                  <SelectItem value="No Group">No Group</SelectItem>
+                  {availableGroups.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      {group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor={`isEnabled-${type}`}>System Status</Label>
+            <Select value={internalFilters.isEnabled} onValueChange={(value) => handleInputChange("isEnabled", value)}>
+              <SelectTrigger id={`isEnabled-${type}`}>
+                <SelectValue placeholder="Any status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any Status</SelectItem>
+                <SelectItem value="true">Enabled</SelectItem>
+                <SelectItem value="false">Disabled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor={`denyAccess-${type}`}>VPN Access</Label>
+            <Select value={internalFilters.denyAccess} onValueChange={(value) => handleInputChange("denyAccess", value)}>
+              <SelectTrigger id={`denyAccess-${type}`}>
+                <SelectValue placeholder="Any access state" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any Access State</SelectItem>
+                <SelectItem value="true">Denied</SelectItem>
+                <SelectItem value="false">Allowed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`hasMFA-${type}`}>MFA Status</Label>
+            <Select value={internalFilters.hasMFA} onValueChange={(value) => handleInputChange("hasMFA", value)}>
+              <SelectTrigger id={`hasMFA-${type}`}>
+                <SelectValue placeholder="Any MFA status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any MFA Status</SelectItem>
+                <SelectItem value="true">MFA Enabled</SelectItem>
+                <SelectItem value="false">MFA Disabled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {type === "users" && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="role-users">Role</Label>
-                <Select value={internalFilters.role} onValueChange={(value) => handleInputChange("role", value)}>
-                  <SelectTrigger id="role-users">
-                    <SelectValue placeholder="Any role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any role</SelectItem>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="User">User</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="groupName-users">Group</Label>
-                <Select value={internalFilters.groupName} onValueChange={(value) => handleInputChange("groupName", value)}>
-                  <SelectTrigger id="groupName-users">
-                    <SelectValue placeholder="Any group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any group</SelectItem>
-                    <SelectItem value="No Group">No Group</SelectItem>
-                    {availableGroups.map((group) => (
-                      <SelectItem key={group} value={group}>
-                        {group}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiringInDays-users">Expiring in Days</Label>
+            <Separator className="my-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+               <div className="space-y-2">
+                <Label htmlFor="expiringInDays-users">Expiring in Days (Max)</Label>
                 <Input
                   id="expiringInDays-users"
                   type="number"
@@ -191,41 +259,78 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
                   onChange={(e) => handleInputChange("expiringInDays", e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
-                <Label>Status Filters</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`isEnabled-${type}`}
-                      checked={internalFilters.isEnabled === "true"}
-                      onCheckedChange={(checked) => handleInputChange("isEnabled", checked ? "true" : "any")}
-                    />
-                    <Label htmlFor={`isEnabled-${type}`}>Only Enabled</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                       id={`hasMFA-${type}`}
-                      checked={internalFilters.hasMFA === "true"}
-                      onCheckedChange={(checked) => handleInputChange("hasMFA", checked ? "true" : "any")}
-                    />
-                    <Label htmlFor={`hasMFA-${type}`}>Has MFA</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`isExpired-${type}`}
-                      checked={internalFilters.isExpired === "true"}
-                      onCheckedChange={(checked) => handleInputChange("isExpired", checked ? "true" : "any")}
-                    />
-                    <Label htmlFor={`isExpired-${type}`}>Is Expired</Label>
-                  </div>
-                </div>
+                <Label htmlFor={`isExpired-${type}`}>Expiration Status</Label>
+                <Select value={internalFilters.isExpired} onValueChange={(value) => handleInputChange("isExpired", value)}>
+                  <SelectTrigger id={`isExpired-${type}`}>
+                    <SelectValue placeholder="Any expiration state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Expiration State</SelectItem>
+                    <SelectItem value="true">Expired</SelectItem>
+                    <SelectItem value="false">Not Expired</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </>
         )}
+        
+        {type === "groups" && (
+          <>
+            <Separator className="my-4" />
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hasAccessControl-groups">Has Access Control Rules</Label>
+                  <Select value={internalFilters.hasAccessControl} onValueChange={(value) => handleInputChange("hasAccessControl", value)}>
+                    <SelectTrigger id="hasAccessControl-groups"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="true">Yes</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accessControlPattern-groups">Access Control Pattern</Label>
+                  <Input id="accessControlPattern-groups" placeholder="e.g. 192.168.1.0/24" value={internalFilters.accessControlPattern || ""} onChange={(e) => handleInputChange("accessControlPattern", e.target.value)} />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="hasMembers-groups">Has Members</Label>
+                   <Select value={internalFilters.hasMembers} onValueChange={(value) => handleInputChange("hasMembers", value)}>
+                    <SelectTrigger id="hasMembers-groups"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="true">Yes</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="minMemberCount-groups">Min Members</Label>
+                  <Input id="minMemberCount-groups" type="number" placeholder="e.g. 1" value={internalFilters.minMemberCount || ""} onChange={(e) => handleInputChange("minMemberCount", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxMemberCount-groups">Max Members</Label>
+                  <Input id="maxMemberCount-groups" type="number" placeholder="e.g. 100" value={internalFilters.maxMemberCount || ""} onChange={(e) => handleInputChange("maxMemberCount", e.target.value)} />
+                </div>
+             </div>
+             <Separator className="my-4" />
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="createdAfter-groups">Created After</Label>
+                  <Input id="createdAfter-groups" type="date" value={internalFilters.createdAfter || ""} onChange={(e) => handleInputChange("createdAfter", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="createdBefore-groups">Created Before</Label>
+                  <Input id="createdBefore-groups" type="date" value={internalFilters.createdBefore || ""} onChange={(e) => handleInputChange("createdBefore", e.target.value)} />
+                </div>
+             </div>
+          </>
+        )}
 
-        <Separator />
+
+        <Separator className="my-4" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor={`sortBy-${type}`}>Sort By</Label>
@@ -244,7 +349,7 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
                     <SelectItem value="userExpiration">Expiration</SelectItem>
                     <SelectItem value="createdAt">Created Date</SelectItem>
                   </>
-                ) : (
+                ) : ( // groups
                   <>
                     <SelectItem value="groupName">Group Name</SelectItem>
                     <SelectItem value="authMethod">Auth Method</SelectItem>

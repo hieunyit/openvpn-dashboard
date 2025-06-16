@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/components/ui/use-toast"
-import { getGroup, updateGroup, getUsers } from "@/lib/api" // Removed performGroupAction
+import { getGroup, updateGroup, getUsers, performGroupAction } from "@/lib/api"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity } from "lucide-react"
+import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, PowerOff as PowerOffIcon } from "lucide-react"
 import Link from "next/link"
 
 interface Group {
@@ -36,9 +36,14 @@ interface Group {
   mfa: boolean
   denyAccess: boolean
   accessControl: string[]
-  isEnabled?: boolean // From EnhancedGroupResponse if API provides it here
+  isEnabled?: boolean 
   memberCount?: number
   createdAt?: string
+  // Fields from EnhancedGroupResponse that might not be in GroupResponse
+  lastModified?: string;
+  lastUsed?: string;
+  groupRange?: string[];
+  groupSubnet?: string[];
 }
 
 interface User {
@@ -59,14 +64,17 @@ export default function GroupDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
-    authMethod: "", // Not editable per swagger for update, but kept for display if needed
-    role: "", // Not editable per swagger for update
+    authMethod: "", 
+    role: "", 
     accessControl: "",
-    denyAccess: false, // Added for editing
+    denyAccess: false, 
   })
 
   const [isConfirmAccessActionDialogOpen, setIsConfirmAccessActionDialogOpen] = useState(false)
   const [confirmAccessActionDetails, setConfirmAccessActionDetails] = useState<{ action: "allow" | "deny"; groupName: string } | null>(null)
+
+  const [isConfirmEnableDisableDialogOpen, setIsConfirmEnableDisableDialogOpen] = useState(false);
+  const [enableDisableActionDetails, setEnableDisableActionDetails] = useState<{ action: "enable" | "disable"; groupName: string } | null>(null);
 
 
   useEffect(() => {
@@ -84,8 +92,8 @@ export default function GroupDetailPage() {
       if (groupData) {
         const processedGroupData = {
             ...groupData,
-            denyAccess: groupData.denyAccess ?? false, // Default to false if undefined
-            isEnabled: groupData.isEnabled // Keep isEnabled if API provides it
+            denyAccess: groupData.denyAccess ?? false, 
+            isEnabled: typeof groupData.isEnabled === 'boolean' ? groupData.isEnabled : true // Default to true if undefined
         };
         setGroup(processedGroupData)
         setFormData({
@@ -140,7 +148,7 @@ export default function GroupDetailPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
-
+      // Only accessControl and denyAccess are updatable via this PUT route per Swagger for UpdateGroupRequest
       const groupDataToUpdate: { accessControl: string[]; denyAccess: boolean } = {
         accessControl: formData.accessControl
           .split(",")
@@ -181,9 +189,9 @@ export default function GroupDetailPage() {
     const { action, groupName: targetGroupName } = confirmAccessActionDetails;
 
     try {
-      setSaving(true); // Use saving state for action button as well
+      setSaving(true); 
       const newDenyAccessState = action === "deny";
-      await updateGroup(targetGroupName, { denyAccess: newDenyAccessState });
+      await updateGroup(targetGroupName, { denyAccess: newDenyAccessState }); // Only send denyAccess
       toast({
         title: "VPN Access Updated",
         description: `VPN access for group ${targetGroupName} has been ${action === "allow" ? "allowed" : "denied"}.`,
@@ -200,6 +208,38 @@ export default function GroupDetailPage() {
       setSaving(false);
       setIsConfirmAccessActionDialogOpen(false);
       setConfirmAccessActionDetails(null);
+    }
+  };
+
+  const initiateEnableDisableAction = (action: "enable" | "disable") => {
+    if (!group) return;
+    setEnableDisableActionDetails({ action, groupName: group.groupName });
+    setIsConfirmEnableDisableDialogOpen(true);
+  };
+
+  const executeEnableDisableAction = async () => {
+    if (!enableDisableActionDetails || !group) return;
+    const { action, groupName: targetGroupName } = enableDisableActionDetails;
+
+    try {
+      setSaving(true);
+      await performGroupAction(targetGroupName, action);
+      toast({
+        title: `Group ${action === "enable" ? "Enabled" : "Disabled"}`,
+        description: `Group ${targetGroupName} has been successfully ${action === "enable" ? "enabled" : "disabled"}.`,
+      });
+      fetchGroup();
+    } catch (error: any) {
+      console.error(`Failed to ${action} group:`, error);
+      toast({
+        title: "Action Failed",
+        description: error.message || `Failed to ${action} group. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+      setIsConfirmEnableDisableDialogOpen(false);
+      setEnableDisableActionDetails(null);
     }
   };
 
@@ -251,7 +291,7 @@ export default function GroupDetailPage() {
   }
   
   const getStatusBadge = () => {
-    if (group.isEnabled === false) { // Check if isEnabled is explicitly false
+    if (group.isEnabled === false) { 
       return <Badge variant="outline" className="text-yellow-700 border-yellow-500 dark:text-yellow-300"><Activity className="mr-1 h-3 w-3" />System Disabled</Badge>;
     }
     if (group.denyAccess) {
@@ -317,7 +357,6 @@ export default function GroupDetailPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="authMethod" className="text-sm font-medium text-muted-foreground">Authentication Method</Label>
-                  {/* AuthMethod is not editable in updateGroup per Swagger */}
                   <div className="p-3 border rounded-lg bg-muted">
                       <Badge variant="outline">{group.authMethod}</Badge>
                   </div>
@@ -325,7 +364,6 @@ export default function GroupDetailPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="role" className="text-sm font-medium text-muted-foreground">Role</Label>
-                  {/* Role is not editable in updateGroup per Swagger */}
                    <div className="p-3 border rounded-lg bg-muted">
                       <Badge variant={group.role === "Admin" ? "default" : "secondary"}>{group.role}</Badge>
                   </div>
@@ -388,8 +426,7 @@ export default function GroupDetailPage() {
                     <Badge variant={group.mfa ? "default" : "outline"}>{group.mfa ? "Yes" : "No"}</Badge>
                   </div>
 
-                   {/* VPN Access Status replaces the old "Status" (isEnabled) field here */}
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="flex items-center gap-2">
                       {group.denyAccess ? <LockKeyhole className="h-4 w-4 text-destructive" /> : <UnlockKeyhole className="h-4 w-4 text-green-600" />}
                       <span className="text-sm font-medium">VPN Access</span>
@@ -399,19 +436,18 @@ export default function GroupDetailPage() {
                     </Badge>
                   </div>
                   
-                  {/* Display "System Disabled" if applicable */}
-                  {group.isEnabled === false && (
-                     <div className="col-span-2 flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                  {/* Display "System Disabled" or "System Enabled" based on isEnabled */}
+                  {typeof group.isEnabled === 'boolean' && (
+                     <div className="col-span-2 flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-2">
-                           <Activity className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                           <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Overall Group Status</span>
+                           {group.isEnabled ? <Power className="h-4 w-4 text-green-600" /> : <PowerOffIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />}
+                           <span className="text-sm font-medium">Overall Group Status</span>
                          </div>
-                         <Badge variant="outline" className="px-3 py-1 border-yellow-500 text-yellow-700 dark:text-yellow-300">
-                           System Disabled
+                         <Badge variant={group.isEnabled ? "default" : "outline"} className={`px-3 py-1 ${!group.isEnabled && "border-yellow-500 text-yellow-700 dark:text-yellow-300"}`}>
+                           {group.isEnabled ? "System Enabled" : "System Disabled"}
                          </Badge>
                       </div>
                   )}
-
                 </div>
               </CardContent>
             </Card>
@@ -421,8 +457,8 @@ export default function GroupDetailPage() {
           <div className="space-y-6">
             <Card className="shadow-lg border-0 bg-card">
               <CardHeader className="border-b">
-                <CardTitle className="text-xl font-semibold text-foreground">Group Access Actions</CardTitle>
-                <CardDescription className="text-muted-foreground">Manage VPN access for this group</CardDescription>
+                <CardTitle className="text-xl font-semibold text-foreground">Group Actions</CardTitle>
+                <CardDescription className="text-muted-foreground">Manage VPN access and group status</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 pt-6">
                 {group.denyAccess ? (
@@ -448,9 +484,34 @@ export default function GroupDetailPage() {
                     Deny VPN Access
                   </Button>
                 )}
+
+                {group.isEnabled === false ? (
+                   <Button
+                    variant="outline"
+                    className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20"
+                    onClick={() => initiateEnableDisableAction("enable")}
+                    disabled={saving}
+                    title="Enable this group system-wide"
+                  >
+                    <Power className="mr-2 h-4 w-4" />
+                    Enable Group
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start hover:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-700/20"
+                    onClick={() => initiateEnableDisableAction("disable")}
+                    disabled={saving}
+                    title="Disable this group system-wide"
+                  >
+                    <PowerOffIcon className="mr-2 h-4 w-4" />
+                    Disable Group
+                  </Button>
+                )}
+
                 {group.isEnabled === false && (
                     <p className="text-xs text-center text-yellow-600 dark:text-yellow-400 pt-1">
-                        Access actions are disabled because the group is system disabled.
+                        VPN access actions are disabled because the group is system disabled.
                     </p>
                 )}
               </CardContent>
@@ -511,6 +572,28 @@ export default function GroupDetailPage() {
               className={confirmAccessActionDetails?.action === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90"}
             >
               {saving ? "Processing..." : `Confirm ${confirmAccessActionDetails?.action === "allow" ? "Allow Access" : "Deny Access"}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isConfirmEnableDisableDialogOpen} onOpenChange={setIsConfirmEnableDisableDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Group Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {enableDisableActionDetails?.action === "enable" ? "enable" : "disable"} the group "{enableDisableActionDetails?.groupName}"?
+              {enableDisableActionDetails?.action === "disable" && " This will prevent users in this group from connecting if their access relies solely on this group."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsConfirmEnableDisableDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeEnableDisableAction}
+              disabled={saving}
+              className={enableDisableActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
+            >
+              {saving ? "Processing..." : `Confirm ${enableDisableActionDetails?.action === "enable" ? "Enable" : "Disable"} Group`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

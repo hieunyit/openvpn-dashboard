@@ -197,12 +197,13 @@ export async function createUser(userData: any) {
 
 export async function updateUser(username: string, userData: any) {
   console.log(`[API updateUser] Updating user ${username} with data:`, userData);
-  const allowedFields = {
+  const allowedFields:any = { // Make sure to define type if possible, or use Record<string, any>
     accessControl: userData.accessControl,
     denyAccess: userData.denyAccess,
-    groupName: userData.groupName === "none" ? undefined : userData.groupName, // Allow unsetting group
+    groupName: userData.groupName === "none" || userData.groupName === "" ? undefined : userData.groupName,
     macAddresses: userData.macAddresses,
-    userExpiration: formatDateForAPI(userData.userExpiration),
+    userExpiration: userData.userExpiration ? formatDateForAPI(userData.userExpiration) : undefined,
+    // isEnabled is not part of UpdateUserRequest, managed by performUserAction
   };
 
   const cleanData = Object.fromEntries(Object.entries(allowedFields).filter(([_, value]) => value !== undefined));
@@ -234,7 +235,7 @@ export async function deleteUser(username: string) {
   return responseData;
 }
 
-export async function performUserAction(username: string, action: string, data?: any) {
+export async function performUserAction(username: string, action: "enable" | "disable" | "reset-otp" | "change-password", data?: any) {
   console.log(`[API performUserAction] Performing action ${action} on user ${username} with data:`, data);
   const options: RequestInit = {
     method: "PUT",
@@ -243,19 +244,16 @@ export async function performUserAction(username: string, action: string, data?:
   let bodyData: any = undefined; 
   if (action === "change-password" && data && data.newPassword) {
     bodyData = { password: data.newPassword };
-  } else if (data && Object.keys(data).length > 0) { 
+  } else if (data && Object.keys(data).length > 0 && action !== "enable" && action !== "disable" && action !== "reset-otp") { 
+    // Only include body for actions that expect it, like change-password
     bodyData = data;
   }
 
 
   if (bodyData !== undefined && Object.keys(bodyData).length > 0) {
     options.body = JSON.stringify(bodyData);
-  } else if (action !== "change-password") {
-     // For actions like enable/disable, ensure no body is sent if bodyData is empty or undefined
-     // The Swagger spec for /api/users/{username}/{action} implies body is only for change-password
-     // So, for other actions, we might not need a body at all.
-     // If the backend expects an empty JSON object {} for other PUTs, this would need adjustment.
-     // Based on typical REST, PUT without body for simple state changes is fine.
+  } else if (action === "enable" || action === "disable" || action === "reset-otp") {
+     // These actions do not require a body as per Swagger.
      delete options.body;
   }
 
@@ -279,7 +277,7 @@ export async function disconnectUser(username: string, message?: string) {
 
   const response = await fetchWithAuth(`api/users/${username}/disconnect`, {
     method: "POST",
-    body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined, 
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}), // Send empty JSON if no message
   });
 
   if (!response.ok) {
@@ -330,17 +328,22 @@ export async function getGroup(groupName: string) {
   }
   const data = await response.json();
   console.log(`[API getGroup] Received data for ${groupName}:`, data);
-  return parseApiResponse(data);
+  // Assuming getGroup might return EnhancedGroupResponse or GroupResponse
+  // It's safer to parse and let the caller handle potential missing fields like isEnabled
+  return parseApiResponse(data); 
 }
 
 export async function createGroup(groupData: any) {
   console.log("[API createGroup] Creating group with data:", groupData);
-  const apiGroupData = {
+  // Fields for CreateGroupRequest: groupName, authMethod, accessControl
+  const apiGroupData: {groupName: string; authMethod: string; accessControl?: string[]} = {
     groupName: groupData.groupName,
     authMethod: groupData.authMethod,
-    accessControl: groupData.accessControl,
-    // 'role' is intentionally excluded as per Swagger for createGroup
   };
+  if (groupData.accessControl && groupData.accessControl.length > 0) {
+    apiGroupData.accessControl = groupData.accessControl;
+  }
+
 
   const response = await fetchWithAuth(`api/groups`, {
     method: "POST",
@@ -357,17 +360,19 @@ export async function createGroup(groupData: any) {
 
 export async function updateGroup(groupName: string, groupData: any) {
   console.log(`[API updateGroup] Updating group ${groupName} with data:`, groupData);
-  const allowedFields = {
-    accessControl: groupData.accessControl,
-    denyAccess: groupData.denyAccess, 
-    // 'role' and 'authMethod' are not part of UpdateGroupRequest in Swagger
-  };
-
-  const cleanData = Object.fromEntries(Object.entries(allowedFields).filter(([_, value]) => value !== undefined));
-
+  // Fields for UpdateGroupRequest: accessControl, denyAccess
+  const allowedFields: {accessControl?: string[]; denyAccess?: boolean} = {};
+  if (groupData.accessControl !== undefined) {
+    allowedFields.accessControl = groupData.accessControl;
+  }
+  if (groupData.denyAccess !== undefined) {
+    allowedFields.denyAccess = groupData.denyAccess;
+  }
+  // mfa, role, groupRange, groupSubnet are not in UpdateGroupRequest based on current understanding
+  
   const response = await fetchWithAuth(`api/groups/${groupName}`, {
     method: "PUT",
-    body: JSON.stringify(cleanData),
+    body: JSON.stringify(allowedFields), // Send only allowed fields
   });
 
   if (!response.ok) {
@@ -392,10 +397,10 @@ export async function deleteGroup(groupName: string) {
   return responseData;
 }
 
-export async function performGroupAction(groupName: string, action: string) {
+export async function performGroupAction(groupName: string, action: "enable" | "disable") {
   console.log(`[API performGroupAction] Performing action ${action} on group ${groupName}`);
   const response = await fetchWithAuth(`api/groups/${groupName}/${action}`, {
-    method: "PUT", // No body needed for enable/disable per Swagger for groups
+    method: "PUT", // No body needed for enable/disable for groups per Swagger
   });
 
   if (!response.ok) {
@@ -564,7 +569,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
 }
 
 // Bulk Operations API functions
-export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") { // Added "reset-otp"
+export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") { 
   console.log(`[API bulkUserActions] Performing action ${action} on users:`, usernames);
   const response = await fetchWithAuth(`api/bulk/users/actions`, {
     method: "POST",
