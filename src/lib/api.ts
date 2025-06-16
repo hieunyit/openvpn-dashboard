@@ -753,3 +753,29 @@ export async function getVPNStatus() {
   console.log("[API getVPNStatus] Received data:", data);
   return parseApiResponse(data);
 }
+
+// Server Info API
+export interface ServerInfo {
+  admin_ip_address?: string;
+  admin_port?: string;
+  client_ip_address?: string;
+  client_port?: string;
+  cluster_mode?: string;
+  failover_mode?: string;
+  license_server?: string;
+  message?: string;
+  node_type?: string;
+  status?: string;
+  web_server_name?: string;
+}
+
+export async function getServerInfo(): Promise<ServerInfo> {
+  console.log("[API getServerInfo] Fetching server info.");
+  const response = await fetchWithAuth(`api/config/server/info`);
+  if (!response.ok) {
+    throw await handleApiError(response, "fetch server info");
+  }
+  const data = await response.json();
+  console.log("[API getServerInfo] Received data:", data);
+  return parseApiResponse(data) as ServerInfo;
+}

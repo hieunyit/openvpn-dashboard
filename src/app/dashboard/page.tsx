@@ -9,8 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getUserExpirations, getUsers, getGroups, getVPNStatus } from "@/lib/api"
-import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search } from "lucide-react"
+import { getUserExpirations, getUsers, getGroups, getVPNStatus, getServerInfo, type ServerInfo } from "@/lib/api"
+import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
@@ -135,6 +135,7 @@ export default function DashboardPage() {
   const [expiringUsers3Days, setExpiringUsers3Days] = useState<UserExpirationInfo[]>([])
   const [expiringUsers7Days, setExpiringUsers7Days] = useState<UserExpirationInfo[]>([])
   const [expiringUsers14Days, setExpiringUsers14Days] = useState<UserExpirationInfo[]>([])
+  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast();
@@ -152,8 +153,9 @@ export default function DashboardPage() {
         expiring7DaysData, 
         expiring14DaysData, 
         expiring30DaysData,
-        vpnStatusData
-      ] = await Promise.allSettled([ // Use Promise.allSettled to handle individual API errors
+        vpnStatusData,
+        serverInfoData,
+      ] = await Promise.allSettled([
         getUsers(1, 1),
         getUsers(1, 1, { isEnabled: "true" }),
         getGroups(1, 1),
@@ -162,6 +164,7 @@ export default function DashboardPage() {
         getUserExpirations(14),
         getUserExpirations(30),
         getVPNStatus(),
+        getServerInfo(),
       ]);
 
       const getResult = (promiseResult: PromiseSettledResult<any>, defaultValue: any) => 
@@ -175,6 +178,7 @@ export default function DashboardPage() {
       const expiring14DaysResult = getResult(expiring14DaysData, { count: 0, users: [] });
       const expiring30DaysResult = getResult(expiring30DaysData, { count: 0, users: [] });
       const vpnStatusResult = getResult(vpnStatusData, { total_connected_users: 0 });
+      const serverInfoResult = getResult(serverInfoData, null);
 
 
       setStats({
@@ -189,8 +193,9 @@ export default function DashboardPage() {
       setExpiringUsers3Days(expiring3DaysResult.users || [])
       setExpiringUsers7Days(expiring7DaysResult.users || [])
       setExpiringUsers14Days(expiring14DaysResult.users || [])
+      setServerInfo(serverInfoResult);
       
-      const errors = [usersData, activeUsersData, groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData]
+      const errors = [usersData, activeUsersData, groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
         .filter(r => r.status === 'rejected')
         // @ts-ignore
         .map(r => r.reason?.message || "An API call failed")
@@ -322,24 +327,40 @@ export default function DashboardPage() {
             </Card>
 
             <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">System Information</CardTitle>
-                 <CardDescription>Current service status and version.</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-2 space-y-3">
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
-                  <span className="text-sm font-medium text-muted-foreground">API Status:</span>
-                  {loading ? <Skeleton className="h-5 w-20"/> : <Badge variant="default"><Activity className="h-3 w-3 mr-1.5"/>Operational</Badge> }
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
-                  <span className="text-sm font-medium text-muted-foreground">API Version:</span>
-                  {loading ? <Skeleton className="h-5 w-16"/> : <Badge variant="secondary">1.1.0</Badge> }
-                </div>
-                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
-                  <span className="text-sm font-medium text-muted-foreground">UI Version:</span>
-                  {loading ? <Skeleton className="h-5 w-16"/> : <Badge variant="secondary">1.0.0</Badge> }
-                </div>
-              </CardContent>
+                <CardHeader>
+                    <CardTitle className="flex items-center text-lg font-semibold">
+                        <Server className="mr-2 h-5 w-5 text-primary" />
+                        System Information
+                    </CardTitle>
+                    <CardDescription>Key details about your VPN server.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-2 space-y-3 text-sm">
+                    <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
+                        <span className="font-medium text-muted-foreground">Server Name:</span>
+                        {loading || !serverInfo ? <Skeleton className="h-5 w-24"/> : <Badge variant="secondary">{serverInfo.web_server_name || "N/A"}</Badge> }
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
+                        <span className="font-medium text-muted-foreground">Node Type:</span>
+                        {loading || !serverInfo ? <Skeleton className="h-5 w-20"/> : <Badge variant="outline">{serverInfo.node_type || "N/A"}</Badge> }
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
+                        <span className="font-medium text-muted-foreground">Server Status:</span>
+                        {loading || !serverInfo ? <Skeleton className="h-5 w-20"/> : 
+                            <Badge variant={serverInfo.status?.toLowerCase() === "healthy" ? "default" : "destructive"} 
+                                   className={serverInfo.status?.toLowerCase() === "healthy" ? "bg-green-600/10 text-green-700 dark:text-green-400 border-green-600/30" : ""}>
+                                <Activity className="h-3 w-3 mr-1.5"/>{serverInfo.status || "N/A"}
+                            </Badge> 
+                        }
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
+                        <span className="font-medium text-muted-foreground">Admin Port:</span>
+                        {loading || !serverInfo ? <Skeleton className="h-5 w-16"/> : <Badge variant="outline">{serverInfo.admin_port || "N/A"}</Badge> }
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
+                        <span className="font-medium text-muted-foreground">UI Version:</span>
+                        <Badge variant="secondary">1.0.0</Badge> {/* Keep UI version static or manage separately */}
+                    </div>
+                </CardContent>
             </Card>
           </div>
         </TabsContent>
@@ -359,4 +380,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
