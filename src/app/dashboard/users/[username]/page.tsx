@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { UserCircle2, Eye, EyeOff } from "lucide-react" // Changed User to UserCircle2 for header
+import { UserCircle2, Eye, EyeOff, Settings } from "lucide-react" // Changed User to UserCircle2 for header, Added Settings
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation" 
