@@ -208,8 +208,6 @@ export default function GroupDetailPage() {
     try {
       setSaving(true);
       const newDenyAccessState = action === "deny";
-      // We only send denyAccess for this specific action via the buttons,
-      // other fields are updated through the main edit form.
       await updateGroup(targetGroupName, { denyAccess: newDenyAccessState });
       toast({
         title: "VPN Access Updated",
@@ -589,7 +587,7 @@ export default function GroupDetailPage() {
                   </Button>
                 )}
 
-                {group.isEnabled === false ? (
+                {group.isEnabled === false && (
                    <Button
                     variant="outline"
                     className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20"
@@ -600,19 +598,8 @@ export default function GroupDetailPage() {
                     <Power className="mr-2 h-4 w-4" />
                     Enable Group
                   </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start hover:bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-700/20"
-                    onClick={() => initiateEnableDisableAction("disable")}
-                    disabled={saving}
-                    title="Disable this group system-wide"
-                  >
-                    <PowerOffIcon className="mr-2 h-4 w-4" />
-                    Disable Group
-                  </Button>
                 )}
-
+                
                 {group.isEnabled === false && (
                     <p className="text-xs text-center text-yellow-600 dark:text-yellow-400 pt-1">
                         VPN access actions are disabled because the group is system disabled.

@@ -211,7 +211,7 @@ export default function NewGroupPage() {
                         <Textarea
                             id="groupRange"
                             name="groupRange"
-                            placeholder="e.g., 172.16.0.0/24, 172.17.0.0/24"
+                            placeholder="e.g., 10.8.0.10-10.8.0.100, 10.9.0.10-10.9.0.100"
                             value={formData.groupRange}
                             onChange={handleChange}
                             rows={3}

@@ -211,7 +211,7 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
                 <Textarea
                   id="groupRange-dialog"
                   name="groupRange"
-                  placeholder="e.g., 172.16.0.0/24"
+                  placeholder="e.g., 10.8.0.10-10.8.0.100"
                   value={formData.groupRange}
                   onChange={handleChange}
                   rows={2}

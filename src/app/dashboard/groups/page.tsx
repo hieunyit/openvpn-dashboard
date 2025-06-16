@@ -177,15 +177,10 @@ const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGrou
                 Deny VPN Access
               </DropdownMenuItem>
             )}
-            {group.isEnabled === false ? (
+            {group.isEnabled === false && (
               <DropdownMenuItem onClick={() => onEnableDisableGroup(group.groupName, true)}>
                 <Power className="mr-2 h-4 w-4" />
                 Enable Group
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={() => onEnableDisableGroup(group.groupName, false)}>
-                <PowerOffIcon className="mr-2 h-4 w-4" />
-                Disable Group
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -433,8 +428,6 @@ export default function GroupsPage() {
         const group = groups.find(g => g.groupName === groupName);
         if (deny && group && group.isEnabled === false) {
             console.warn(`Skipping deny access for system disabled group: ${groupName}`);
-            // Optionally inform user, or just skip
-            // failCount++; // Or handle as a specific skipped category
             continue; 
         }
         await updateGroup(groupName, { denyAccess: deny });
@@ -554,25 +547,16 @@ export default function GroupsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => confirmBulkEnableDisable("enable")}
-                  disabled={bulkActionLoading}
+                  disabled={bulkActionLoading || selectedGroups.length === 0}
                 >
                   <Power className="mr-2 h-4 w-4" />
                   Enable Groups
-                </Button>
-                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => confirmBulkEnableDisable("disable")}
-                  disabled={bulkActionLoading}
-                >
-                  <PowerOffIcon className="mr-2 h-4 w-4" />
-                  Disable Groups
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => confirmBulkUpdateAccess("allow")}
-                  disabled={bulkActionLoading}
+                  disabled={bulkActionLoading || selectedGroups.length === 0}
                 >
                   <UnlockKeyhole className="mr-2 h-4 w-4" />
                   Allow Access
@@ -581,7 +565,7 @@ export default function GroupsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => confirmBulkUpdateAccess("deny")}
-                  disabled={bulkActionLoading}
+                  disabled={bulkActionLoading || selectedGroups.length === 0}
                 >
                   <LockKeyhole className="mr-2 h-4 w-4" />
                   Deny Access
