@@ -61,6 +61,8 @@ import {
   UserX, 
   UserCheck,
   X as XIcon,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, getExpirationStatus, formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils"
@@ -143,8 +145,8 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
         <Badge variant={user.authMethod === 'local' ? "secondary" : "outline"} className="text-xs">{user.authMethod || "N/A"}</Badge>
       </TableCell>
       <TableCell className="hidden sm:table-cell">
-        <div className="flex items-center gap-1.5 text-sm">
-          {!isExpirationUnknown && expirationStatus === "expired" && <span className="h-2 w-2 rounded-full bg-red-500" title="Expired"></span>}
+         <div className="flex items-center gap-1.5 text-sm">
+          {!isExpirationUnknown && expirationStatus === "expired" && <span className="h-2 w-2 rounded-full bg-destructive" title="Expired"></span>}
           {!isExpirationUnknown && expirationStatus === "expiring_soon" && <span className="h-2 w-2 rounded-full bg-orange-500" title="Expiring Soon"></span>}
           {!isExpirationUnknown && expirationStatus === "active" && <span className="h-2 w-2 rounded-full bg-green-500" title="Active"></span>}
           <span className={isExpirationUnknown ? "text-destructive font-medium" : ""}>
@@ -328,9 +330,10 @@ export default function UsersPage() {
       setTotal(data.total || 0)
     } catch (error: any) {
       toast({
-        title: "❌ Error Fetching Users",
+        title: "Error Fetching Users",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setLoading(false)
@@ -343,9 +346,10 @@ export default function UsersPage() {
       setAvailableGroups(data.groups?.map((g: any) => g.groupName) || [])
     } catch (error: any) {
       toast({
-        title: "❌ Error Fetching Groups",
+        title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error.message) || "Could not load groups for filter selection.",
-        variant: "destructive"
+        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     }
   }, [toast]);
@@ -422,16 +426,19 @@ export default function UsersPage() {
     try {
       await deleteUser(userToDelete)
       toast({
-        title: "✅ User Deleted Successfully",
+        title: "Success",
         description: `User ${userToDelete} has been deleted.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       fetchUsersCallback(currentFilters)
       setSelectedUsers(prev => prev.filter(u => u !== userToDelete));
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Delete User",
+        title: "Error Deleting User",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setUserToDelete(null)
@@ -441,7 +448,7 @@ export default function UsersPage() {
 
   const confirmDeleteUser = useCallback((username: string) => {
     if (username === currentAuthUser?.username) {
-      toast({ title: "Action Prevented", description: "You cannot delete your own account.", variant: "destructive" });
+      toast({ title: "Action Prevented", description: "You cannot delete your own account.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setUserToDelete(username);
@@ -450,7 +457,7 @@ export default function UsersPage() {
 
   const confirmUpdateUserAccess = useCallback((username: string, deny: boolean) => {
     if (deny && username === currentAuthUser?.username) {
-      toast({ title: "Action Prevented", description: "You cannot deny VPN access to your own account.", variant: "destructive" });
+      toast({ title: "Action Prevented", description: "You cannot deny VPN access to your own account.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setUserToUpdateAccess({ username, deny });
@@ -463,15 +470,18 @@ export default function UsersPage() {
     try {
       await updateUser(username, { denyAccess: deny });
       toast({
-        title: `✅ VPN Access ${deny ? "Denied" : "Allowed"}`,
+        title: "Success",
         description: `VPN access for user ${username} has been ${deny ? "denied" : "allowed"}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchUsersCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: `❌ Failed to Update VPN Access`,
+        title: `Error Updating VPN Access`,
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setIsConfirmSingleAccessDialogOpen(false);
@@ -481,7 +491,7 @@ export default function UsersPage() {
 
   const confirmEnableUser = useCallback((username: string) => {
     if (username === currentAuthUser?.username) {
-        toast({ title: "Action Prevented", description: `You cannot re-enable your own account.`, variant: "destructive" });
+        toast({ title: "Action Prevented", description: `You cannot re-enable your own account.`, variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
         return;
     }
     setUserToEnable({ username });
@@ -494,15 +504,18 @@ export default function UsersPage() {
     try {
         await performUserAction(username, "enable");
         toast({
-            title: `✅ User Enabled Successfully`,
+            title: `Success`,
             description: `User account for ${username} has been enabled.`,
+            variant: "success",
+            icon: <CheckCircle className="h-5 w-5" />,
         });
         fetchUsersCallback(currentFilters);
     } catch (error: any) {
         toast({
-            title: `❌ Failed to Enable User`,
+            title: `Error Enabling User`,
             description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred.`,
             variant: "destructive",
+            icon: <AlertTriangle className="h-5 w-5" />,
         });
     } finally {
         setIsConfirmSingleEnableDialogOpen(false);
@@ -515,14 +528,17 @@ export default function UsersPage() {
      try {
       await performUserAction(username, "reset-otp");
       toast({
-        title: "✅ OTP Reset Successful",
+        title: "Success",
         description: `OTP has been reset for user ${username}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
     } catch (error: any) {
       toast({
-        title: "❌ OTP Reset Failed",
+        title: "Error Resetting OTP",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     }
   }, [toast]);
@@ -530,11 +546,11 @@ export default function UsersPage() {
 
   const confirmBulkUpdateAccess = useCallback((action: "allow" | "deny") => {
     if (selectedUsers.length === 0) {
-      toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "destructive" });
+      toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     if (action === "deny" && selectedUsers.includes(currentAuthUser?.username)) {
-        toast({ title: "Action Prevented", description: "You cannot deny VPN access to your own account in a bulk operation. Please deselect yourself.", variant: "destructive" });
+        toast({ title: "Action Prevented", description: "You cannot deny VPN access to your own account in a bulk operation. Please deselect yourself.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
         return;
     }
     setBulkAccessActionToConfirm(action);
@@ -549,7 +565,7 @@ export default function UsersPage() {
     let successCount = 0;
     let failCount = 0;
 
-    toast({ title: "Bulk Action Started", description: `Attempting to ${bulkAccessActionToConfirm} VPN access for ${selectedUsers.length} users...`});
+    toast({ title: "Info", description: `Attempting to ${bulkAccessActionToConfirm} VPN access for ${selectedUsers.length} users...`, variant:"info"});
 
     for (const username of selectedUsers) {
       try {
@@ -557,7 +573,6 @@ export default function UsersPage() {
         successCount++;
       } catch (error) {
         failCount++;
-        // console.error(`Failed to update access for ${username}:`, error);
       }
     }
 
@@ -572,7 +587,8 @@ export default function UsersPage() {
     toast({
       title: "Bulk Action Complete",
       description: summaryMessage,
-      variant: failCount > 0 && successCount === 0 ? "destructive" : (failCount > 0 ? "default" : "default")
+      variant: failCount > 0 && successCount === 0 ? "destructive" : (failCount > 0 ? "warning" : "success"),
+      icon: failCount > 0 ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5"/>
     });
 
     fetchUsersCallback(currentFilters);
@@ -593,6 +609,7 @@ export default function UsersPage() {
     toast({
       title: "Export Coming Soon",
       description: "This feature will be available in a future update.",
+      variant: "info"
     })
   }, [toast]);
 

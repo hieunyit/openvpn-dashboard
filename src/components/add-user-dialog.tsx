@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { createUser, getGroups } from "@/lib/api"
-import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
+import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
 import { generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 
 interface Group {
@@ -94,6 +94,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     toast({
       title: "Password Generated",
       description: "A new random password has been generated and filled.",
+      variant: "info",
     });
   };
 
@@ -124,17 +125,20 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       await createUser(userData)
 
       toast({
-        title: "✅ User Created Successfully",
+        title: "Success",
         description: `User ${formData.username} has been created.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
 
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Create User",
+        title: "Error Creating User",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setIsSubmitting(false)

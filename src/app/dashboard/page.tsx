@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getUserExpirations, getUsers, getGroups, getVPNStatus, getServerInfo, type ServerInfo } from "@/lib/api"
-import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server } from "lucide-react"
+import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server, CheckCircle, Info } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
@@ -194,7 +194,7 @@ export default function DashboardPage() {
       if (errors.length > 0) {
          const errorMessage = `Failed to load some dashboard data: ${errors.join(', ')}`;
          setError(errorMessage);
-         toast({ title: "⚠️ Partial Data Loaded", description: "Some dashboard information could not be retrieved.", variant: "default"})
+         toast({ title: "Partial Data Loaded", description: "Some dashboard information could not be retrieved.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" />})
       }
 
 
@@ -202,9 +202,10 @@ export default function DashboardPage() {
       const coreMessage = getCoreApiErrorMessage(err.message)
       setError(`A critical error occurred while loading dashboard data. ${coreMessage}`)
       toast({
-        title: "❌ Error Loading Dashboard",
+        title: "Error Loading Dashboard",
         description: coreMessage || "An unexpected critical error occurred.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setLoading(false)
@@ -289,8 +290,8 @@ export default function DashboardPage() {
                 <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
                 <CardDescription>Common administrative tasks.</CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col pt-2">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+               <CardContent className="flex-1 flex flex-col pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90" asChild>
                     <Link href="/dashboard/users"><Users className="mr-2 h-4 w-4"/>Manage Users</Link>
                     </Button>

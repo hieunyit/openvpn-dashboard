@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { UserCircle2, Eye, EyeOff, Settings } from "lucide-react" 
+import { UserCircle2, Eye, EyeOff, Settings, CheckCircle, AlertTriangle } from "lucide-react" 
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation" 
@@ -134,14 +134,16 @@ export default function UserDetailPage() {
           title: "User Not Found",
           description: `User ${username} could not be found. Redirecting...`,
           variant: "destructive",
+          icon: <AlertTriangle className="h-5 w-5" />,
         })
         router.push("/dashboard/users")
       }
     } catch (error: any) {
       toast({
-        title: "❌ Error Loading User",
+        title: "Error Loading User",
         description: getCoreApiErrorMessage(error.message) || "Failed to load user details. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setLoading(false)
@@ -155,9 +157,10 @@ export default function UserDetailPage() {
       setGroups(data.groups || [])
     } catch (error: any) {
       toast({
-        title: "❌ Error Fetching Groups",
+        title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error.message) || "Could not load groups for selection.",
-        variant: "destructive"
+        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />
       });
     } finally {
       setLoadingGroups(false)
@@ -190,16 +193,19 @@ export default function UserDetailPage() {
       }
       await updateUser(user.username, userDataToUpdate)
       toast({
-        title: "✅ User Updated Successfully",
+        title: "Success",
         description: `User ${user.username} has been updated.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       setEditing(false)
       fetchUser() 
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Update User",
+        title: "Error Updating User",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check input and try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setSaving(false)
@@ -213,6 +219,7 @@ export default function UserDetailPage() {
         title: "Action Prevented",
         description: "You cannot deny VPN access to your own account.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
       return;
     }
@@ -228,15 +235,18 @@ export default function UserDetailPage() {
       const newDenyAccessState = action === "deny";
       await updateUser(targetUsername, { denyAccess: newDenyAccessState });
       toast({
-        title: `✅ VPN Access ${action === "allow" ? "Allowed" : "Denied"}`,
+        title: "Success",
         description: `VPN access for user ${targetUsername} has been ${action === "allow" ? "allowed" : "denied"}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchUser(); 
     } catch (error: any) {
       toast({
-        title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
+        title: `Error ${action.charAt(0).toUpperCase() + action.slice(1)}ing VPN Access`,
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setSaving(false);
@@ -251,14 +261,17 @@ export default function UserDetailPage() {
     try {
       await performUserAction(user.username, "reset-otp");
       toast({
-        title: "✅ OTP Reset Successful",
+        title: "Success",
         description: `OTP for user ${user.username} has been reset.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
     } catch (error: any) {
       toast({
-        title: "❌ OTP Reset Failed",
+        title: "Error Resetting OTP",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setSaving(false);

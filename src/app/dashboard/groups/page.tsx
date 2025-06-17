@@ -60,6 +60,9 @@ import {
   PowerOff, 
   CalendarDays,
   X as XIcon,
+  AlertTriangle,
+  CheckCircle,
+  UserX,
 } from "lucide-react"
 import Link from "next/link"
 import { getCoreApiErrorMessage } from "@/lib/utils"
@@ -92,9 +95,9 @@ const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGrou
       return <Badge variant="outline" className="flex items-center gap-1 text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="h-3 w-3" />System Disabled</Badge>;
     }
     if (group.denyAccess) {
-      return <Badge variant="secondary" className="flex items-center gap-1"><LockKeyhole className="h-3 w-3" /> Access Denied</Badge>;
+      return <Badge variant="secondary" className="flex items-center gap-1 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="h-3 w-3" /> Access Denied</Badge>;
     }
-    return <Badge variant="default" className="flex items-center gap-1"><UnlockKeyhole className="h-3 w-3" /> Access Allowed</Badge>;
+    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> Access Allowed</Badge>;
   };
 
   return (
@@ -226,7 +229,7 @@ export default function GroupsPage() {
   const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
   
-  const [bulkActionToConfirm, setBulkActionToConfirm] = useState<"enable" | null>(null); // Removed "disable"
+  const [bulkActionToConfirm, setBulkActionToConfirm] = useState<"enable" | "disable" | null>(null); 
   const [isConfirmBulkActionDialogOpen, setIsConfirmBulkActionDialogOpen] = useState(false);
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
@@ -289,9 +292,10 @@ export default function GroupsPage() {
       setTotal(data.total || 0);
     } catch (error: any) {
       toast({
-        title: "❌ Error Fetching Groups",
+        title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
       setGroups([]);
       setTotal(0);
@@ -358,16 +362,19 @@ export default function GroupsPage() {
     try {
       await deleteGroup(groupToDelete)
       toast({
-        title: "✅ Group Deleted Successfully",
+        title: "Success",
         description: `Group ${groupToDelete} has been deleted.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       fetchGroupsCallback(currentFilters)
       setSelectedGroups(prev => prev.filter(g => g !== groupToDelete));
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Delete Group",
+        title: "Error Deleting Group",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setGroupToDelete(null)
@@ -391,15 +398,18 @@ export default function GroupsPage() {
     try {
       await updateGroup(groupName, { denyAccess: deny });
       toast({
-        title: `✅ VPN Access ${deny ? "Denied" : "Allowed"}`,
+        title: "Success",
         description: `VPN access for group ${groupName} has been ${deny ? "denied" : "allowed"}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Update VPN Access",
+        title: "Error Updating VPN Access",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setIsConfirmSingleAccessDialogOpen(false);
@@ -417,15 +427,18 @@ export default function GroupsPage() {
     try {
       await performGroupAction(groupToEnable, "enable");
       toast({
-        title: `✅ Group Enabled Successfully`,
+        title: "Success",
         description: `Group ${groupToEnable} has been enabled.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: `❌ Failed to Enable Group`,
+        title: "Error Enabling Group",
         description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred.`,
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setIsConfirmSingleEnableDialogOpen(false);
@@ -436,7 +449,7 @@ export default function GroupsPage() {
 
   const confirmBulkUpdateAccess = useCallback((action: "allow" | "deny") => {
     if (selectedGroups.length === 0) {
-      toast({ title: "No Groups Selected", description: "Please select groups to perform bulk actions.", variant: "destructive" });
+      toast({ title: "No Groups Selected", description: "Please select groups to perform bulk actions.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setBulkAccessActionToConfirm(action);
@@ -451,20 +464,18 @@ export default function GroupsPage() {
     let successCount = 0;
     let failCount = 0;
 
-    toast({ title: "Bulk Action Started", description: `Attempting to ${bulkAccessActionToConfirm} VPN access for ${selectedGroups.length} groups...`});
+    toast({ title: "Info", description: `Attempting to ${bulkAccessActionToConfirm} VPN access for ${selectedGroups.length} groups...`, variant: "info"});
 
     for (const groupName of selectedGroups) {
       try {
         const group = groups.find(g => g.groupName === groupName);
         if (deny && group && group.isEnabled === false) {
-            // console.warn(`Skipping deny access for system disabled group: ${groupName}`);
             continue;
         }
         await updateGroup(groupName, { denyAccess: deny });
         successCount++;
       } catch (error) {
         failCount++;
-        // console.error(`Failed to update access for group ${groupName}:`, error);
       }
     }
 
@@ -479,16 +490,17 @@ export default function GroupsPage() {
     toast({
       title: "Bulk Action Complete",
       description: summaryMessage,
-      variant: failCount > 0 && successCount === 0 ? "destructive" : (failCount > 0 ? "default" : "default")
+      variant: failCount > 0 && successCount === 0 ? "destructive" : (failCount > 0 ? "warning" : "success"),
+      icon: failCount > 0 ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5"/>
     });
 
     fetchGroupsCallback(currentFilters);
     setSelectedGroups([]);
   }, [bulkAccessActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters, groups]);
   
-  const confirmBulkAction = useCallback((action: "enable") => { // Only "enable" is left
+  const confirmBulkAction = useCallback((action: "enable" | "disable") => { 
     if (selectedGroups.length === 0) {
-      toast({ title: "No groups selected", description: "Please select groups for this bulk action.", variant: "destructive" });
+      toast({ title: "No groups selected", description: "Please select groups for this bulk action.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setBulkActionToConfirm(action);
@@ -500,18 +512,21 @@ export default function GroupsPage() {
 
     setBulkActionLoading(true);
     try {
-      const result = await bulkGroupActions(selectedGroups, bulkActionToConfirm); // action is "enable"
+      const result = await bulkGroupActions(selectedGroups, bulkActionToConfirm); 
       toast({
-        title: `✅ Bulk Enable Complete`,
-        description: `${result.success || 0} groups enabled. ${result.failed || 0} failed.`,
+        title: "Success",
+        description: `${result.success || 0} groups ${bulkActionToConfirm}d. ${result.failed || 0} failed.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroupsCallback(currentFilters);
       setSelectedGroups([]);
     } catch (error: any) {
       toast({
-        title: `❌ Failed to Bulk Enable Groups`,
+        title: `Error Bulk ${bulkActionToConfirm.charAt(0).toUpperCase() + bulkActionToConfirm.slice(1)} Groups`,
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setBulkActionLoading(false);
@@ -534,6 +549,7 @@ export default function GroupsPage() {
     toast({
       title: "Export Coming Soon",
       description: "This feature will be available in a future update.",
+      variant: "info"
     })
   }, [toast]);
 
@@ -598,6 +614,9 @@ export default function GroupsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => confirmBulkAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <Power className="mr-2 h-4 w-4" /> Enable
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => confirmBulkAction("disable")} disabled={bulkActionLoading} className="border-yellow-600 text-yellow-700 hover:bg-yellow-600/10 dark:border-yellow-500 dark:text-yellow-400 dark:hover:bg-yellow-500/20">
+                          <UserX className="mr-2 h-4 w-4" /> Disable
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("allow")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow Access
@@ -767,9 +786,9 @@ export default function GroupsPage() {
       <AlertDialog open={isConfirmBulkActionDialogOpen} onOpenChange={setIsConfirmBulkActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Group Enable</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Bulk Group Action: {bulkActionToConfirm?.charAt(0).toUpperCase() + (bulkActionToConfirm || "").slice(1)}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to enable the {selectedGroups.length} selected group(s)? This will apply system-wide.
+              Are you sure you want to {bulkActionToConfirm} the {selectedGroups.length} selected group(s)? This will apply system-wide.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -777,9 +796,9 @@ export default function GroupsPage() {
             <AlertDialogAction
               onClick={executeBulkAction}
               disabled={bulkActionLoading}
-              className={"bg-primary hover:bg-primary/90"}
+              className={bulkActionToConfirm === 'disable' ? "bg-yellow-500 hover:bg-yellow-500/90 text-white" : "bg-primary hover:bg-primary/90"}
             >
-              {bulkActionLoading ? "Processing..." : `Confirm Enable Groups`}
+              {bulkActionLoading ? "Processing..." : `Confirm ${bulkActionToConfirm?.charAt(0).toUpperCase() + (bulkActionToConfirm || "").slice(1)} Groups`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

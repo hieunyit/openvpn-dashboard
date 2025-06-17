@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { importUsers, importGroups, downloadUserTemplate, downloadGroupTemplate } from "@/lib/api"
-import { Upload, FileText, Download, AlertCircle, CheckCircle, XCircle, ListChecks } from "lucide-react"
+import { Upload, FileText, Download, AlertCircle, CheckCircle, XCircle, ListChecks, Info } from "lucide-react"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
@@ -96,9 +96,10 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
         setImportResults(null)
       } else {
         toast({
-          title: "Invalid file type",
+          title: "Invalid File Type",
           description: "Please select a CSV, Excel, or JSON file.",
           variant: "destructive",
+          icon: <AlertCircle className="h-5 w-5" />,
         })
         setFile(null);
       }
@@ -119,9 +120,10 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
   const handleImport = async () => {
     if (!file) {
       toast({
-        title: "No file selected",
+        title: "No File Selected",
         description: "Please select a file to import.",
         variant: "destructive",
+        icon: <AlertCircle className="h-5 w-5" />,
       });
       return;
     }
@@ -162,23 +164,28 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
       if (resultsToSet.dryRun) {
         if (resultsToSet.invalidRecords > 0 || hasClientValidationErrors || backendValidationIssues || itemLevelFailures) {
           toast({
-            title: "⚠️ Dry Run: Validation Found Issues",
+            title: "Dry Run: Validation Issues",
             description: `Validation found ${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0) + (resultsToSet.results?.failed || 0)} issues. Please review the details.`,
-            variant: "destructive",
+            variant: "warning",
+            icon: <AlertCircle className="h-5 w-5" />,
             duration: 5000,
           })
         } else {
           toast({
-            title: "✅ Dry Run: Validation Complete",
+            title: "Dry Run: Validation Complete",
             description: `All ${resultsToSet.total || 'N/A'} records appear valid for import.`,
+            variant: "success",
+            icon: <CheckCircle className="h-5 w-5" />,
             duration: 5000,
           })
         }
       } else { // Actual import
         if (resultsToSet.successCount > 0 && !itemLevelFailures && resultsToSet.invalidRecords === 0 && !hasClientValidationErrors && !backendValidationIssues) {
           toast({
-            title: "✅ Import Successful!",
+            title: "Import Successful!",
             description: `Successfully imported ${resultsToSet.successCount} of ${resultsToSet.total || resultsToSet.successCount} ${type}.`,
+            variant: "success",
+            icon: <CheckCircle className="h-5 w-5" />,
             duration: 5000,
           })
           onImportComplete()
@@ -187,26 +194,29 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
           }, 500);
         } else if (resultsToSet.successCount > 0) {
            toast({
-            title: "⚠️ Import Partially Successful",
+            title: "Import Partially Successful",
             description: `Imported ${resultsToSet.successCount} ${type}. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues detected. ': ''}Check details below.`,
-            variant: "default",
+            variant: "warning",
+            icon: <AlertCircle className="h-5 w-5" />,
             duration: 7000,
           })
           if (resultsToSet.successCount > 0) onImportComplete();
         } else {
           toast({
-            title: "❌ Import Failed",
+            title: "Import Failed",
             description: `No ${type} were imported. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues. ': ''}Please review errors below.`,
             variant: "destructive",
+            icon: <XCircle className="h-5 w-5" />,
             duration: 7000,
           })
         }
       }
     } catch (error: any) {
       toast({
-        title: "🚫 Import Error",
+        title: "Import Error",
         description: getCoreApiErrorMessage(error.message) || "Failed to process import. Please check the file and try again.",
         variant: "destructive",
+        icon: <XCircle className="h-5 w-5" />,
         duration: 7000,
       })
       setImportResults({
@@ -233,14 +243,17 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
         await downloadGroupTemplate(format)
       }
       toast({
-        title: "Template downloaded",
+        title: "Template Downloaded",
         description: `${type} template downloaded successfully.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
     } catch (error: any) {
       toast({
-        title: "Download failed",
+        title: "Download Failed",
         description: getCoreApiErrorMessage(error.message) || "Failed to download template. Please try again.",
         variant: "destructive",
+        icon: <AlertCircle className="h-5 w-5" />,
       })
     } finally {
       setDownloading(false)
@@ -313,7 +326,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
             </div>
 
             <Alert>
-              <AlertCircle className="h-4 w-4" />
+              <Info className="h-4 w-4" />
               <AlertTitle>Important</AlertTitle>
               <AlertDescription>
                 Make sure your file follows the correct format. Download a template if you&apos;re unsure.
