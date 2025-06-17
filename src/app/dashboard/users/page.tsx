@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { getUsers, deleteUser, updateUser, getGroups, performUserAction } from "@/lib/api"
+import { getUsers, deleteUser, updateUser, getGroups, performUserAction, bulkUserActions } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
@@ -56,7 +56,7 @@ import {
   ListFilter,
   FileText,
   Eye,
-  UserX, // Keep for system disabled icon
+  UserX, 
   UserCheck
 } from "lucide-react"
 import Link from "next/link"
@@ -84,7 +84,7 @@ interface UserTableRowProps {
   isCurrentUser: boolean;
   onSelectUser: (username: string, checked: boolean) => void;
   onUpdateUserAccess: (username: string, deny: boolean) => void;
-  onEnableUser: (username: string, enable: boolean) => void; // Will now only be called with enable: true from UI
+  onEnableUser: (username: string) => void; 
   onDeleteUser: (username: string) => void;
   onChangePassword: (username: string) => void;
   onResetOtp: (username: string) => void;
@@ -179,7 +179,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
               </DropdownMenuItem>
             )}
             {user.isEnabled === false && (
-                 <DropdownMenuItem onClick={() => onEnableUser(user.username, true)} disabled={isCurrentUser}>
+                 <DropdownMenuItem onClick={() => onEnableUser(user.username)} disabled={isCurrentUser}>
                     <UserCheck className="mr-2 h-4 w-4 text-green-600" /> Enable User Account
                 </DropdownMenuItem>
             )}
@@ -224,16 +224,13 @@ export default function UsersPage() {
   const [userToUpdateAccess, setUserToUpdateAccess] = useState<{ username: string; deny: boolean } | null>(null);
   const [isConfirmSingleAccessDialogOpen, setIsConfirmSingleAccessDialogOpen] = useState(false);
   
-  const [userToEnable, setUserToEnable] = useState<{ username: string } | null>(null); // Simplified for only enabling
+  const [userToEnable, setUserToEnable] = useState<{ username: string } | null>(null); 
   const [isConfirmSingleEnableDialogOpen, setIsConfirmSingleEnableDialogOpen] = useState(false);
 
 
   const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
   
-  const [isConfirmBulkEnableDialogOpen, setIsConfirmBulkEnableDialogOpen] = useState(false);
-
-
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
   const [isExtendExpirationDialogOpen, setIsExtendExpirationDialogOpen] = useState(false);
@@ -514,42 +511,6 @@ export default function UsersPage() {
     setSelectedUsers([]);
   }, [bulkAccessActionToConfirm, selectedUsers, fetchUsersCallback, toast, currentFilters]);
   
-  const confirmBulkEnable = useCallback(() => {
-    if (selectedUsers.length === 0) {
-      toast({ title: "No users selected", description: "Please select users for this bulk action.", variant: "destructive" });
-      return;
-    }
-    if (selectedUsers.includes(currentAuthUser?.username)) {
-        toast({ title: "Action Prevented", description: "You cannot enable your own account in a bulk operation. Please deselect yourself.", variant: "destructive" });
-        return;
-    }
-    setIsConfirmBulkEnableDialogOpen(true);
-  }, [selectedUsers, currentAuthUser, toast]);
-
-  const executeBulkEnable = useCallback(async () => {
-    if (selectedUsers.length === 0) return;
-    
-    setBulkActionLoading(true);
-    try {
-      const result = await bulkUserActions(selectedUsers, "enable"); // Assuming bulkUserActions handles this
-      toast({
-        title: `Bulk Enable Complete`,
-        description: `${result.success || 0} users enabled. ${result.failed || 0} failed.`,
-      });
-      fetchUsersCallback(currentFilters);
-      setSelectedUsers([]);
-    } catch (error: any) {
-      toast({
-        title: `Error Bulk Enabling`,
-        description: error.message || "Failed to perform bulk user enable action.",
-        variant: "destructive",
-      });
-    } finally {
-      setBulkActionLoading(false);
-      setIsConfirmBulkEnableDialogOpen(false);
-    }
-  }, [selectedUsers, fetchUsersCallback, toast, currentFilters]);
-
 
   const handleSelectUserCallback = useCallback((username: string, checked: boolean) => {
     setSelectedUsers(prev => checked ? [...prev, username] : prev.filter(u => u !== username));
@@ -632,9 +593,6 @@ export default function UsersPage() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <span className="text-sm font-medium text-primary">{selectedUsers.length} user(s) selected</span>
                     <div className="flex flex-wrap items-center gap-2">
-                         <Button variant="outline" size="sm" onClick={() => confirmBulkEnable()} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
-                          <UserCheck className="mr-2 h-4 w-4" /> Enable Accounts
-                        </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("allow")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow VPN Access
                         </Button>
@@ -807,27 +765,6 @@ export default function UsersPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      <AlertDialog open={isConfirmBulkEnableDialogOpen} onOpenChange={setIsConfirmBulkEnableDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk User Account Enable</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to enable the {selectedUsers.length} selected user account(s)? This will apply system-wide.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmBulkEnableDialogOpen(false)} disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeBulkEnable}
-              disabled={bulkActionLoading}
-              className={"bg-primary hover:bg-primary/90"}
-            >
-              {bulkActionLoading ? "Processing..." : `Confirm Enable Accounts`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
 
       <ImportDialog
         open={isImportDialogOpen}
@@ -868,5 +805,7 @@ export default function UsersPage() {
     </div>
   )
 }
+
+    
 
     
