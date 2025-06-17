@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { getUsers, deleteUser, updateUser, getGroups, performUserAction, bulkUserActions } from "@/lib/api"
+import { getUsers, deleteUser, updateUser, getGroups, performUserAction } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
@@ -45,7 +45,7 @@ import {
   MoreHorizontal,
   Trash2,
   RefreshCcw,
-  KeyRound as Key, // Renamed to avoid conflict with React's key prop
+  KeyRound as Key, 
   CalendarDays,
   UserCog,
   Upload,
@@ -60,7 +60,7 @@ import {
   UserCheck
 } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay } from "@/lib/utils"
+import { formatDateForDisplay, getExpirationStatus } from "@/lib/utils"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 
 
@@ -101,6 +101,8 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
     }
     return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> Access Allowed</Badge>;
   };
+
+  const expirationStatus = getExpirationStatus(user.userExpiration);
   
   return (
     <TableRow key={user.username} className={selectedUsers.includes(user.username) ? "bg-muted hover:bg-muted/80" : "hover:bg-muted/50 transition-colors"}>
@@ -136,7 +138,9 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
       </TableCell>
       <TableCell className="hidden sm:table-cell">
         <div className="flex items-center gap-1.5 text-sm">
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          {expirationStatus === "expired" && <span className="h-2 w-2 rounded-full bg-red-500" title="Expired"></span>}
+          {expirationStatus === "expiring_soon" && <span className="h-2 w-2 rounded-full bg-orange-500" title="Expiring Soon"></span>}
+          {expirationStatus === "active" && <span className="h-2 w-2 rounded-full bg-green-500" title="Active"></span>}
           {formatDateForDisplay(user.userExpiration)}
         </div>
       </TableCell>
@@ -334,19 +338,26 @@ export default function UsersPage() {
     }
     fetchUsersCallback(currentFilters)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, actionQueryParam, currentFilters, isAddUserDialogOpen]);
+  }, [page, limit, actionQueryParam, isAddUserDialogOpen]);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (page !== 1) setPage(1); // Reset to page 1 on search/filter change
+      else fetchUsersCallback(currentFilters);
+    }, 500); // 500ms debounce
 
+    return () => {
+      clearTimeout(handler);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, currentFilters]); // Re-run effect if searchTerm or currentFilters change
 
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault()
-    setPage(1)
-    fetchUsersCallback(currentFilters)
-  }, [fetchUsersCallback, currentFilters]);
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
     setCurrentFilters(newFilters);
-    setPage(1);
-  }, []);
+    if (page !== 1) setPage(1);
+    else fetchUsersCallback(newFilters); // If already on page 1, fetch immediately
+  }, [page, fetchUsersCallback]);
 
 
   const handleDeleteUserCallback = useCallback(async () => {
@@ -562,7 +573,7 @@ export default function UsersPage() {
       <Card className="shadow-md border-0">
         <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex-1 flex items-center gap-2 w-full sm:w-auto">
                     <div className="relative w-full max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -573,8 +584,7 @@ export default function UsersPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     </div>
-                    <Button type="submit" variant="outline" className="h-10">Search</Button>
-                </form>
+                </div>
                 <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 h-10 w-full sm:w-auto">
                     <ListFilter className="h-4 w-4" />
                     {showFilters ? "Hide Filters" : "Show Filters"} ({Object.values(currentFilters).filter(v => v && v !== "any" && v !== "username" && v !== "asc").length})
@@ -805,7 +815,3 @@ export default function UsersPage() {
     </div>
   )
 }
-
-    
-
-    

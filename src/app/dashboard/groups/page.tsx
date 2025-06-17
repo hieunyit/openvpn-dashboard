@@ -289,6 +289,7 @@ export default function GroupsPage() {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, searchTerm, toast]);
 
   useEffect(() => {
@@ -299,18 +300,28 @@ export default function GroupsPage() {
       window.history.replaceState({}, "", newUrl.toString());
     }
     fetchGroupsCallback(currentFilters);
-  }, [page, limit, actionQueryParam, fetchGroupsCallback, currentFilters, isAddGroupDialogOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, actionQueryParam, isAddGroupDialogOpen]);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (page !== 1) setPage(1); // Reset to page 1 on search/filter change
+      else fetchGroupsCallback(currentFilters);
+    }, 500); // 500ms debounce
 
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault()
-    setPage(1) 
-    fetchGroupsCallback(currentFilters)
-  },[fetchGroupsCallback, currentFilters]);
+    return () => {
+      clearTimeout(handler);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, currentFilters]); // Re-run effect if searchTerm or currentFilters change
+
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
-    setCurrentFilters(prev => ({...prev, ...newFilters, includeMemberCount: true})); 
-    setPage(1);
-  }, []);
+    const updatedFilters = {...newFilters, includeMemberCount: true};
+    setCurrentFilters(updatedFilters); 
+    if (page !== 1) setPage(1);
+    else fetchGroupsCallback(updatedFilters);
+  }, [page, fetchGroupsCallback]);
 
 
   const handleDeleteGroupCallback = useCallback(async () => {
@@ -525,7 +536,7 @@ export default function GroupsPage() {
       <Card className="shadow-md border-0">
         <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-             <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2 w-full sm:w-auto">
+             <div className="flex-1 flex items-center gap-2 w-full sm:w-auto">
                 <div className="relative w-full max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -536,8 +547,7 @@ export default function GroupsPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button type="submit" variant="outline" className="h-10">Search</Button>
-            </form>
+            </div>
             <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 h-10 w-full sm:w-auto">
               <ListFilter className="h-4 w-4" />
               {showFilters ? "Hide Filters" : "Show Filters"} ({Object.values(currentFilters).filter(v => v && v !== "any" && v !== "groupName" && v !== "asc" && v !== true).length})

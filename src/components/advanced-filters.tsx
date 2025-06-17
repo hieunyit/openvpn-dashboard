@@ -88,16 +88,22 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
     setInternalFilters((prev: any) => ({ ...prev, [key]: value }))
   }, []);
 
-  const handleApplyFilters = useCallback(() => {
-    const filtersToApply = { ...internalFilters };
-    // Ensure numeric fields are numbers or undefined
-    if (filtersToApply.expiringInDays && filtersToApply.expiringInDays !== "") filtersToApply.expiringInDays = Number(filtersToApply.expiringInDays); else delete filtersToApply.expiringInDays;
-    if (filtersToApply.minMemberCount && filtersToApply.minMemberCount !== "") filtersToApply.minMemberCount = Number(filtersToApply.minMemberCount); else delete filtersToApply.minMemberCount;
-    if (filtersToApply.maxMemberCount && filtersToApply.maxMemberCount !== "") filtersToApply.maxMemberCount = Number(filtersToApply.maxMemberCount); else delete filtersToApply.maxMemberCount;
-    
-    onFiltersChange(filtersToApply)
-    updateActiveFilterBadges(filtersToApply)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const filtersToApply = { ...internalFilters };
+      if (filtersToApply.expiringInDays && filtersToApply.expiringInDays !== "") filtersToApply.expiringInDays = Number(filtersToApply.expiringInDays); else delete filtersToApply.expiringInDays;
+      if (filtersToApply.minMemberCount && filtersToApply.minMemberCount !== "") filtersToApply.minMemberCount = Number(filtersToApply.minMemberCount); else delete filtersToApply.minMemberCount;
+      if (filtersToApply.maxMemberCount && filtersToApply.maxMemberCount !== "") filtersToApply.maxMemberCount = Number(filtersToApply.maxMemberCount); else delete filtersToApply.maxMemberCount;
+      
+      onFiltersChange(filtersToApply);
+      updateActiveFilterBadges(filtersToApply);
+    }, 750); // 750ms debounce
+
+    return () => {
+      clearTimeout(handler);
+    };
   }, [internalFilters, onFiltersChange, updateActiveFilterBadges]);
+
 
   const handleClearFilters = useCallback(() => {
     setInternalFilters(defaultFilters)
@@ -123,7 +129,7 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
           <Filter className="h-5 w-5" />
           Advanced Filters
         </CardTitle>
-        <CardDescription>Filter and sort {type} with advanced criteria</CardDescription>
+        <CardDescription>Filter and sort {type} with advanced criteria. Filters apply automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {activeFilterBadges.length > 0 && (
@@ -379,9 +385,6 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
       <CardFooter className="flex justify-end gap-2">
           <Button variant="ghost" onClick={handleClearFilters}>
             <RotateCcw className="mr-2 h-4 w-4" /> Reset Filters
-          </Button>
-          <Button onClick={handleApplyFilters}>
-            <Check className="mr-2 h-4 w-4" /> Apply Filters
           </Button>
       </CardFooter>
     </Card>

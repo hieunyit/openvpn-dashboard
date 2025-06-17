@@ -1,7 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format, parse, isValid } from "date-fns"
+import { format, parse, isValid, differenceInDays, isBefore, parseISO } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -14,8 +14,12 @@ export function formatDateForDisplay(dateString?: string): string {
     // Try parsing DD/MM/YYYY first
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
       parsedDate = parse(dateString, "dd/MM/yyyy", new Date())
-    } else {
-      // Fallback to default Date constructor for ISO or YYYY-MM-DD
+    } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/.test(dateString)) {
+      // ISO string like "2024-08-15T10:20:30Z" or "2024-08-15T10:20:30.000Z"
+      parsedDate = parseISO(dateString);
+    }
+     else {
+      // Fallback to default Date constructor for YYYY-MM-DD or other recognizable formats
       parsedDate = new Date(dateString)
     }
 
@@ -108,4 +112,47 @@ export function generateRandomPassword(length = 14): string {
   
   // Shuffle the password to make it more random
   return password.split('').sort(() => 0.5 - Math.random()).join('');
+}
+
+export function getExpirationStatus(dateString?: string): "expired" | "expiring_soon" | "active" | "unknown" {
+  if (!dateString || dateString === "N/A") return "unknown";
+
+  let parsedDate: Date;
+  try {
+    // Attempt to parse common formats
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) { // DD/MM/YYYY
+      parsedDate = parse(dateString, "dd/MM/yyyy", new Date());
+    } else if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(dateString)) { // YYYY-MM-DD or ISO
+        if (dateString.includes('T')) {
+            parsedDate = parseISO(dateString);
+        } else {
+             parsedDate = parse(dateString, "yyyy-MM-dd", new Date());
+        }
+    } else {
+      parsedDate = new Date(dateString); // Fallback for other Date constructor parsable formats
+    }
+    
+    if (!isValid(parsedDate)) {
+      return "unknown";
+    }
+  } catch (e) {
+    return "unknown";
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize today to the beginning of the day
+
+  const expirationDateOnly = new Date(parsedDate);
+  expirationDateOnly.setHours(0,0,0,0); // Normalize expiration to beginning of day
+
+  if (isBefore(expirationDateOnly, today)) {
+    return "expired";
+  }
+
+  const daysDiff = differenceInDays(expirationDateOnly, today);
+  if (daysDiff <= 7) {
+    return "expiring_soon";
+  }
+
+  return "active";
 }
