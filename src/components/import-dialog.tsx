@@ -21,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { importUsers, importGroups, downloadUserTemplate, downloadGroupTemplate } from "@/lib/api"
 import { Upload, FileText, Download, AlertCircle, CheckCircle, XCircle, ListChecks } from "lucide-react"
-import { Card, CardHeader, CardContent } from "@/components/ui/card" // Removed CardTitle as it's not directly used here but by PrimitiveDialogTitle
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
 
 interface ImportDialogProps {
   open: boolean
@@ -61,7 +61,7 @@ interface ImportResult {
   failureCount: number
   dryRun: boolean
   validationErrors?: ImportValidationError[]
-  results?: BulkOperationOutcome
+  results?: BulkOperationOutcome // For backend-processed individual item results
 }
 
 
@@ -108,7 +108,11 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
     if (file.name.endsWith(".csv")) return "csv"
     if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) return "xlsx"
     if (file.name.endsWith(".json")) return "json"
-    return "csv" 
+    // Default to CSV if type is ambiguous but common (e.g. text/plain for a .csv file)
+    if (file.type === "text/csv" || file.type === "application/vnd.ms-excel") return "csv";
+    if (file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") return "xlsx";
+    if (file.type === "application/json") return "json";
+    return "csv" // Fallback, backend might re-verify
   }
 
   const handleImport = async () => {
@@ -126,38 +130,40 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
 
     try {
       const format = detectFileFormat(file)
-      let apiResponse: any 
+      let apiResponse: any
 
       if (type === "users") {
         apiResponse = await importUsers(file, format, dryRun, override)
-      } else {
+      } else { // groups
         apiResponse = await importGroups(file, format, dryRun, override)
       }
-      
+
+      // The API response might be nested under `success.data` or be direct
       const responseData = apiResponse.success?.data || apiResponse;
 
       const resultsToSet: ImportResult = {
         total: responseData.total ?? 0,
-        validRecords: responseData.validRecords ?? 0,
-        invalidRecords: responseData.invalidRecords ?? 0,
-        processedRecords: responseData.processedRecords ?? 0,
-        successCount: responseData.results?.success ?? responseData.successCount ?? 0,
-        failureCount: responseData.results?.failed ?? responseData.failureCount ?? 0,
+        validRecords: responseData.validRecords ?? 0, // client-side or pre-check
+        invalidRecords: responseData.invalidRecords ?? 0, // client-side or pre-check
+        processedRecords: responseData.processedRecords ?? responseData.results?.total ?? 0, // backend processed
+        successCount: responseData.results?.success ?? responseData.successCount ?? 0, // backend successful
+        failureCount: responseData.results?.failed ?? responseData.failureCount ?? 0, // backend failed
         dryRun: responseData.dryRun ?? dryRun,
-        validationErrors: responseData.validationErrors || [],
-        results: responseData.results 
+        validationErrors: responseData.validationErrors || [], // client-side validation errors
+        results: responseData.results // detailed backend results if provided
       };
       setImportResults(resultsToSet)
 
-      const backendValidationIssues = resultsToSet.validRecords < 0;
+      const backendValidationIssues = resultsToSet.validRecords < 0; // A specific indicator from backend if used
       const hasClientValidationErrors = resultsToSet.validationErrors && resultsToSet.validationErrors.length > 0;
-      const itemLevelFailures = resultsToSet.results?.failed ?? 0;
+      const itemLevelFailures = resultsToSet.failureCount > 0 || (resultsToSet.results && resultsToSet.results.failed > 0);
+
 
       if (resultsToSet.dryRun) {
-        if (resultsToSet.invalidRecords > 0 || hasClientValidationErrors || backendValidationIssues || itemLevelFailures > 0) {
+        if (resultsToSet.invalidRecords > 0 || hasClientValidationErrors || backendValidationIssues || itemLevelFailures) {
           toast({
             title: "Validation Found Issues",
-            description: `Validation found ${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0) + itemLevelFailures} issues. Please review the details.`,
+            description: `Validation found ${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0) + (resultsToSet.results?.failed || 0)} issues. Please review the details.`,
             variant: "destructive",
           })
         } else {
@@ -166,25 +172,25 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
             description: `All ${resultsToSet.total || 'N/A'} records appear valid for import.`,
           })
         }
-      } else { 
-        if (resultsToSet.successCount > 0 && itemLevelFailures === 0 && resultsToSet.invalidRecords === 0 && !hasClientValidationErrors && !backendValidationIssues) {
+      } else { // Actual import
+        if (resultsToSet.successCount > 0 && !itemLevelFailures && resultsToSet.invalidRecords === 0 && !hasClientValidationErrors && !backendValidationIssues) {
           toast({
             title: "Import Successful",
-            description: `Successfully imported ${resultsToSet.successCount} of ${resultsToSet.total} ${type}.`,
+            description: `Successfully imported ${resultsToSet.successCount} of ${resultsToSet.total || resultsToSet.successCount} ${type}.`,
           })
           onImportComplete()
           handleClose()
         } else if (resultsToSet.successCount > 0) {
            toast({
             title: "Import Partially Successful",
-            description: `Imported ${resultsToSet.successCount} ${type}. ${itemLevelFailures > 0 ? `${itemLevelFailures} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues detected. ': ''}Check details.`,
-            variant: "default", 
+            description: `Imported ${resultsToSet.successCount} ${type}. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues detected. ': ''}Check details.`,
+            variant: "default",
           })
           if (resultsToSet.successCount > 0) onImportComplete();
-        } else { 
+        } else {
           toast({
             title: "Import Failed",
-            description: `No ${type} were imported. ${itemLevelFailures > 0 ? `${itemLevelFailures} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues. ': ''}Please review errors.`,
+            description: `No ${type} were imported. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues. ': ''}Please review errors.`,
             variant: "destructive",
           })
         }
@@ -195,13 +201,13 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
         description: error.message || "Failed to process import. Please check the file and try again.",
         variant: "destructive",
       })
-      setImportResults({ 
-        total: file ? 1 : 0, 
-        validRecords: 0, 
-        invalidRecords: file ? 1 : 0, 
+      setImportResults({
+        total: file ? 1 : 0, // Assume 1 record if file exists, for error display
+        validRecords: 0,
+        invalidRecords: file ? 1 : 0,
         processedRecords: 0,
-        successCount: 0, 
-        failureCount: file ? 1 : 0, 
+        successCount: 0,
+        failureCount: file ? 1 : 0,
         dryRun: dryRun,
         validationErrors: [{ row: 0, field: 'general', value: '', message: error.message || "Unknown API error" }]
       });
@@ -240,11 +246,11 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
     setOverride(false)
     onOpenChange(false)
   }
-  
+
   const hasErrorsOrFailures = importResults && (
-    importResults.failureCount > 0 || 
-    importResults.invalidRecords > 0 || 
-    importResults.validRecords < 0 || 
+    importResults.failureCount > 0 ||
+    importResults.invalidRecords > 0 ||
+    importResults.validRecords < 0 || // Specific backend flag
     (importResults.validationErrors && importResults.validationErrors.length > 0) ||
     (importResults.results && importResults.results.failed > 0)
   );
@@ -325,11 +331,15 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
                     <li>access_control (comma-separated, optional)</li>
                     <li>group_name (optional)</li>
                   </ul>
-                ) : (
+                ) : ( // groups
                   <ul className="list-disc list-inside space-y-1">
                     <li>group_name (required)</li>
                     <li>auth_method (local/ldap, required)</li>
+                    <li>mfa (true/false, optional, defaults to false)</li>
+                    <li>role (User/Admin, optional, defaults to User)</li>
                     <li>access_control (comma-separated, optional)</li>
+                    <li>group_range (comma-separated, optional)</li>
+                    <li>group_subnet (comma-separated, optional)</li>
                   </ul>
                 )}
               </div>
@@ -338,7 +348,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
             {importResults && (
               <Card className="mt-4">
                 <CardHeader>
-                  <PrimitiveDialogTitle className="flex items-center gap-2 text-lg"> {/* Changed to PrimitiveDialogTitle */}
+                  <PrimitiveDialogTitle className="flex items-center gap-2 text-lg">
                     {hasErrorsOrFailures ? (
                       <XCircle className="h-5 w-5 text-destructive" />
                     ) : (
@@ -350,40 +360,34 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div><span className="font-medium">Total in File:</span> {importResults.total || 'N/A'}</div>
-                    <div><span className="font-medium">Processed (Backend):</span> {importResults.processedRecords || 'N/A'}</div>
-                    
-                    {importResults.validRecords < 0 ? (
+                    {importResults.dryRun && <div><span className="font-medium">Client-side Valid:</span> {importResults.validRecords || 'N/A'}</div>}
+                    {importResults.dryRun && <div className={importResults.invalidRecords > 0 ? 'text-destructive font-semibold' : ''}><span className="font-medium">Client-side Invalid:</span> {importResults.invalidRecords || 'N/A'}</div>}
+
+                    {!importResults.dryRun && <div><span className="font-medium">Processed by Backend:</span> {importResults.processedRecords || 'N/A'}</div>}
+                    {!importResults.dryRun && <div className={importResults.successCount > 0 ? 'text-green-600 font-semibold' : ''}><span className="font-medium">Imported:</span> {importResults.successCount || 'N/A'}</div>}
+                    {!importResults.dryRun && <div className={importResults.failureCount > 0 ? 'text-destructive font-semibold' : ''}><span className="font-medium">Failed (Backend):</span> {importResults.failureCount || 'N/A'}</div>}
+
+                    {importResults.validRecords < 0 && (
                          <div><span className="font-medium text-destructive">Backend Validation:</span> <span className="text-destructive font-semibold">Issues Detected ({importResults.validRecords})</span></div>
-                    ) : (
-                        <div><span className="font-medium">Client-side Valid:</span> {importResults.validRecords || 'N/A'}</div>
-                    )}
-                   
-                    <div className={importResults.invalidRecords > 0 ? 'text-destructive font-semibold' : ''}><span className="font-medium">Client-side Invalid:</span> {importResults.invalidRecords || 'N/A'}</div>
-                    
-                    {!importResults.dryRun && (
-                      <>
-                        <div className={importResults.successCount > 0 ? 'text-green-600 font-semibold' : ''}><span className="font-medium">Imported:</span> {importResults.successCount || 'N/A'}</div>
-                        <div className={importResults.failureCount > 0 ? 'text-destructive font-semibold' : ''}><span className="font-medium">Failed (Backend):</span> {importResults.failureCount || 'N/A'}</div>
-                      </>
                     )}
                   </div>
 
                   {importResults.validationErrors && importResults.validationErrors.length > 0 && (
                     <div className="space-y-2 pt-2">
-                      <h5 className="font-medium text-destructive flex items-center gap-1"><AlertCircle className="h-4 w-4" />File Validation Errors:</h5>
+                      <h5 className="font-medium text-destructive flex items-center gap-1"><AlertCircle className="h-4 w-4" />File Validation Errors (Client-side):</h5>
                       <div className="max-h-40 overflow-y-auto space-y-1 rounded-md border border-destructive/50 p-2 bg-destructive/5 text-xs">
                         {importResults.validationErrors.map((error, index) => (
                           <div key={`val-${index}`} className="text-destructive">
-                            <strong>Row {error.row || 'N/A'}:</strong> (Field: {error.field || 'N/A'}, Value: &quot;{error.value}&quot;) - {error.message}
+                            <strong>Row {error.row || 'N/A'}:</strong> (Field: {error.field || 'N/A'}, Value: &quot;{String(error.value)}&quot;) - {error.message}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {importResults.results && importResults.results.results && importResults.results.failed > 0 && (
+                  {importResults.results && importResults.results.results && (importResults.results.failed > 0 || importResults.results.results.some(item => !item.success && item.error)) && (
                      <div className="space-y-2 pt-2">
-                      <h5 className="font-medium text-destructive flex items-center gap-1"><ListChecks className="h-4 w-4" />Item-Specific Import Errors:</h5>
+                      <h5 className="font-medium text-destructive flex items-center gap-1"><ListChecks className="h-4 w-4" />Item-Specific Import Errors (Backend):</h5>
                       <div className="max-h-40 overflow-y-auto space-y-1 rounded-md border border-destructive/50 p-2 bg-destructive/5 text-xs">
                         {importResults.results.results.filter(item => !item.success && item.error).map((item, index) => (
                           <div key={`item-err-${index}`} className="text-destructive">
@@ -427,10 +431,11 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
                       </code>
                       <p className="mt-2"><strong>Note:</strong> <code className="text-xs">user_expiration</code> must be in <strong>DD/MM/YYYY</strong> format (e.g., 31/12/2024). All other required fields must be present.</p>
                     </div>
-                  ) : (
+                  ) : ( // groups
                     <div>
                       <p className="mb-1">CSV headers (order matters):</p>
-                      <code className="text-xs bg-background p-1 rounded block">group_name,auth_method,access_control</code>
+                      <code className="text-xs bg-background p-1 rounded block">group_name,auth_method,mfa,role,access_control,group_range,group_subnet</code>
+                       <p className="mt-2"><strong>Note:</strong> <code className="text-xs">mfa</code> should be true/false. <code className="text-xs">role</code> should be User or Admin.</p>
                     </div>
                   )}
                 </div>

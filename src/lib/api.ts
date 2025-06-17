@@ -18,12 +18,13 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
   }
 
   const headers: HeadersInit = {
-    ...options.headers, 
+    ...options.headers,
     "ngrok-skip-browser-warning": "1",
   };
 
   if (options.body instanceof FormData) {
-    delete headers['Content-Type']; 
+    // Let browser set Content-Type for FormData
+    // delete headers['Content-Type'];
   } else if (!headers['Content-Type'] && (options.method === "POST" || options.method === "PUT" || options.method === "PATCH")) {
     headers['Content-Type'] = 'application/json';
   }
@@ -35,7 +36,7 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
 
   try {
     const fullProxyUrl = `${PROXY_ROUTE_PREFIX}/${backendRelativePath}`;
-    
+
     console.log(`[fetchWithAuth] Requesting: ${options.method || 'GET'} ${fullProxyUrl}`);
 
     let response = await fetch(fullProxyUrl, {
@@ -49,11 +50,11 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
       if (refreshed) {
         console.log(`[fetchWithAuth] Token refreshed, retrying ${fullProxyUrl}.`);
         token = getAccessToken(); // Get the new token
-        const newHeadersRefresh: HeadersInit = { ...headers }; 
+        const newHeadersRefresh: HeadersInit = { ...headers };
         if (token) {
           newHeadersRefresh['Authorization'] = `Bearer ${token}`;
         }
-        response = await fetch(fullProxyUrl, { 
+        response = await fetch(fullProxyUrl, {
           ...options,
           headers: newHeadersRefresh,
         });
@@ -197,7 +198,7 @@ export async function createUser(userData: any) {
 
 export async function updateUser(username: string, userData: any) {
   console.log(`[API updateUser] Updating user ${username} with data:`, userData);
-  const allowedFields:any = { 
+  const allowedFields:any = {
     accessControl: userData.accessControl,
     denyAccess: userData.denyAccess,
     groupName: userData.groupName === "none" || userData.groupName === "" ? undefined : userData.groupName,
@@ -240,10 +241,10 @@ export async function performUserAction(username: string, action: "enable" | "di
     method: "PUT",
   };
 
-  let bodyData: any = undefined; 
+  let bodyData: any = undefined;
   if (action === "change-password" && data && data.newPassword) {
     bodyData = { password: data.newPassword };
-  } else if (data && Object.keys(data).length > 0 && action !== "enable" && action !== "disable" && action !== "reset-otp") { 
+  } else if (data && Object.keys(data).length > 0 && action !== "enable" && action !== "disable" && action !== "reset-otp") {
     bodyData = data;
   }
 
@@ -251,7 +252,9 @@ export async function performUserAction(username: string, action: "enable" | "di
   if (bodyData !== undefined && Object.keys(bodyData).length > 0) {
     options.body = JSON.stringify(bodyData);
   } else if (action === "enable" || action === "disable" || action === "reset-otp") {
-     delete options.body;
+     // For these actions, the backend might not expect a body or an empty body is fine.
+     // If an empty body is required, ensure it's explicitly sent as JSON.stringify({})
+     // If no body is expected, this is fine.
   }
 
 
@@ -274,7 +277,7 @@ export async function disconnectUser(username: string, message?: string) {
 
   const response = await fetchWithAuth(`api/users/${username}/disconnect`, {
     method: "POST",
-    body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}), 
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}),
   });
 
   if (!response.ok) {
@@ -282,7 +285,7 @@ export async function disconnectUser(username: string, message?: string) {
   }
   const responseData = await response.json();
   console.log(`[API disconnectUser] Response for ${username}:`, responseData);
-  return parseApiResponse(responseData); 
+  return parseApiResponse(responseData);
 }
 
 
@@ -325,7 +328,7 @@ export async function getGroup(groupName: string) {
   }
   const data = await response.json();
   console.log(`[API getGroup] Received data for ${groupName}:`, data);
-  return parseApiResponse(data); 
+  return parseApiResponse(data);
 }
 
 export async function createGroup(groupData: {
@@ -370,7 +373,7 @@ export async function updateGroup(groupName: string, groupData: {
   groupSubnet?: string[];
 }) {
   console.log(`[API updateGroup] Updating group ${groupName} with data:`, groupData);
-  
+
   const payload: any = {};
   if (groupData.role !== undefined) payload.role = groupData.role;
   if (groupData.mfa !== undefined) payload.mfa = groupData.mfa;
@@ -409,7 +412,7 @@ export async function deleteGroup(groupName: string) {
 export async function performGroupAction(groupName: string, action: "enable" | "disable") {
   console.log(`[API performGroupAction] Performing action ${action} on group ${groupName}`);
   const response = await fetchWithAuth(`api/groups/${groupName}/${action}`, {
-    method: "PUT", 
+    method: "PUT", // No body is needed for these actions as per typical REST patterns for enable/disable
   });
 
   if (!response.ok) {
@@ -553,11 +556,11 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
   console.log(`[API importGroups] Importing groups. Dry run: ${dryRun}, Override: ${override}, Format: ${format}`);
   const formData = new FormData();
   formData.append("file", file);
-  if (format) {
+  if (format) { // The API spec shows format is optional, so only append if provided
     formData.append("format", format);
   }
-  formData.append("dryRun", String(dryRun));
-  formData.append("override", String(override));
+  formData.append("dryRun", String(dryRun)); // API spec shows this as form data
+  formData.append("override", String(override)); // API spec shows this as form data
 
   console.log("[API importGroups] FormData to be sent:");
   for (const pair of formData.entries()) {
@@ -567,6 +570,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
   const response = await fetchWithAuth(`api/bulk/groups/import`, {
     method: "POST",
     body: formData,
+    // Content-Type is automatically set by browser for FormData
   });
 
   if (!response.ok) {
@@ -578,7 +582,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
 }
 
 // Bulk Operations API functions
-export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") { 
+export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") {
   console.log(`[API bulkUserActions] Performing action ${action} on users:`, usernames);
   const response = await fetchWithAuth(`api/bulk/users/actions`, {
     method: "POST",
@@ -611,7 +615,7 @@ export async function bulkExtendUserExpiration(usernames: string[], newExpiratio
 export async function bulkGroupActions(groupNames: string[], action: "enable" | "disable") {
   console.log(`[API bulkGroupActions] Performing action ${action} on groups:`, groupNames);
   const response = await fetchWithAuth(`api/bulk/groups/actions`, {
-    method: "POST",
+    method: "POST", // As per new API spec
     body: JSON.stringify({ groupNames, action }),
   });
 
@@ -640,7 +644,7 @@ export async function bulkDisconnectUsers(usernames: string[], message?: string)
   }
   const responseData = await response.json();
   console.log("[API bulkDisconnectUsers] Response:", responseData);
-  return parseApiResponse(responseData); 
+  return parseApiResponse(responseData);
 }
 
 
