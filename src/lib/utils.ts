@@ -158,10 +158,10 @@ export function getExpirationStatus(dateString?: string): "expired" | "expiring_
 }
 
 export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): string {
-  if (!fullErrorMessage) return "An unexpected error occurred.";
+  if (!fullErrorMessage) return "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.";
   
   if (fullErrorMessage === "SESSION_EXPIRED") {
-    return "Your session has expired. Please log in again.";
+    return "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.";
   }
 
   const prefix = "Server error: ";
@@ -175,3 +175,4 @@ export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): st
   // or other client-side errors.
   return fullErrorMessage;
 }
+

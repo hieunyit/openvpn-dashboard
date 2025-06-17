@@ -130,15 +130,19 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
         description: `Người dùng ${formData.username} đã được tạo.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
+        duration: 3000,
       })
 
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
+      const apiErrorMessage = getCoreApiErrorMessage(error.message);
+      console.log("Attempting to display error toast. Title: Lỗi Tạo Người Dùng, Description:", apiErrorMessage);
       toast({
         title: "Lỗi Tạo Người Dùng",
-        description: getCoreApiErrorMessage(error.message) || "Đã xảy ra lỗi không mong muốn. Vui lòng kiểm tra lại thông tin và thử lại.",
+        description: apiErrorMessage,
         variant: "destructive",
+        duration: 5000,
         icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
