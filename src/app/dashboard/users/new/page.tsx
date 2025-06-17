@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { createUser, getGroups } from "@/lib/api"
 import { formatDateForInput, generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
@@ -19,8 +19,10 @@ import Link from "next/link"
 
 interface Group {
   groupName: string
-  authMethod: string
-  role: string
+  authMethod: string // Retained as it's part of existing structure, not used for filtering here
+  role: string // Retained as it's part of existing structure, not used for filtering here
+  isEnabled?: boolean
+  denyAccess?: boolean
 }
 
 export default function NewUserPage() {
@@ -30,7 +32,7 @@ export default function NewUserPage() {
     password: "",
     authMethod: "local",
     groupName: "No Group",
-    userExpiration: formatDateForInput(new Date().toISOString()), // Initialize with today's date
+    userExpiration: formatDateForInput(new Date().toISOString()),
     macAddresses: "",
     accessControl: "",
   })
@@ -47,8 +49,16 @@ export default function NewUserPage() {
   const fetchGroups = async () => {
     try {
       setLoadingGroups(true)
-      const data = await getGroups(1, 100) 
-      setGroups(data.groups || [])
+      const data = await getGroups(1, 100) // Fetch up to 100 groups
+      const processedGroups = (data.groups || []).map((g: any) => ({
+        ...g,
+        isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true, // Default to true if undefined
+        denyAccess: typeof g.denyAccess === 'boolean' ? g.denyAccess : false, // Default to false if undefined
+      }))
+      const enabledGroups = processedGroups.filter(
+        (g: Group) => g.isEnabled === true && g.denyAccess === false
+      )
+      setGroups(enabledGroups)
     } catch (error: any) {
       toast({
         title: "Error Fetching Groups",
@@ -319,7 +329,7 @@ export default function NewUserPage() {
                     </Select>
                     {groups.length === 0 && !loadingGroups && (
                        <p className="text-xs text-red-500/90 mt-1">
-                        No groups available. You can create one
+                        No enabled groups available. You can create one
                         <Link href="/dashboard/groups/new" className="text-primary hover:underline font-medium ml-1">
                           here
                         </Link>.
@@ -398,5 +408,4 @@ export default function NewUserPage() {
     </div>
   )
 }
-
     

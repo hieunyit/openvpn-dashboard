@@ -17,15 +17,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { createUser, getGroups } from "@/lib/api"
 import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
 import { generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 
 interface Group {
   groupName: string
-  authMethod: string
-  role: string
+  authMethod: string // Retained as it's part of existing structure, not used for filtering here
+  role: string // Retained as it's part of existing structure, not used for filtering here
+  isEnabled?: boolean
+  denyAccess?: boolean
 }
 
 interface AddUserDialogProps {
@@ -71,7 +73,15 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     try {
       setLoadingGroups(true)
       const data = await getGroups(1, 100)
-      setGroups(data.groups || [])
+      const processedGroups = (data.groups || []).map((g: any) => ({
+        ...g,
+        isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true,
+        denyAccess: typeof g.denyAccess === 'boolean' ? g.denyAccess : false,
+      }))
+      const enabledGroups = processedGroups.filter(
+        (g: Group) => g.isEnabled === true && g.denyAccess === false
+      )
+      setGroups(enabledGroups)
     } catch (error) {
       // console.error("Failed to fetch groups for dialog:", error)
     } finally {
@@ -140,10 +150,10 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       console.log("Attempting to display error toast. Title: Error Creating User, Description:", apiErrorMessage);
       toast({
         title: "Error Creating User",
-        description: apiErrorMessage, // Display the core API error message
+        description: apiErrorMessage, 
         variant: "destructive",
-        duration: 7000, // Increased duration for error messages
-        // icon: <AlertTriangle className="h-5 w-5" />, // Icon added by default in Toast component
+        duration: 7000, 
+        icon: <AlertTriangle className="h-5 w-5" />
       })
     } finally {
       setIsSubmitting(false)
@@ -301,6 +311,11 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                     ))}
                   </SelectContent>
                 </Select>
+                 {groups.length === 0 && !loadingGroups && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      No enabled groups available.
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -366,5 +381,4 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     </Dialog>
   )
 }
-
     
