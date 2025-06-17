@@ -288,19 +288,21 @@ export default function DashboardPage() {
                 <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
                 <CardDescription>Common administrative tasks.</CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                  <Link href="/dashboard/users"><Users className="mr-2 h-4 w-4"/>Manage Users</Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/groups"><FolderKanban className="mr-2 h-4 w-4"/>Manage Groups</Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/search"><Search className="mr-2 h-4 w-4"/>Advanced Search</Link>
-                </Button>
-                 <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4"/>System Settings</Link>
-                </Button>
+              <CardContent className="flex-1 flex flex-col pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                    <Link href="/dashboard/users"><Users className="mr-2 h-4 w-4"/>Manage Users</Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" asChild>
+                    <Link href="/dashboard/groups"><FolderKanban className="mr-2 h-4 w-4"/>Manage Groups</Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" asChild>
+                    <Link href="/dashboard/search"><Search className="mr-2 h-4 w-4"/>Advanced Search</Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" asChild>
+                    <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4"/>System Settings</Link>
+                    </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -358,4 +360,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
