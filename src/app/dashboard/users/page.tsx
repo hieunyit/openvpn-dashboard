@@ -28,6 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -57,11 +59,13 @@ import {
   FileText,
   Eye,
   UserX, 
-  UserCheck
+  UserCheck,
+  X as XIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay, getExpirationStatus } from "@/lib/utils"
+import { formatDateForDisplay, getExpirationStatus, formatDateForInput } from "@/lib/utils"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
+import { format as formatDateFns } from "date-fns"
 
 
 interface User {
@@ -242,7 +246,16 @@ export default function UsersPage() {
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
   const [isExtendExpirationDialogOpen, setIsExtendExpirationDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false)
-  const [currentFilters, setCurrentFilters] = useState<any>({ sortBy: "username", sortOrder: "asc" })
+  
+  const [expirationDateFrom, setExpirationDateFrom] = useState<Date | undefined>()
+  const [expirationDateTo, setExpirationDateTo] = useState<Date | undefined>()
+
+  const [currentFilters, setCurrentFilters] = useState<any>({ 
+    sortBy: "username", 
+    sortOrder: "asc",
+    userExpirationAfter: undefined,
+    userExpirationBefore: undefined,
+  })
   const [availableGroups, setAvailableGroups] = useState<string[]>([])
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
@@ -261,12 +274,17 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => {
-    let initialFilters = { sortBy: "username", sortOrder: "asc" };
+    let initialFiltersVal = { 
+        sortBy: "username", 
+        sortOrder: "asc",
+        userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
+        userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
+    };
     if (groupNameQueryParam) {
-        initialFilters = { ...initialFilters, groupName: groupNameQueryParam };
-        setShowFilters(true); 
+        initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
+        if (!showFilters) setShowFilters(true); 
     }
-    setCurrentFilters(initialFilters);
+    setCurrentFilters(prev => ({...prev, ...initialFiltersVal}));
     fetchGroupsCallback();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupNameQueryParam]);
@@ -284,6 +302,18 @@ export default function UsersPage() {
           queryFilters.username = searchTerm.trim()
         }
       }
+      
+      if (expirationDateFrom) {
+        queryFilters.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
+      } else {
+        delete queryFilters.userExpirationAfter;
+      }
+      if (expirationDateTo) {
+        queryFilters.userExpirationBefore = formatDateForInput(expirationDateTo.toISOString());
+      } else {
+        delete queryFilters.userExpirationBefore;
+      }
+
 
       const finalAPIFilters: Record<string, any> = {
         username: queryFilters.username || undefined,
@@ -293,6 +323,8 @@ export default function UsersPage() {
         groupName: queryFilters.groupName === 'any' ? undefined : queryFilters.groupName,
         isEnabled: queryFilters.isEnabled === 'any' ? undefined : (queryFilters.isEnabled === 'true'),
         denyAccess: queryFilters.denyAccess === 'any' ? undefined : (queryFilters.denyAccess === 'true'),
+        userExpirationAfter: queryFilters.userExpirationAfter,
+        userExpirationBefore: queryFilters.userExpirationBefore,
         sortBy: queryFilters.sortBy || "username",
         sortOrder: queryFilters.sortOrder || "asc",
       };
@@ -316,7 +348,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, searchTerm, toast]);
+  }, [page, limit, searchTerm, toast, expirationDateFrom, expirationDateTo]);
 
   const fetchGroupsCallback = useCallback(async () => {
     try {
@@ -339,28 +371,58 @@ export default function UsersPage() {
       newUrl.searchParams.delete("action")
       window.history.replaceState({}, "", newUrl.toString())
     }
-    fetchUsersCallback(currentFilters)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, actionQueryParam, isAddUserDialogOpen]);
+  }, [actionQueryParam, isAddUserDialogOpen]);
   
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (page !== 1) setPage(1); // Reset to page 1 on search/filter change
-      else fetchUsersCallback(currentFilters);
-    }, 500); // 500ms debounce
+      const filtersWithDates = {
+        ...currentFilters,
+        userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
+        userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
+      };
+      if (page !== 1) setPage(1); 
+      else fetchUsersCallback(filtersWithDates);
+    }, 500); 
 
     return () => {
       clearTimeout(handler);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, currentFilters]); // Re-run effect if searchTerm or currentFilters change
+  }, [searchTerm, currentFilters, expirationDateFrom, expirationDateTo]); 
+
+  useEffect(() => { // separate effect for page changes
+    fetchUsersCallback(currentFilters)
+  }, [page, limit, fetchUsersCallback]);
 
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
-    setCurrentFilters(newFilters);
+    const filtersWithDates = {
+      ...newFilters,
+      userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
+      userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
+    };
+    setCurrentFilters(filtersWithDates);
     if (page !== 1) setPage(1);
-    else fetchUsersCallback(newFilters); // If already on page 1, fetch immediately
-  }, [page, fetchUsersCallback]);
+    else fetchUsersCallback(filtersWithDates); 
+  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]);
+
+  const handleDateFilterChange = (date: Date | undefined, type: "from" | "to") => {
+    if (type === "from") {
+      setExpirationDateFrom(date);
+    } else {
+      setExpirationDateTo(date);
+    }
+    // Debounced useEffect for currentFilters will pick this up
+  };
+
+  const clearDateFilters = () => {
+    setExpirationDateFrom(undefined);
+    setExpirationDateTo(undefined);
+     const newFilters = { ...currentFilters, userExpirationAfter: undefined, userExpirationBefore: undefined };
+    setCurrentFilters(newFilters);
+    fetchUsersCallback(newFilters);
+  };
 
 
   const handleDeleteUserCallback = useCallback(async () => {
@@ -576,21 +638,50 @@ export default function UsersPage() {
       <Card className="shadow-md border-0">
         <CardHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex-1 flex items-center gap-2 w-full sm:w-auto">
-                    <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        id="search"
-                        placeholder="Search by username or email..."
-                        className="pl-10 h-10"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="relative w-full sm:max-w-xs">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            id="search"
+                            placeholder="Search username or email..."
+                            className="pl-10 h-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="expirationDateFrom" variant="outline" className="h-10 w-full sm:w-auto justify-start text-left font-normal">
+                                    <CalendarDays className="mr-2 h-4 w-4" />
+                                    {expirationDateFrom ? formatDateFns(expirationDateFrom, "LLL dd, y") : <span>Exp From</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={expirationDateFrom} onSelect={(date) => handleDateFilterChange(date, "from")} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="expirationDateTo" variant="outline" className="h-10 w-full sm:w-auto justify-start text-left font-normal">
+                                    <CalendarDays className="mr-2 h-4 w-4" />
+                                    {expirationDateTo ? formatDateFns(expirationDateTo, "LLL dd, y") : <span>Exp To</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={expirationDateTo} onSelect={(date) => handleDateFilterChange(date, "to")} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                         {(expirationDateFrom || expirationDateTo) && (
+                            <Button variant="ghost" size="icon" onClick={clearDateFilters} className="h-10 w-10" title="Clear date filters">
+                                <XIcon className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 </div>
                 <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 h-10 w-full sm:w-auto">
                     <ListFilter className="h-4 w-4" />
-                    {showFilters ? "Hide Filters" : "Show Filters"} ({Object.values(currentFilters).filter(v => v && v !== "any" && v !== "username" && v !== "asc").length})
+                    {showFilters ? "Hide Filters" : "Show Filters"} ({Object.values(currentFilters).filter(v => v && v !== "any" && v !== "username" && v !== "asc" && v !== undefined).length})
                 </Button>
             </div>
         </CardHeader>
