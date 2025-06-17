@@ -82,11 +82,10 @@ interface GroupTableRowProps {
   onSelectGroup: (groupName: string, checked: boolean) => void;
   onUpdateGroupAccess: (groupName: string, deny: boolean) => void;
   onEnableGroup: (groupName: string) => void;
-  onDisableGroup: (groupName: string) => void; 
   onDeleteGroup: (groupName: string) => void;
 }
 
-const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGroupAccess, onEnableGroup, onDisableGroup, onDeleteGroup }: GroupTableRowProps) => {
+const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGroupAccess, onEnableGroup, onDeleteGroup }: GroupTableRowProps) => {
   const getStatusBadge = () => {
     if (group.isEnabled === false) {
       return <Badge variant="outline" className="flex items-center gap-1 text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="h-3 w-3" />System Disabled</Badge>;
@@ -184,15 +183,10 @@ const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGrou
                 Deny VPN Access
               </DropdownMenuItem>
             )}
-            {group.isEnabled === false ? (
+            {group.isEnabled === false && (
               <DropdownMenuItem onClick={() => onEnableGroup(group.groupName)}>
                 <Power className="mr-2 h-4 w-4 text-green-600" />
                 Enable Group
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={() => onDisableGroup(group.groupName)} className="text-orange-600 focus:text-orange-600 focus:bg-orange-500/10">
-                <PowerOff className="mr-2 h-4 w-4" />
-                Disable Group
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -228,15 +222,11 @@ export default function GroupsPage() {
   const [groupToEnable, setGroupToEnable] = useState<string | null>(null);
   const [isConfirmSingleEnableDialogOpen, setIsConfirmSingleEnableDialogOpen] = useState(false);
 
-  const [groupToDisable, setGroupToDisable] = useState<string | null>(null);
-  const [isConfirmSingleDisableDialogOpen, setIsConfirmSingleDisableDialogOpen] = useState(false);
-
   const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
 
   const [isConfirmBulkEnableDialogOpen, setIsConfirmBulkEnableDialogOpen] = useState(false);
-  const [isConfirmBulkDisableDialogOpen, setIsConfirmBulkDisableDialogOpen] = useState(false); 
-
+  
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddGroupDialogOpen, setIsAddGroupDialogOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
@@ -252,6 +242,8 @@ export default function GroupsPage() {
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const actionQueryParam = searchParams.get("action")
+  const groupNameQueryParam = searchParams.get("groupName")
+
 
   const fetchGroupsCallback = useCallback(async (filtersToApply: any) => {
     try {
@@ -305,6 +297,7 @@ export default function GroupsPage() {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, searchTerm, toast]);
 
   useEffect(() => {
@@ -314,7 +307,19 @@ export default function GroupsPage() {
       newUrl.searchParams.delete("action");
       window.history.replaceState({}, "", newUrl.toString());
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionQueryParam, isAddGroupDialogOpen]);
+
+  useEffect(() => {
+    let initialFiltersVal = { ...currentFilters };
+    if (groupNameQueryParam) {
+        initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
+        if (!showFilters) setShowFilters(true); 
+    }
+    setCurrentFilters(initialFiltersVal);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupNameQueryParam]);
+
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -427,32 +432,6 @@ export default function GroupsPage() {
     }
   }, [groupToEnable, fetchGroupsCallback, toast, currentFilters]);
 
-  const confirmDisableGroup = useCallback((groupName: string) => {
-    setGroupToDisable(groupName);
-    setIsConfirmSingleDisableDialogOpen(true);
-  }, []);
-
-  const executeDisableGroup = useCallback(async () => {
-    if (!groupToDisable) return;
-    try {
-      await performGroupAction(groupToDisable, "disable");
-      toast({
-        title: `Group Disabled`,
-        description: `Group ${groupToDisable} has been successfully disabled.`,
-      });
-      fetchGroupsCallback(currentFilters);
-    } catch (error: any) {
-      toast({
-        title: `Error Disabling Group`,
-        description: error.message || `Failed to disable the group.`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsConfirmSingleDisableDialogOpen(false);
-      setGroupToDisable(null);
-    }
-  }, [groupToDisable, fetchGroupsCallback, toast, currentFilters]);
-
 
   const confirmBulkUpdateAccess = useCallback((action: "allow" | "deny") => {
     if (selectedGroups.length === 0) {
@@ -538,38 +517,6 @@ export default function GroupsPage() {
     }
   }, [selectedGroups, fetchGroupsCallback, toast, currentFilters]);
 
-  const confirmBulkDisable = useCallback(() => {
-    if (selectedGroups.length === 0) {
-      toast({ title: "No groups selected", description: "Please select groups for this bulk action.", variant: "destructive" });
-      return;
-    }
-    setIsConfirmBulkDisableDialogOpen(true);
-  }, [selectedGroups, toast]);
-
-  const executeBulkDisable = useCallback(async () => {
-    if (selectedGroups.length === 0) return;
-
-    setBulkActionLoading(true);
-    try {
-      const result = await bulkGroupActions(selectedGroups, "disable");
-      toast({
-        title: `Bulk Disable Complete`,
-        description: `${result.success || 0} groups disabled. ${result.failed || 0} failed.`,
-      });
-      fetchGroupsCallback(currentFilters);
-      setSelectedGroups([]);
-    } catch (error: any) {
-      toast({
-        title: `Error Bulk Disabling`,
-        description: error.message || "Failed to perform bulk group disable action.",
-        variant: "destructive",
-      });
-    } finally {
-      setBulkActionLoading(false);
-      setIsConfirmBulkDisableDialogOpen(false);
-    }
-  }, [selectedGroups, fetchGroupsCallback, toast, currentFilters]);
-
 
   const handleSelectGroupCallback = useCallback((groupName: string, checked: boolean) => {
     setSelectedGroups(prev => checked ? [...prev, groupName] : prev.filter(g => g !== groupName));
@@ -649,9 +596,6 @@ export default function GroupsPage() {
                         <Button variant="outline" size="sm" onClick={() => confirmBulkEnable()} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <Power className="mr-2 h-4 w-4" /> Enable
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => confirmBulkDisable()} disabled={bulkActionLoading} className="border-orange-500 text-orange-700 hover:bg-orange-500/10">
-                          <PowerOff className="mr-2 h-4 w-4" /> Disable
-                        </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("allow")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow Access
                         </Button>
@@ -712,7 +656,6 @@ export default function GroupsPage() {
                           onSelectGroup={handleSelectGroupCallback}
                           onUpdateGroupAccess={confirmUpdateGroupAccess}
                           onEnableGroup={confirmEnableGroup}
-                          onDisableGroup={confirmDisableGroup}
                           onDeleteGroup={confirmDeleteGroup}
                         />
                       ))
@@ -794,26 +737,6 @@ export default function GroupsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmSingleDisableDialogOpen} onOpenChange={setIsConfirmSingleDisableDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Disable Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to disable group "{groupToDisable}"? This will prevent users in this group from connecting, regardless of their individual or VPN access settings for this group.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmSingleDisableDialogOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeDisableGroup}
-              className={"bg-orange-600 hover:bg-orange-600/90 text-white"}
-            >
-              Confirm Disable Group
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog open={isConfirmBulkAccessDialogOpen} onOpenChange={setIsConfirmBulkAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -859,27 +782,6 @@ export default function GroupsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmBulkDisableDialogOpen} onOpenChange={setIsConfirmBulkDisableDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Group Disable</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to disable the {selectedGroups.length} selected group(s)? This will prevent users in these groups from connecting.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmBulkDisableDialogOpen(false)} disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeBulkDisable}
-              disabled={bulkActionLoading}
-              className={"bg-orange-600 hover:bg-orange-600/90 text-white"}
-            >
-              {bulkActionLoading ? "Processing..." : `Confirm Disable Groups`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <ImportDialog
         open={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
@@ -891,5 +793,3 @@ export default function GroupsPage() {
     </div>
   )
 }
-
-
