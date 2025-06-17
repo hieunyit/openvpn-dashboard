@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { createGroup } from "@/lib/api"
 import { Users, Network, Shield, Router, KeyRound, CheckCircle, AlertTriangle } from "lucide-react"
 import { getCoreApiErrorMessage } from "@/lib/utils"
@@ -99,7 +99,6 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
       onSuccess()
     } catch (error: any) {
       const apiErrorMessage = getCoreApiErrorMessage(error.message);
-      console.log("Attempting to display error toast. Title: Error Creating Group, Description:", apiErrorMessage);
       toast({
         title: "Error Creating Group",
         description: apiErrorMessage,

@@ -13,7 +13,7 @@ import {
 
 export function Toaster() {
   const { toasts } = useToast()
-  console.log('Toaster rendering with toasts:', toasts); // Debugging line
+  console.log('Toaster rendering with toasts:', toasts); 
 
   return (
     <ToastProvider>

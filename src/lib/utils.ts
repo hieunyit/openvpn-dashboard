@@ -65,9 +65,8 @@ export function formatDateForAPI(dateString: string): string {
     
     // If YYYY-MM-DD (from date input) or ISO string, convert
     const date = new Date(dateString);
-    if (!isValid(date)) { // Check if date is valid
-        // console.warn("Invalid date string for API formatting:", dateString);
-        return dateString; // If invalid date, return original to let backend handle/error
+    if (!isValid(date)) { 
+        return dateString; 
     }
 
     const day = date.getDate().toString().padStart(2, "0");
@@ -75,7 +74,6 @@ export function formatDateForAPI(dateString: string): string {
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   } catch (e) {
-    // console.error("Error formatting date for API:", e, "Original string:", dateString);
     return dateString; // Fallback
   }
 }
@@ -158,7 +156,8 @@ export function getExpirationStatus(dateString?: string): "expired" | "expiring_
 }
 
 export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): string {
-  if (!fullErrorMessage) return "An unexpected error occurred. Please try again.";
+  const defaultEnglishMessage = "An unexpected error occurred. Please try again.";
+  if (!fullErrorMessage) return defaultEnglishMessage;
   
   if (fullErrorMessage === "SESSION_EXPIRED") {
     return "Your session has expired. Please log in again.";

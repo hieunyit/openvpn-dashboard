@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
-import { searchUsers, searchGroups, getGroups } from "@/lib/api" // searchUsers will be updated
+import { useToast } from "@/hooks/use-toast"
+import { searchUsers, searchGroups, getGroups } from "@/lib/api"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
 import { Search, Download, FileText, AlertTriangle } from "lucide-react"

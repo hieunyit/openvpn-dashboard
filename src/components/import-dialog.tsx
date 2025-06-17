@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { importUsers, importGroups, downloadUserTemplate, downloadGroupTemplate } from "@/lib/api"
 import { Upload, FileText, Download, AlertCircle, CheckCircle, XCircle, ListChecks, Info } from "lucide-react"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
@@ -174,7 +174,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
           toast({
             title: "Dry Run: Validation Complete",
             description: `All ${resultsToSet.total || 'N/A'} records appear valid for import.`,
-            variant: "info", // Changed to info for successful dry run
+            variant: "info", 
             icon: <CheckCircle className="h-5 w-5" />,
             duration: 5000,
           })

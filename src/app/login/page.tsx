@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { ShieldCheck, LogIn } from "lucide-react"
 import { login } from "@/lib/auth"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -47,7 +47,7 @@ export default function LoginPage() {
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.username}!`,
-        variant: "success", // Assuming you have a success variant
+        variant: "success",
       })
       router.push("/dashboard")
     } catch (loginError: any) {
@@ -66,7 +66,7 @@ export default function LoginPage() {
         }
       }
       
-      setError(errorMessage) // Set error for inline display if needed
+      setError(errorMessage) 
       if (loginError.message !== "SESSION_EXPIRED") {
           toast({
             title: "Login Failed",

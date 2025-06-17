@@ -36,38 +36,33 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
                     JSON.parse(clientBodyText); // Validate
                     outgoingBody = clientBodyText;
                     // Content-Type already set if clientContentType was present
-                    console.log(`[PROXY ${method}] Forwarding JSON body text from client (validated).`);
                 } catch (e) {
-                    console.warn(`[PROXY ${method}] Client sent Content-Type: application/json but body is not valid JSON. Forwarding raw text. Error:`, e, `Body: ${clientBodyText.substring(0,100)}`);
                     outgoingBody = clientBodyText; // Forward raw text
                 }
             } else { // Client sent Content-Type: application/json but an empty body stream (or empty text)
                 outgoingBody = JSON.stringify({});
                 if (!requestHeaders["Content-Type"]) requestHeaders["Content-Type"] = "application/json"; // Ensure C-T if not set by client
-                console.log(`[PROXY ${method}] Client sent Content-Type: application/json with empty body string, sending empty JSON object.`);
             }
         } else { // Client sent a body, but not JSON (e.g., FormData)
             outgoingBody = request.body;
-            console.log(`[PROXY ${method}] Request body (non-JSON, type: ${clientContentType}) being streamed.`);
         }
     } else { // Client sent NO body
         // If client specified Content-Type: application/json (e.g. for a POST or PUT without body data), send empty {}
         if (clientContentType?.includes("application/json")) {
             outgoingBody = JSON.stringify({});
             // Content-Type already set if clientContentType was present
-            console.log(`[PROXY ${method}] Client specified Content-Type: application/json but no body, sending empty JSON object.`);
         }
         // If client sent no body AND no Content-Type (e.g. for 'reset-otp', 'enable', 'disable' PUTs):
         // - `outgoingBody` remains null.
         // - `requestHeaders["Content-Type"]` remains unset (unless client sent one, handled above).
         // This means the proxy will send the request to backend with no body and no explicit Content-Type from proxy.
         else if (!clientContentType && (method === "PUT" || method === "PATCH")) {
-             console.log(`[PROXY ${method}] Client sent no body and no Content-Type. Forwarding without Content-Type header or body from proxy.`);
+             // No specific action
         } else if (!clientContentType && method === "POST") {
             // For POST with no client body and no client C-T, some backends might expect an empty JSON if they consume JSON.
             // However, to be safe and avoid breaking other POSTs, let's only add {} if Swagger implies it's needed.
             // For now, send as is (no body, no C-T from proxy).
-            console.log(`[PROXY ${method}] Client sent no body and no Content-Type. Forwarding as is.`);
+             // No specific action
         }
     }
   }
@@ -95,9 +90,7 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
   }
 
   try {
-    console.log(`[PROXY ${method}] Forwarding to URL: ${requestUrl} with options:`, { ...fetchOptions, body: fetchOptions.body ? (typeof fetchOptions.body === 'string' ? fetchOptions.body.substring(0,100) + '...' : 'Stream/Object') : 'No body' });
     const apiResponse = await fetch(requestUrl, fetchOptions)
-    console.log(`[PROXY ${method}] Response status from API: ${apiResponse.status}`)
     
     const responseHeaders = new Headers(apiResponse.headers)
     const originalContentType = apiResponse.headers.get("content-type")
@@ -108,7 +101,6 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
 
 
     if (!apiResponse.body || apiResponse.status === 204) { 
-        console.log(`[PROXY ${method}] Response has no body or status 204.`)
         return new NextResponse(null, { 
             status: apiResponse.status,
             statusText: apiResponse.statusText,
@@ -123,14 +115,12 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
     if (originalContentType && originalContentType.includes("application/json")) {
         try {
             const data = JSON.parse(responseText);
-            console.log(`[PROXY ${method}] Parsed JSON response data:`, typeof data === 'object' ? data : responseText.substring(0,200) + '...');
             return NextResponse.json(data, {
                 status: apiResponse.status,
                 headers: responseHeaders,
             });
         } catch (parseError) {
             // If JSON parsing fails but C-T was JSON, log warning and return as text
-            console.warn(`[PROXY ${method}] Failed to parse JSON response despite Content-Type. Body: ${responseText.substring(0,200)}...`);
             return new NextResponse(responseText, {
                 status: apiResponse.status, 
                 headers: responseHeaders,
@@ -138,7 +128,6 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
         }
     } else {
         // For non-JSON responses, return the text directly
-        console.log(`[PROXY ${method}] Streaming non-JSON response (Content-Type: ${originalContentType}) Body: ${responseText.substring(0,200)}...`)
         return new NextResponse(responseText, {
             status: apiResponse.status,
             statusText: apiResponse.statusText,
@@ -147,7 +136,6 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
     }
 
   } catch (error: any) { 
-    console.error(`[PROXY ${method}] Error proxying request to ${requestUrl}:`, error); 
     let errorMessageForClient = "Proxy request failed";
 
     const nodeError = error as NodeJS.ErrnoException;
@@ -205,4 +193,5 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
 export async function PATCH(request: NextRequest, { params }: { params: { path: string[] } }) {
   return proxyRequest(request, { params }, "PATCH");
 }
+
 

@@ -105,9 +105,9 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
       return <Badge variant="outline" className="flex items-center gap-1 text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><UserX className="h-3 w-3" />System Disabled</Badge>;
     }
     if (user.denyAccess) {
-      return <Badge variant="secondary" className="flex items-center gap-1 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="h-3 w-3" /> VPN Disabled</Badge>;
+      return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" /> Disabled</Badge>;
     }
-    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> VPN Enabled</Badge>;
+    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> Enabled</Badge>;
   };
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
@@ -253,7 +253,7 @@ export default function UsersPage() {
   const [isConfirmSingleDisableAccountDialogOpen, setIsConfirmSingleDisableAccountDialogOpen] = useState(false);
 
 
-  const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"enable" | "disable" | null>(null); // Changed from "allow" | "deny"
+  const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"enable" | "disable" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
   
   const [bulkAccountActionToConfirm, setBulkAccountActionToConfirm] = useState<"enable" | "disable" | null>(null);
@@ -470,7 +470,7 @@ export default function UsersPage() {
 
   const confirmUpdateUserAccess = useCallback((username: string, deny: boolean) => {
     if (deny && username === currentAuthUser?.username) {
-      toast({ title: "Action Prevented", description: "You cannot disable your own VPN access.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
+      toast({ title: "Action Prevented", description: "You cannot disable your own user.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setUserToUpdateAccess({ username, deny });
@@ -591,7 +591,7 @@ export default function UsersPage() {
   }, [toast]);
 
 
-  const confirmBulkUpdateAccess = useCallback((action: "enable" | "disable") => { // Changed from "allow" | "deny"
+  const confirmBulkUpdateAccess = useCallback((action: "enable" | "disable") => {
     if (selectedUsers.length === 0) {
       toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
@@ -607,7 +607,7 @@ export default function UsersPage() {
   const executeBulkUpdateAccess = useCallback(async () => {
     if (!bulkAccessActionToConfirm || selectedUsers.length === 0) return;
 
-    const deny = bulkAccessActionToConfirm === "disable"; // "disable" means denyAccess = true
+    const deny = bulkAccessActionToConfirm === "disable";
     setBulkActionLoading(true);
     let successCount = 0;
     let failCount = 0;
@@ -795,10 +795,10 @@ export default function UsersPage() {
                     <span className="text-sm font-medium text-primary">{selectedUsers.length} user(s) selected</span>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => confirmBulkAccountAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
-                          <UserCheck className="mr-2 h-4 w-4" /> Enable Account
+                          <UserCheck className="mr-2 h-4 w-4" /> Enable Accounts
                         </Button>
                          <Button variant="outline" size="sm" onClick={() => confirmBulkAccountAction("disable")} disabled={bulkActionLoading} className="border-orange-500 text-orange-700 hover:bg-orange-500/10">
-                          <UserMinus className="mr-2 h-4 w-4" /> Disable Account
+                          <UserMinus className="mr-2 h-4 w-4" /> Disable Accounts
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Users
@@ -912,7 +912,7 @@ export default function UsersPage() {
       <AlertDialog open={isConfirmSingleAccessDialogOpen} onOpenChange={setIsConfirmSingleAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm User VPN Status Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm User Status Change</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to {userToUpdateAccess?.deny ? "disable" : "enable"} user "{userToUpdateAccess?.username}"?
             </AlertDialogDescription>
@@ -973,7 +973,7 @@ export default function UsersPage() {
       <AlertDialog open={isConfirmBulkAccessDialogOpen} onOpenChange={setIsConfirmBulkAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk User VPN Status Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Bulk User Status Change</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to {bulkAccessActionToConfirm === "disable" ? "disable" : "enable"} {selectedUsers.length} selected user(s)?
               {bulkAccessActionToConfirm === "disable" && selectedUsers.includes(currentAuthUser?.username) && (
@@ -1058,4 +1058,5 @@ export default function UsersPage() {
     </div>
   )
 }
+
 

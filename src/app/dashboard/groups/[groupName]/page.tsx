@@ -72,11 +72,11 @@ export default function GroupDetailPage() {
     groupSubnet: "",
   })
 
-  const [isConfirmGroupActionDialogOpen, setIsConfirmGroupActionDialogOpen] = useState(false); // Renamed for clarity
-  const [confirmGroupActionDetails, setConfirmGroupActionDetails] = useState<{ action: "enable" | "disable"; groupName: string } | null>(null); // Renamed "allow" to "enable", "deny" to "disable"
+  const [isConfirmGroupActionDialogOpen, setIsConfirmGroupActionDialogOpen] = useState(false);
+  const [confirmGroupActionDetails, setConfirmGroupActionDetails] = useState<{ action: "enable" | "disable"; groupName: string } | null>(null);
 
-  const [isConfirmEnableAccountActionDialogOpen, setIsConfirmEnableAccountActionDialogOpen] = useState(false); // Renamed
-  const [enableAccountActionDetails, setEnableAccountActionDetails] = useState<{ groupName: string } | null>(null); // Renamed
+  const [isConfirmEnableAccountActionDialogOpen, setIsConfirmEnableAccountActionDialogOpen] = useState(false);
+  const [enableAccountActionDetails, setEnableAccountActionDetails] = useState<{ groupName: string } | null>(null);
 
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export default function GroupDetailPage() {
         })
       } else {
         toast({
-          title: "Group Not Found",
+          title: "Error",
           description: `Group ${groupName} could not be found. Redirecting...`,
           variant: "destructive",
           icon: <AlertTriangle className="h-5 w-5" />,
@@ -188,7 +188,7 @@ export default function GroupDetailPage() {
       fetchGroup() 
     } catch (error: any) {
       toast({
-        title: "Failed to Update Group",
+        title: "Error",
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -198,30 +198,30 @@ export default function GroupDetailPage() {
     }
   }
 
-  const initiateGroupAction = (action: "enable" | "disable") => { // Renamed
+  const initiateGroupAction = (action: "enable" | "disable") => {
     if (!group) return;
     setConfirmGroupActionDetails({ action, groupName: group.groupName });
     setIsConfirmGroupActionDialogOpen(true);
   };
 
-  const executeGroupAction = async () => { // Renamed
+  const executeGroupAction = async () => {
     if (!confirmGroupActionDetails || !group) return;
     const { action, groupName: targetGroupName } = confirmGroupActionDetails;
 
     try {
       setSaving(true);
-      const newDenyAccessState = action === "disable"; // "disable" sets denyAccess to true
+      const newDenyAccessState = action === "disable"; 
       await updateGroup(targetGroupName, { denyAccess: newDenyAccessState });
       toast({
         title: "Success",
-        description: `Group ${targetGroupName} has been ${action === "enable" ? "enabled" : "disabled"}.`, // Updated message
+        description: `Group ${targetGroupName} has been ${action === "enable" ? "enabled" : "disabled"}.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroup(); 
     } catch (error: any) {
       toast({
-        title: `Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} Group`, // Updated message
+        title: `Error`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -233,13 +233,13 @@ export default function GroupDetailPage() {
     }
   };
 
-  const initiateEnableAccountAction = () => { // Renamed
+  const initiateEnableAccountAction = () => {
     if (!group) return;
     setEnableAccountActionDetails({ groupName: group.groupName });
     setIsConfirmEnableAccountActionDialogOpen(true);
   };
 
-  const executeEnableAccountAction = async () => { // Renamed
+  const executeEnableAccountAction = async () => {
     if (!enableAccountActionDetails || !group) return;
     const { groupName: targetGroupName } = enableAccountActionDetails;
 
@@ -255,7 +255,7 @@ export default function GroupDetailPage() {
       fetchGroup(); 
     } catch (error: any) {
       toast({
-        title: "Failed to Enable Group (System)",
+        title: "Error",
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -307,9 +307,9 @@ export default function GroupDetailPage() {
       return <Badge variant="outline" className="text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="mr-1.5 h-3 w-3" />System Disabled</Badge>;
     }
     if (group.denyAccess) {
-      return <Badge variant="secondary" className="bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="mr-1.5 h-3 w-3" /> Group Disabled</Badge>;
+      return <Badge variant="destructive" className="text-destructive-foreground"><LockKeyhole className="mr-1.5 h-3 w-3" /> Disabled</Badge>;
     }
-    return <Badge variant="default" className="bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="mr-1.5 h-3 w-3" /> Group Enabled</Badge>;
+    return <Badge variant="default" className="bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="mr-1.5 h-3 w-3" /> Enabled</Badge>;
   };
 
 
@@ -455,7 +455,7 @@ export default function GroupDetailPage() {
                 <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border space-y-1.5">
                     <div className="flex items-center space-x-3">
                         <Checkbox id="denyAccess" checked={formData.denyAccess} onCheckedChange={(checked) => handleCheckboxChange("denyAccess", Boolean(checked))} />
-                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Disable Group (VPN Access)</Label>
+                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Disable Group</Label>
                     </div>
                     <p className="text-xs text-muted-foreground pl-7">If checked, users in this group (not individually allowed) will be denied VPN access.</p>
                 </div>
@@ -471,11 +471,11 @@ export default function GroupDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3 pt-6">
               {group.denyAccess ? (
-                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={() => initiateGroupAction("enable")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Enable group VPN access"}>
+                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={() => initiateGroupAction("enable")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Enable Group"}>
                   <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Group
                 </Button>
               ) : (
-                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20" onClick={() => initiateGroupAction("disable")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Disable group VPN access"}>
+                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20" onClick={() => initiateGroupAction("disable")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Disable Group"}>
                   <LockKeyhole className="mr-2 h-4 w-4" /> Disable Group
                 </Button>
               )}

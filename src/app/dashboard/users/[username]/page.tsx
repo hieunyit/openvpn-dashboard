@@ -93,8 +93,8 @@ export default function UserDetailPage() {
   const [currentAuthUser, setCurrentAuthUser] = useState<any>(null)
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false)
   
-  const [isConfirmDenyAccessActionDialogOpen, setIsConfirmDenyAccessActionDialogOpen] = useState(false) // Renamed to reflect general access
-  const [confirmDenyAccessActionDetails, setConfirmDenyAccessActionDetails] = useState<{ action: "enable" | "disable"; username: string } | null>(null) // Renamed "allow" to "enable", "deny" to "disable"
+  const [isConfirmUserActionDialogOpen, setIsConfirmUserActionDialogOpen] = useState(false) 
+  const [confirmUserActionDetails, setConfirmUserActionDetails] = useState<{ action: "enable" | "disable"; username: string } | null>(null)
 
   const [isConfirmEnableAccountActionDialogOpen, setIsConfirmEnableAccountActionDialogOpen] = useState(false)
   const [isConfirmDisableAccountActionDialogOpen, setIsConfirmDisableAccountActionDialogOpen] = useState(false)
@@ -136,7 +136,7 @@ export default function UserDetailPage() {
         })
       } else {
         toast({
-          title: "User Not Found",
+          title: "Error",
           description: `User ${username} could not be found. Redirecting...`,
           variant: "destructive",
           icon: <AlertTriangle className="h-5 w-5" />,
@@ -217,46 +217,46 @@ export default function UserDetailPage() {
     }
   }
 
-  const initiateUserAccessAction = (action: "enable" | "disable") => { // Renamed function
+  const initiateUserAction = (action: "enable" | "disable") => { 
     if (!user) return;
     if (action === "disable" && user.username === currentAuthUser?.username) {
       toast({
         title: "Action Prevented",
-        description: "You cannot disable your own user.", // Updated message
+        description: "You cannot disable your own user.",
         variant: "warning",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
       return;
     }
-    setConfirmDenyAccessActionDetails({ action, username: user.username });
-    setIsConfirmDenyAccessActionDialogOpen(true);
+    setConfirmUserActionDetails({ action, username: user.username });
+    setIsConfirmUserActionDialogOpen(true);
   };
 
-  const executeUserAccessAction = async () => { // Renamed function
-    if (!confirmDenyAccessActionDetails || !user) return;
-    const { action, username: targetUsername } = confirmDenyAccessActionDetails;
+  const executeUserAction = async () => { 
+    if (!confirmUserActionDetails || !user) return;
+    const { action, username: targetUsername } = confirmUserActionDetails;
     setSaving(true);
     try {
-      const newDenyAccessState = action === "disable"; // "disable" sets denyAccess to true
+      const newDenyAccessState = action === "disable"; 
       await updateUser(targetUsername, { denyAccess: newDenyAccessState });
       toast({
         title: "Success",
-        description: `User ${targetUsername} has been ${action === "enable" ? "enabled" : "disabled"}.`, // Updated message
+        description: `User ${targetUsername} has been ${action === "enable" ? "enabled" : "disabled"}.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchUser(); 
     } catch (error: any) {
       toast({
-        title: `Error ${action.charAt(0).toUpperCase() + action.slice(1)}ing User`, // Updated message
+        title: `Error ${action.charAt(0).toUpperCase() + action.slice(1)}ing User`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setSaving(false);
-      setIsConfirmDenyAccessActionDialogOpen(false);
-      setConfirmDenyAccessActionDetails(null);
+      setIsConfirmUserActionDialogOpen(false);
+      setConfirmUserActionDetails(null);
     }
   };
 
@@ -502,7 +502,7 @@ export default function UserDetailPage() {
                 <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border space-y-1.5">
                   <div className="flex items-center space-x-3">
                     <Checkbox id="denyAccess" checked={formData.denyAccess} onCheckedChange={(checked) => handleCheckboxChange("denyAccess", checked === true)} disabled={isSelf}/>
-                    <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Disable User (VPN Access)</Label>
+                    <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Disable User</Label>
                   </div>
                   <p className="text-xs text-muted-foreground pl-7">If checked, this user will be denied VPN access, regardless of group settings. {isSelf && "(Cannot disable self)"}</p>
                 </div>
@@ -562,11 +562,11 @@ export default function UserDetailPage() {
             </CardHeader>
             <CardContent className="p-4 space-y-2">
               {user.denyAccess ? (
-                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600" onClick={() => initiateUserAccessAction("enable")} disabled={saving || !user.isEnabled} title={!user.isEnabled ? "User account is system disabled" : "Enable User VPN"}>
+                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600" onClick={() => initiateUserAction("enable")} disabled={saving || !user.isEnabled} title={!user.isEnabled ? "User account is system disabled" : "Enable User"}>
                   <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable User
                 </Button>
               ) : (
-                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600" onClick={() => initiateUserAccessAction("disable")} disabled={saving || isSelf || !user.isEnabled} title={isSelf ? "Cannot disable self" : (!user.isEnabled ? "User account is system disabled" : "Disable User VPN")}>
+                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600" onClick={() => initiateUserAction("disable")} disabled={saving || isSelf || !user.isEnabled} title={isSelf ? "Cannot disable self" : (!user.isEnabled ? "User account is system disabled" : "Disable User")}>
                   <LockKeyhole className="mr-2 h-4 w-4" /> Disable User
                 </Button>
               )}
@@ -603,18 +603,18 @@ export default function UserDetailPage() {
         />
       )}
 
-      <AlertDialog open={isConfirmDenyAccessActionDialogOpen} onOpenChange={setIsConfirmDenyAccessActionDialogOpen}>
+      <AlertDialog open={isConfirmUserActionDialogOpen} onOpenChange={setIsConfirmUserActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm User VPN Status Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm User Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {confirmDenyAccessActionDetails?.action} user "{confirmDenyAccessActionDetails?.username}"?
+              Are you sure you want to {confirmUserActionDetails?.action} user "{confirmUserActionDetails?.username}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmDenyAccessActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeUserAccessAction} disabled={saving} className={confirmDenyAccessActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
-              {saving ? "Processing..." : `Confirm ${confirmDenyAccessActionDetails?.action === "enable" ? "Enable User" : "Disable User"}`}
+            <AlertDialogCancel onClick={() => setIsConfirmUserActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeUserAction} disabled={saving} className={confirmUserActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
+              {saving ? "Processing..." : `Confirm ${confirmUserActionDetails?.action === "enable" ? "Enable User" : "Disable User"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -656,4 +656,5 @@ export default function UserDetailPage() {
     </div>
   )
 }
+
 

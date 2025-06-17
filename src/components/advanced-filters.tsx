@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// import { Checkbox } from "@/components/ui/checkbox" // Checkbox might be replaced by Select for true/false/any
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Filter, X, RotateCcw, Check } from "lucide-react"
@@ -495,4 +494,5 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   )
 });
 AdvancedFilters.displayName = "AdvancedFilters";
+
 

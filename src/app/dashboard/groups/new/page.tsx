@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { createGroup } from "@/lib/api"
-import { ArrowLeft, Upload, Users, Network, Shield, Router, KeyRound } from "lucide-react"
+import { ArrowLeft, Upload, Users, Network, Shield, Router, KeyRound, CheckCircle, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
@@ -63,17 +63,19 @@ export default function NewGroupPage() {
       await createGroup(groupData)
 
       toast({
-        title: "Group Created Successfully",
+        title: "Success",
         description: `Group ${formData.groupName} has been created.`,
         variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
 
       router.push("/dashboard/groups")
     } catch (error: any) {
       toast({
-        title: "Failed to Create Group",
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
+        title: "Error Creating Group",
+        description: getCoreApiErrorMessage(error.message),
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setIsSubmitting(false)

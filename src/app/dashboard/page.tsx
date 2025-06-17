@@ -13,7 +13,7 @@ import { getUserExpirations, getUsers, getGroups, getVPNStatus, getServerInfo, t
 import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server, CheckCircle, Info } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 
 interface DashboardStats {
   totalUsers: number

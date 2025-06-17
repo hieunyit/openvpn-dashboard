@@ -24,8 +24,8 @@ import { generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 
 interface Group {
   groupName: string
-  authMethod: string // Retained as it's part of existing structure, not used for filtering here
-  role: string // Retained as it's part of existing structure, not used for filtering here
+  authMethod: string 
+  role: string 
   isEnabled?: boolean
   denyAccess?: boolean
 }
@@ -147,7 +147,6 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       onSuccess()
     } catch (error: any) {
       const apiErrorMessage = getCoreApiErrorMessage(error.message);
-      console.log("Attempting to display error toast. Title: Error Creating User, Description:", apiErrorMessage);
       toast({
         title: "Error Creating User",
         description: apiErrorMessage, 

@@ -63,6 +63,7 @@ import {
   AlertTriangle,
   CheckCircle,
   UserX,
+  RefreshCcw,
 } from "lucide-react"
 import Link from "next/link"
 import { getCoreApiErrorMessage } from "@/lib/utils"
@@ -85,19 +86,19 @@ interface GroupTableRowProps {
   selectedGroups: string[];
   onSelectGroup: (groupName: string, checked: boolean) => void;
   onUpdateGroupAccess: (groupName: string, deny: boolean) => void;
-  onEnableGroupAccount: (groupName: string) => void; // Renamed from onEnableGroup
+  onEnableGroupSystem: (groupName: string) => void;
   onDeleteGroup: (groupName: string) => void;
 }
 
-const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGroupAccess, onEnableGroupAccount, onDeleteGroup }: GroupTableRowProps) => {
+const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGroupAccess, onEnableGroupSystem, onDeleteGroup }: GroupTableRowProps) => {
   const getStatusBadge = () => {
     if (group.isEnabled === false) {
       return <Badge variant="outline" className="flex items-center gap-1 text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="h-3 w-3" />System Disabled</Badge>;
     }
     if (group.denyAccess) {
-      return <Badge variant="secondary" className="flex items-center gap-1 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="h-3 w-3" /> Group Disabled</Badge>;
+      return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" /> Disabled</Badge>;
     }
-    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> Group Enabled</Badge>;
+    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> Enabled</Badge>;
   };
 
   return (
@@ -188,7 +189,7 @@ const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGrou
               </DropdownMenuItem>
             )}
             {group.isEnabled === false && (
-              <DropdownMenuItem onClick={() => onEnableGroupAccount(group.groupName)}>
+              <DropdownMenuItem onClick={() => onEnableGroupSystem(group.groupName)}>
                 <Power className="mr-2 h-4 w-4 text-green-600" />
                 Enable Group (System)
               </DropdownMenuItem>
@@ -223,10 +224,10 @@ export default function GroupsPage() {
   const [groupToUpdateAccess, setGroupToUpdateAccess] = useState<{ groupName: string; deny: boolean } | null>(null);
   const [isConfirmSingleAccessDialogOpen, setIsConfirmSingleAccessDialogOpen] = useState(false);
 
-  const [groupToEnableAccount, setGroupToEnableAccount] = useState<string | null>(null); // Renamed state
-  const [isConfirmSingleEnableAccountDialogOpen, setIsConfirmSingleEnableAccountDialogOpen] = useState(false); // Renamed state
+  const [groupToEnableSystem, setGroupToEnableSystem] = useState<string | null>(null);
+  const [isConfirmSingleEnableSystemDialogOpen, setIsConfirmSingleEnableSystemDialogOpen] = useState(false);
 
-  const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"enable" | "disable" | null>(null); // Changed from "allow" | "deny"
+  const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"enable" | "disable" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
   
   const [bulkAccountActionToConfirm, setBulkAccountActionToConfirm] = useState<"enable" | null>(null); 
@@ -399,14 +400,14 @@ export default function GroupsPage() {
       await updateGroup(groupName, { denyAccess: deny });
       toast({
         title: "Success",
-        description: `Group ${groupName} has been ${deny ? "disabled" : "enabled"}.`, // Updated terminology
+        description: `Group ${groupName} has been ${deny ? "disabled" : "enabled"}.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: `Error ${deny ? "Disabling" : "Enabling"} Group`, // Updated terminology
+        title: `Error ${deny ? "Disabling" : "Enabling"} Group`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -417,18 +418,18 @@ export default function GroupsPage() {
     }
   }, [groupToUpdateAccess, fetchGroupsCallback, toast, currentFilters]);
 
-  const confirmEnableGroupAccount = useCallback((groupName: string) => { // Renamed from confirmEnableGroup
-    setGroupToEnableAccount(groupName);
-    setIsConfirmSingleEnableAccountDialogOpen(true);
+  const confirmEnableGroupSystem = useCallback((groupName: string) => {
+    setGroupToEnableSystem(groupName);
+    setIsConfirmSingleEnableSystemDialogOpen(true);
   }, []);
 
-  const executeEnableGroupAccount = useCallback(async () => { // Renamed from executeEnableGroup
-    if (!groupToEnableAccount) return;
+  const executeEnableGroupSystem = useCallback(async () => {
+    if (!groupToEnableSystem) return;
     try {
-      await performGroupAction(groupToEnableAccount, "enable");
+      await performGroupAction(groupToEnableSystem, "enable");
       toast({
         title: "Success",
-        description: `Group ${groupToEnableAccount} (system) has been enabled.`,
+        description: `Group ${groupToEnableSystem} (system) has been enabled.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
@@ -441,13 +442,13 @@ export default function GroupsPage() {
         icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
-      setIsConfirmSingleEnableAccountDialogOpen(false);
-      setGroupToEnableAccount(null);
+      setIsConfirmSingleEnableSystemDialogOpen(false);
+      setGroupToEnableSystem(null);
     }
-  }, [groupToEnableAccount, fetchGroupsCallback, toast, currentFilters]);
+  }, [groupToEnableSystem, fetchGroupsCallback, toast, currentFilters]);
 
 
-  const confirmBulkUpdateAccess = useCallback((action: "enable" | "disable") => { // Changed from "allow" | "deny"
+  const confirmBulkUpdateAccess = useCallback((action: "enable" | "disable") => {
     if (selectedGroups.length === 0) {
       toast({ title: "No Groups Selected", description: "Please select groups to perform bulk actions.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
@@ -459,7 +460,7 @@ export default function GroupsPage() {
   const executeBulkUpdateAccess = useCallback(async () => {
     if (!bulkAccessActionToConfirm || selectedGroups.length === 0) return;
 
-    const deny = bulkAccessActionToConfirm === "disable"; // "disable" means denyAccess = true
+    const deny = bulkAccessActionToConfirm === "disable"; 
     setBulkActionLoading(true);
     let successCount = 0;
     let failCount = 0;
@@ -674,7 +675,7 @@ export default function GroupsPage() {
                           selectedGroups={selectedGroups}
                           onSelectGroup={handleSelectGroupCallback}
                           onUpdateGroupAccess={confirmUpdateGroupAccess}
-                          onEnableGroupAccount={confirmEnableGroupAccount}
+                          onEnableGroupSystem={confirmEnableGroupSystem}
                           onDeleteGroup={confirmDeleteGroup}
                         />
                       ))
@@ -736,18 +737,18 @@ export default function GroupsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmSingleEnableAccountDialogOpen} onOpenChange={setIsConfirmSingleEnableAccountDialogOpen}>
+      <AlertDialog open={isConfirmSingleEnableSystemDialogOpen} onOpenChange={setIsConfirmSingleEnableSystemDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Enable Group (System)</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to enable group "{groupToEnableAccount}" (system-wide)? This will allow users in this group to connect if not individually denied access.
+              Are you sure you want to enable group "{groupToEnableSystem}" (system-wide)? This will allow users in this group to connect if not individually denied access.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmSingleEnableAccountDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsConfirmSingleEnableSystemDialogOpen(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeEnableGroupAccount}
+              onClick={executeEnableGroupSystem}
               className={"bg-primary hover:bg-primary/90"}
             >
               Confirm Enable Group (System)
@@ -812,4 +813,5 @@ export default function GroupsPage() {
     </div>
   )
 }
+
 

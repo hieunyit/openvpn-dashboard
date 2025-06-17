@@ -83,8 +83,8 @@ export default function VPNStatusPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [currentAuthUser, setCurrentAuthUser] = useState<any>(null);
 
-  const [isConfirmDisableUserDialogOpen, setIsConfirmDisableUserDialogOpen] = useState(false); // Renamed from DenyAccess
-  const [userToDisable, setUserToDisable] = useState<string | null>(null); // Renamed
+  const [isConfirmDisableUserDialogOpen, setIsConfirmDisableUserDialogOpen] = useState(false);
+  const [userToDisable, setUserToDisable] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -197,11 +197,11 @@ export default function VPNStatusPage() {
     }
   }
 
-  const initiateDisableUserAction = (username: string) => { // Renamed
+  const initiateDisableUserAction = (username: string) => {
     if (username === currentAuthUser?.username) {
       toast({
         title: "Action Prevented",
-        description: "You cannot disable your own user account.",
+        description: "You cannot disable your own user.",
         variant: "warning",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -211,12 +211,12 @@ export default function VPNStatusPage() {
     setIsConfirmDisableUserDialogOpen(true);
   };
 
-  const executeDisableUserAction = async () => { // Renamed
+  const executeDisableUserAction = async () => {
     if (!userToDisable) return;
 
     setActionLoading(true);
     try {
-      await updateUser(userToDisable, { denyAccess: true }); // denyAccess: true means disable VPN for this user
+      await updateUser(userToDisable, { denyAccess: true });
       toast({
         title: "User Disabled Successfully",
         description: `User ${userToDisable} has been disabled. Their current session will be disconnected.`,

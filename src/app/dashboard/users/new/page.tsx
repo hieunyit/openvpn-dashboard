@@ -14,13 +14,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { createUser, getGroups } from "@/lib/api"
 import { formatDateForInput, generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
-import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
+import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
 interface Group {
   groupName: string
-  authMethod: string // Retained as it's part of existing structure, not used for filtering here
-  role: string // Retained as it's part of existing structure, not used for filtering here
+  authMethod: string 
+  role: string 
   isEnabled?: boolean
   denyAccess?: boolean
 }
@@ -63,7 +63,8 @@ export default function NewUserPage() {
       toast({
         title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error.message) || "Could not load groups for selection.",
-        variant: "destructive"
+        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setLoadingGroups(false)
@@ -86,6 +87,7 @@ export default function NewUserPage() {
       title: "Password Generated",
       description: "A new random password has been generated and filled.",
       variant: "info",
+      icon: <RefreshCw className="h-5 w-5" />,
     });
   };
 
@@ -98,6 +100,7 @@ export default function NewUserPage() {
         title: "Validation Error",
         description: "User Expiration date is required.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
       setIsSubmitting(false);
       return;
@@ -131,14 +134,16 @@ export default function NewUserPage() {
         title: "User Created Successfully",
         description: `User ${formData.username} has been created.`,
         variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
 
       router.push("/dashboard/users")
     } catch (error: any) {
       toast({
-        title: "Failed to Create User",
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
+        title: "Error Creating User",
+        description: getCoreApiErrorMessage(error.message),
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setIsSubmitting(false)
@@ -328,7 +333,7 @@ export default function NewUserPage() {
                       </SelectContent>
                     </Select>
                     {groups.length === 0 && !loadingGroups && (
-                       <p className="text-xs text-red-500/90 mt-1">
+                       <p className="text-xs text-muted-foreground mt-1">
                         No enabled groups available. You can create one
                         <Link href="/dashboard/groups/new" className="text-primary hover:underline font-medium ml-1">
                           here

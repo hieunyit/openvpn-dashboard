@@ -9,9 +9,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { performUserAction } from "@/lib/api"
-import { ArrowLeft, Key, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Key, Eye, EyeOff, CheckCircle, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
@@ -42,6 +42,7 @@ export default function ChangePasswordPage() {
         title: "Password Mismatch",
         description: "The passwords do not match. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
       return
     }
@@ -51,6 +52,7 @@ export default function ChangePasswordPage() {
         title: "Password Too Short",
         description: "Password must be at least 8 characters long.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
       return
     }
@@ -66,14 +68,16 @@ export default function ChangePasswordPage() {
         title: "Password Changed Successfully",
         description: `Password for user ${username} has been changed.`,
         variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
 
       router.push(`/dashboard/users/${username}`)
     } catch (error: any) {
       toast({
         title: "Error Changing Password",
-        description: getCoreApiErrorMessage(error.message) || "Failed to change password. Please try again.",
+        description: getCoreApiErrorMessage(error.message),
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setIsSubmitting(false)
