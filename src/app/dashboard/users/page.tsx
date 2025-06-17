@@ -108,6 +108,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
   const displayedExpirationDate = formatDateForDisplay(user.userExpiration);
+  const isExpirationUnknown = expirationStatus === "unknown";
   
   return (
     <TableRow key={user.username} className={selectedUsers.includes(user.username) ? "bg-muted hover:bg-muted/80" : "hover:bg-muted/50 transition-colors"}>
@@ -143,10 +144,10 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
       </TableCell>
       <TableCell className="hidden sm:table-cell">
         <div className="flex items-center gap-1.5 text-sm">
-          {expirationStatus === "expired" && <span className="h-2 w-2 rounded-full bg-red-500" title="Expired"></span>}
-          {expirationStatus === "expiring_soon" && <span className="h-2 w-2 rounded-full bg-orange-500" title="Expiring Soon"></span>}
-          {expirationStatus === "active" && <span className="h-2 w-2 rounded-full bg-green-500" title="Active"></span>}
-          <span className={expirationStatus === "unknown" ? "text-destructive font-medium" : ""}>
+          {!isExpirationUnknown && expirationStatus === "expired" && <span className="h-2 w-2 rounded-full bg-red-500" title="Expired"></span>}
+          {!isExpirationUnknown && expirationStatus === "expiring_soon" && <span className="h-2 w-2 rounded-full bg-orange-500" title="Expiring Soon"></span>}
+          {!isExpirationUnknown && expirationStatus === "active" && <span className="h-2 w-2 rounded-full bg-green-500" title="Active"></span>}
+          <span className={isExpirationUnknown ? "text-destructive font-medium" : ""}>
             {displayedExpirationDate}
           </span>
         </div>
@@ -282,7 +283,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     let initialFiltersVal = { 
-        ...currentFilters, // Preserve existing defaults like sortOrder, mfaEnabled etc.
+        ...currentFilters, 
         userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
         userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
     };
@@ -290,7 +291,7 @@ export default function UsersPage() {
         initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
         if (!showFilters) setShowFilters(true); 
     }
-    setCurrentFilters(prev => ({...prev, ...initialFiltersVal})); // Merge, don't overwrite all
+    setCurrentFilters(prev => ({...prev, ...initialFiltersVal})); 
     fetchGroupsCallback();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupNameQueryParam]);
@@ -300,21 +301,17 @@ export default function UsersPage() {
     try {
       setLoading(true)
       const finalAPIFilters: Record<string, any> = {
-        ...filtersToApply, // Includes sortBy, sortOrder, and all advanced filters
-        // page and limit are handled directly by getUsers call
+        ...filtersToApply, 
       };
 
-      // Handle main search term
       if (searchTerm.trim()) {
         finalAPIFilters.searchText = searchTerm.trim();
       } else if (filtersToApply.searchText && filtersToApply.searchText.trim()) {
-        // If advanced filters have searchText, use that (this case might be redundant if UI is simplified)
         finalAPIFilters.searchText = filtersToApply.searchText.trim();
       } else {
-        delete finalAPIFilters.searchText; // Ensure no empty searchText is sent
+        delete finalAPIFilters.searchText; 
       }
       
-      // Ensure date formats are correct for API (YYYY-MM-DD)
       if (expirationDateFrom) {
         finalAPIFilters.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
       } else {
@@ -326,13 +323,6 @@ export default function UsersPage() {
         delete finalAPIFilters.userExpirationBefore;
       }
       
-      // Clean up "any" values before sending to API - API function getUsers should do this
-      // Object.keys(finalAPIFilters).forEach((key) => {
-      //   if (finalAPIFilters[key] === "any" || finalAPIFilters[key] === "") {
-      //     delete finalAPIFilters[key];
-      //   }
-      // });
-
       const data = await getUsers(page, limit, finalAPIFilters)
       setUsers(data.users.map(u => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
       setTotal(data.total || 0)
@@ -340,7 +330,7 @@ export default function UsersPage() {
       console.error("Failed to fetch users:", error)
       toast({
         title: "Error Fetching Users",
-        description: error.message || "Could not load users. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -389,7 +379,7 @@ export default function UsersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, currentFilters, expirationDateFrom, expirationDateTo]); 
 
-  useEffect(() => { // separate effect for page changes
+  useEffect(() => { 
     const filtersWithDates = {
         ...currentFilters,
         userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
@@ -397,23 +387,20 @@ export default function UsersPage() {
       };
     fetchUsersCallback(filtersWithDates)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit]); // fetchUsersCallback removed from deps to avoid re-triggering
+  }, [page, limit]); 
 
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
     const filtersWithDates = {
-      ...newFilters, // newFilters from AdvancedFilters already contains its specific searchText
+      ...newFilters, 
       userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
       userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
     };
-    // If AdvancedFilters are being applied, its searchText should take precedence or be the one used.
-    // The page-level searchTerm might need to be cleared or ignored in fetchUsersCallback if newFilters.searchText is set.
-    // For now, fetchUsersCallback handles merging/prioritizing searchText from page's searchTerm vs filtersToApply.searchText
     setCurrentFilters(filtersWithDates);
     if (page !== 1) setPage(1);
     else fetchUsersCallback(filtersWithDates); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]); // Removed fetchUsersCallback to simplify deps
+  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]); 
 
   const handleDateFilterChange = (date: Date | undefined, type: "from" | "to") => {
     if (type === "from") {
@@ -421,7 +408,6 @@ export default function UsersPage() {
     } else {
       setExpirationDateTo(date);
     }
-    // Debounced useEffect for currentFilters will pick this up
   };
 
   const clearDateFilters = () => {
@@ -429,7 +415,6 @@ export default function UsersPage() {
     setExpirationDateTo(undefined);
      const newFilters = { ...currentFilters, userExpirationAfter: undefined, userExpirationBefore: undefined };
     setCurrentFilters(newFilters);
-    // fetchUsersCallback(newFilters); // This will be triggered by the useEffect for currentFilters
   };
 
 
@@ -438,15 +423,15 @@ export default function UsersPage() {
     try {
       await deleteUser(userToDelete)
       toast({
-        title: "User Deleted",
-        description: `User ${userToDelete} has been successfully deleted.`,
+        title: "✅ User Deleted Successfully",
+        description: `User ${userToDelete} has been deleted.`,
       })
       fetchUsersCallback(currentFilters)
       setSelectedUsers(prev => prev.filter(u => u !== userToDelete));
     } catch (error: any) {
       toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete user. Please try again.",
+        title: "❌ Failed to Delete User",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -479,14 +464,14 @@ export default function UsersPage() {
     try {
       await updateUser(username, { denyAccess: deny });
       toast({
-        title: "VPN Access Updated",
+        title: `✅ VPN Access ${deny ? "Denied" : "Allowed"}`,
         description: `VPN access for user ${username} has been ${deny ? "denied" : "allowed"}.`,
       });
       fetchUsersCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: "Error Updating Access",
-        description: error.message || "Failed to update VPN access.",
+        title: `❌ Failed to Update VPN Access`,
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -510,14 +495,14 @@ export default function UsersPage() {
     try {
         await performUserAction(username, "enable");
         toast({
-            title: `User Enabled`,
-            description: `User ${username} has been enabled.`,
+            title: `✅ User Enabled Successfully`,
+            description: `User account for ${username} has been enabled.`,
         });
         fetchUsersCallback(currentFilters);
     } catch (error: any) {
         toast({
-            title: `Error Enabling User`,
-            description: error.message || `Failed to enable user.`,
+            title: `❌ Failed to Enable User`,
+            description: error.message || `An unexpected error occurred.`,
             variant: "destructive",
         });
     } finally {
@@ -531,13 +516,13 @@ export default function UsersPage() {
      try {
       await performUserAction(username, "reset-otp");
       toast({
-        title: "OTP Reset Successful",
-        description: `OTP has been reset for user ${username}. They will need to re-configure on next login.`,
+        title: "✅ OTP Reset Successful",
+        description: `OTP has been reset for user ${username}.`,
       });
     } catch (error: any) {
       toast({
-        title: "Error Resetting OTP",
-        description: error.message || "Could not reset OTP for the user.",
+        title: "❌ OTP Reset Failed",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }

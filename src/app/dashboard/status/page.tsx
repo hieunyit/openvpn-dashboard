@@ -146,7 +146,7 @@ export default function VPNStatusPage() {
     try {
       const result = await disconnectUser(userToDisconnect.username, disconnectMessage)
       toast({
-        title: "User Disconnected",
+        title: "✅ User Disconnected Successfully",
         description: result.message || `Disconnect command sent for ${userToDisconnect.username}.`,
       })
       fetchStatus(false) // Refresh list
@@ -154,8 +154,8 @@ export default function VPNStatusPage() {
       setUserToDisconnect(null)
     } catch (err: any) {
       toast({
-        title: "Disconnect Failed",
-        description: err.message || `Could not disconnect ${userToDisconnect.username}.`,
+        title: "❌ Failed to Disconnect User",
+        description: err.message || `An unexpected error occurred while disconnecting ${userToDisconnect.username}.`,
         variant: "destructive",
       })
     } finally {
@@ -180,8 +180,8 @@ export default function VPNStatusPage() {
       setSelectedUsers([])
     } catch (err: any) {
       toast({
-        title: "Bulk Disconnect Failed",
-        description: err.message || "Could not perform bulk disconnect.",
+        title: "❌ Bulk Disconnect Failed",
+        description: err.message || "An unexpected error occurred during bulk disconnect.",
         variant: "destructive",
       })
     } finally {
@@ -209,14 +209,14 @@ export default function VPNStatusPage() {
     try {
       await updateUser(userToDenyAccess, { denyAccess: true });
       toast({
-        title: "VPN Access Denied",
-        description: `VPN access for user ${userToDenyAccess} has been denied. They will be disconnected shortly.`,
+        title: "✅ VPN Access Denied Successfully",
+        description: `VPN access for user ${userToDenyAccess} has been denied. Their current session will be disconnected.`,
       });
       fetchStatus(false); 
     } catch (err: any) {
       toast({
-        title: "Failed to Deny Access",
-        description: err.message || `Could not deny VPN access for ${userToDenyAccess}.`,
+        title: "❌ Failed to Deny VPN Access",
+        description: err.message || `An unexpected error occurred for ${userToDenyAccess}.`,
         variant: "destructive",
       });
     } finally {

@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react" // Added useEffect import
+import { useState, useEffect } from "react" 
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { bulkExtendUserExpiration } from "@/lib/api"
 import { CalendarClock, AlertTriangle } from "lucide-react"
-import { formatDateForInput } from "@/lib/utils" // Using the utility for consistency
+import { formatDateForInput } from "@/lib/utils" 
 
 interface BulkExtendExpirationDialogProps {
   open: boolean
@@ -51,16 +51,16 @@ export function BulkExtendExpirationDialog({
     try {
       await bulkExtendUserExpiration(selectedUsernames, newExpirationDate)
       toast({
-        title: "Expiration Extended",
-        description: `Successfully extended expiration for ${selectedUsernames.length} user(s).`,
+        title: "✅ Expiration Dates Extended Successfully",
+        description: `Extended expiration for ${selectedUsernames.length} user(s) to ${formatDateForInput(newExpirationDate)}.`,
       })
       onSuccess()
       onOpenChange(false)
-      setNewExpirationDate("") // Reset date for next time
+      setNewExpirationDate("") 
     } catch (error: any) {
       console.error("Failed to extend expiration:", error)
       toast({
-        title: "Error Extending Expiration",
+        title: "❌ Failed to Extend Expiration Dates",
         description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
@@ -69,7 +69,6 @@ export function BulkExtendExpirationDialog({
     }
   }
 
-  // Set default date to today for the input
   useEffect(() => {
     if (open) {
       setNewExpirationDate(formatDateForInput(new Date().toISOString()))
@@ -79,7 +78,7 @@ export function BulkExtendExpirationDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) setNewExpirationDate(formatDateForInput(new Date().toISOString())); // Reset on close
+      if (!isOpen) setNewExpirationDate(formatDateForInput(new Date().toISOString())); 
       onOpenChange(isOpen);
     }}>
       <DialogContent className="sm:max-w-[425px]">
@@ -101,7 +100,7 @@ export function BulkExtendExpirationDialog({
               value={newExpirationDate}
               onChange={(e) => setNewExpirationDate(e.target.value)}
               className="w-full"
-              min={formatDateForInput(new Date().toISOString())} // Prevent selecting past dates
+              min={formatDateForInput(new Date().toISOString())} 
             />
           </div>
            {selectedUsernames.length > 0 && (

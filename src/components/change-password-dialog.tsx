@@ -54,7 +54,7 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
 
     if (formData.newPassword !== formData.confirmPassword) {
       toast({
-        title: "Password mismatch",
+        title: "Password Mismatch",
         description: "The passwords do not match. Please try again.",
         variant: "destructive",
       })
@@ -63,7 +63,7 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
 
     if (formData.newPassword.length < 8) {
       toast({
-        title: "Password too short",
+        title: "Password Too Short",
         description: "Password must be at least 8 characters long.",
         variant: "destructive",
       })
@@ -78,18 +78,18 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
       })
 
       toast({
-        title: "Password Changed",
-        description: `Password for user ${username} has been changed successfully.`,
+        title: "✅ Password Changed Successfully",
+        description: `Password for user ${username} has been changed.`,
       })
-      onOpenChange(false) // Close dialog on success
+      onOpenChange(false) 
       if (onSuccess) {
         onSuccess()
       }
     } catch (error: any) {
       console.error("Failed to change password:", error)
       toast({
-        title: "Error Changing Password",
-        description: error.message || "Failed to change password. Please try again.",
+        title: "❌ Failed to Change Password",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {

@@ -52,7 +52,7 @@ export default function NewUserPage() {
     } catch (error: any) {
       console.error("Failed to fetch groups:", error)
       toast({
-        title: "Error fetching groups",
+        title: "Error Fetching Groups",
         description: error.message || "Could not load groups for selection.",
         variant: "destructive"
       });
@@ -118,16 +118,16 @@ export default function NewUserPage() {
       await createUser(userData)
 
       toast({
-        title: "✅ User created successfully",
-        description: `User ${formData.username} has been created and is ready to use.`,
+        title: "✅ User Created Successfully",
+        description: `User ${formData.username} has been created.`,
       })
 
       router.push("/dashboard/users")
     } catch (error: any) {
       console.error("Failed to create user:", error)
       toast({
-        title: "❌ Failed to create user",
-        description: error.message || "Please check your input and try again.",
+        title: "❌ Failed to Create User",
+        description: error.message || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

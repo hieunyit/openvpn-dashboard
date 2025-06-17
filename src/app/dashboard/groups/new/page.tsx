@@ -62,16 +62,16 @@ export default function NewGroupPage() {
       await createGroup(groupData)
 
       toast({
-        title: "Group created",
-        description: `Group ${formData.groupName} has been created successfully.`,
+        title: "✅ Group Created Successfully",
+        description: `Group ${formData.groupName} has been created.`,
       })
 
       router.push("/dashboard/groups")
     } catch (error: any) {
       console.error("Failed to create group:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to create group. Please check your input and try again.",
+        title: "❌ Failed to Create Group",
+        description: error.message || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

@@ -176,17 +176,17 @@ export default function GroupDetailPage() {
       await updateGroup(group.groupName, groupDataToUpdate)
 
       toast({
-        title: "Group Updated",
-        description: `Group ${group.groupName} has been updated successfully.`,
+        title: "✅ Group Updated Successfully",
+        description: `Group ${group.groupName} has been updated.`,
       })
 
       setEditing(false)
-      fetchGroup() // Refresh data
+      fetchGroup() 
     } catch (error: any) {
       console.error("Failed to update group:", error)
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update group. Please check your input and try again.",
+        title: "❌ Failed to Update Group",
+        description: error.message || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {
@@ -209,15 +209,15 @@ export default function GroupDetailPage() {
       const newDenyAccessState = action === "deny";
       await updateGroup(targetGroupName, { denyAccess: newDenyAccessState });
       toast({
-        title: "VPN Access Updated",
+        title: `✅ VPN Access ${action === "allow" ? "Allowed" : "Denied"}`,
         description: `VPN access for group ${targetGroupName} has been ${action === "allow" ? "allowed" : "denied"}.`,
       });
-      fetchGroup(); // Refresh data
+      fetchGroup(); 
     } catch (error: any) {
       console.error(`Failed to ${action} VPN access for group:`, error);
       toast({
-        title: "Action Failed",
-        description: error.message || `Failed to ${action} VPN access for group. Please try again.`,
+        title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -241,15 +241,15 @@ export default function GroupDetailPage() {
       setSaving(true);
       await performGroupAction(targetGroupName, "enable");
       toast({
-        title: `Group Enabled`,
-        description: `Group ${targetGroupName} has been successfully enabled.`,
+        title: `✅ Group Enabled Successfully`,
+        description: `Group ${targetGroupName} has been enabled.`,
       });
-      fetchGroup(); // Refresh data
+      fetchGroup(); 
     } catch (error: any) {
       console.error(`Failed to enable group:`, error);
       toast({
-        title: "Action Failed",
-        description: error.message || `Failed to enable group. Please try again.`,
+        title: "❌ Failed to Enable Group",
+        description: error.message || `An unexpected error occurred. Please try again.`,
         variant: "destructive",
       });
     } finally {

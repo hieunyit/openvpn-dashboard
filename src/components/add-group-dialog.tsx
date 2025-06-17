@@ -87,8 +87,8 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
       await createGroup(groupData)
 
       toast({
-        title: "✅ Group created successfully",
-        description: `Group ${formData.groupName} has been created and is ready to use.`,
+        title: "✅ Group Created Successfully",
+        description: `Group ${formData.groupName} has been created.`,
       })
 
       onOpenChange(false)
@@ -96,8 +96,8 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
     } catch (error: any) {
       console.error("Failed to create group:", error)
       toast({
-        title: "❌ Failed to create group",
-        description: error.message || "Please check your input and try again.",
+        title: "❌ Failed to Create Group",
+        description: error.message || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

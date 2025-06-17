@@ -124,8 +124,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       await createUser(userData)
 
       toast({
-        title: "✅ User created successfully",
-        description: `User ${formData.username} has been created and is ready to use.`,
+        title: "✅ User Created Successfully",
+        description: `User ${formData.username} has been created.`,
       })
 
       onOpenChange(false)
@@ -133,8 +133,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     } catch (error: any) {
       console.error("Failed to create user:", error)
       toast({
-        title: "❌ Failed to create user",
-        description: error.message || "Please check your input and try again.",
+        title: "❌ Failed to Create User",
+        description: error.message || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

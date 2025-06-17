@@ -224,9 +224,10 @@ export default function GroupsPage() {
 
   const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
-
-  const [isConfirmBulkEnableDialogOpen, setIsConfirmBulkEnableDialogOpen] = useState(false);
   
+  const [bulkActionToConfirm, setBulkActionToConfirm] = useState<"enable" | "disable" | null>(null);
+  const [isConfirmBulkActionDialogOpen, setIsConfirmBulkActionDialogOpen] = useState(false);
+
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddGroupDialogOpen, setIsAddGroupDialogOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
@@ -289,7 +290,7 @@ export default function GroupsPage() {
       console.error("Failed to fetch groups:", error);
       toast({
         title: "Error Fetching Groups",
-        description: error.message || "Could not load groups. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
       setGroups([]);
@@ -357,15 +358,15 @@ export default function GroupsPage() {
     try {
       await deleteGroup(groupToDelete)
       toast({
-        title: "Group Deleted",
-        description: `Group ${groupToDelete} has been successfully deleted.`,
+        title: "✅ Group Deleted Successfully",
+        description: `Group ${groupToDelete} has been deleted.`,
       })
       fetchGroupsCallback(currentFilters)
       setSelectedGroups(prev => prev.filter(g => g !== groupToDelete));
     } catch (error: any) {
       toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete group. Please try again.",
+        title: "❌ Failed to Delete Group",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -390,14 +391,14 @@ export default function GroupsPage() {
     try {
       await updateGroup(groupName, { denyAccess: deny });
       toast({
-        title: "VPN Access Updated",
+        title: `✅ VPN Access ${deny ? "Denied" : "Allowed"}`,
         description: `VPN access for group ${groupName} has been ${deny ? "denied" : "allowed"}.`,
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: "Error Updating Access",
-        description: error.message || "Failed to update VPN access for the group.",
+        title: "❌ Failed to Update VPN Access",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -416,14 +417,14 @@ export default function GroupsPage() {
     try {
       await performGroupAction(groupToEnable, "enable");
       toast({
-        title: `Group Enabled`,
-        description: `Group ${groupToEnable} has been successfully enabled.`,
+        title: `✅ Group Enabled Successfully`,
+        description: `Group ${groupToEnable} has been enabled.`,
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: `Error Enabling Group`,
-        description: error.message || `Failed to enable the group.`,
+        title: `❌ Failed to Enable Group`,
+        description: error.message || `An unexpected error occurred.`,
         variant: "destructive",
       });
     } finally {
@@ -484,38 +485,40 @@ export default function GroupsPage() {
     fetchGroupsCallback(currentFilters);
     setSelectedGroups([]);
   }, [bulkAccessActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters, groups]);
-
-  const confirmBulkEnable = useCallback(() => {
+  
+  const confirmBulkAction = useCallback((action: "enable" | "disable") => {
     if (selectedGroups.length === 0) {
       toast({ title: "No groups selected", description: "Please select groups for this bulk action.", variant: "destructive" });
       return;
     }
-    setIsConfirmBulkEnableDialogOpen(true);
+    setBulkActionToConfirm(action);
+    setIsConfirmBulkActionDialogOpen(true);
   }, [selectedGroups, toast]);
 
-  const executeBulkEnable = useCallback(async () => {
-    if (selectedGroups.length === 0) return;
+  const executeBulkAction = useCallback(async () => {
+    if (!bulkActionToConfirm || selectedGroups.length === 0) return;
 
     setBulkActionLoading(true);
     try {
-      const result = await bulkGroupActions(selectedGroups, "enable");
+      const result = await bulkGroupActions(selectedGroups, bulkActionToConfirm);
       toast({
-        title: `Bulk Enable Complete`,
-        description: `${result.success || 0} groups enabled. ${result.failed || 0} failed.`,
+        title: `✅ Bulk ${bulkActionToConfirm.charAt(0).toUpperCase() + bulkActionToConfirm.slice(1)} Complete`,
+        description: `${result.success || 0} groups ${bulkActionToConfirm}d. ${result.failed || 0} failed.`,
       });
       fetchGroupsCallback(currentFilters);
       setSelectedGroups([]);
     } catch (error: any) {
       toast({
-        title: `Error Bulk Enabling`,
-        description: error.message || "Failed to perform bulk group enable action.",
+        title: `❌ Failed to Bulk ${bulkActionToConfirm.charAt(0).toUpperCase() + bulkActionToConfirm.slice(1)} Groups`,
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
       setBulkActionLoading(false);
-      setIsConfirmBulkEnableDialogOpen(false);
+      setIsConfirmBulkActionDialogOpen(false);
+      setBulkActionToConfirm(null);
     }
-  }, [selectedGroups, fetchGroupsCallback, toast, currentFilters]);
+  }, [bulkActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters]);
 
 
   const handleSelectGroupCallback = useCallback((groupName: string, checked: boolean) => {
@@ -593,8 +596,11 @@ export default function GroupsPage() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <span className="text-sm font-medium text-primary">{selectedGroups.length} group(s) selected</span>
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => confirmBulkEnable()} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
+                        <Button variant="outline" size="sm" onClick={() => confirmBulkAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <Power className="mr-2 h-4 w-4" /> Enable
+                        </Button>
+                         <Button variant="outline" size="sm" onClick={() => confirmBulkAction("disable")} disabled={bulkActionLoading} className="border-yellow-600 text-yellow-700 hover:bg-yellow-600/10">
+                          <PowerOff className="mr-2 h-4 w-4" /> Disable
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("allow")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow Access
@@ -761,22 +767,22 @@ export default function GroupsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmBulkEnableDialogOpen} onOpenChange={setIsConfirmBulkEnableDialogOpen}>
+      <AlertDialog open={isConfirmBulkActionDialogOpen} onOpenChange={setIsConfirmBulkActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Group Enable</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Bulk Group {bulkActionToConfirm === "enable" ? "Enable" : "Disable"}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to enable the {selectedGroups.length} selected group(s)? This will apply system-wide.
+              Are you sure you want to {bulkActionToConfirm} the {selectedGroups.length} selected group(s)? This will apply system-wide.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmBulkEnableDialogOpen(false)} disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsConfirmBulkActionDialogOpen(false)} disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={executeBulkEnable}
+              onClick={executeBulkAction}
               disabled={bulkActionLoading}
-              className={"bg-primary hover:bg-primary/90"}
+              className={bulkActionToConfirm === "disable" ? "bg-yellow-500 hover:bg-yellow-500/90 text-background" : "bg-primary hover:bg-primary/90"}
             >
-              {bulkActionLoading ? "Processing..." : `Confirm Enable Groups`}
+              {bulkActionLoading ? "Processing..." : `Confirm ${bulkActionToConfirm === "enable" ? "Enable" : "Disable"} Groups`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

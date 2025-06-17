@@ -190,15 +190,15 @@ export default function UserDetailPage() {
       }
       await updateUser(user.username, userDataToUpdate)
       toast({
-        title: "User Updated",
-        description: `User ${user.username} has been updated successfully.`,
+        title: "✅ User Updated Successfully",
+        description: `User ${user.username} has been updated.`,
       })
       setEditing(false)
       fetchUser() 
     } catch (error: any) {
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update user. Please check input and try again.",
+        title: "❌ Failed to Update User",
+        description: error.message || "An unexpected error occurred. Please check input and try again.",
         variant: "destructive",
       })
     } finally {
@@ -228,14 +228,14 @@ export default function UserDetailPage() {
       const newDenyAccessState = action === "deny";
       await updateUser(targetUsername, { denyAccess: newDenyAccessState });
       toast({
-        title: "VPN Access Updated",
+        title: `✅ VPN Access ${action === "allow" ? "Allowed" : "Denied"}`,
         description: `VPN access for user ${targetUsername} has been ${action === "allow" ? "allowed" : "denied"}.`,
       });
       fetchUser(); 
     } catch (error: any) {
       toast({
-        title: "Action Failed",
-        description: error.message || `Failed to ${action} VPN access. Please try again.`,
+        title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -251,13 +251,13 @@ export default function UserDetailPage() {
     try {
       await performUserAction(user.username, "reset-otp");
       toast({
-        title: "OTP Reset Successful",
-        description: `OTP for user ${user.username} has been reset. They will need to re-configure on next login.`,
+        title: "✅ OTP Reset Successful",
+        description: `OTP for user ${user.username} has been reset.`,
       });
     } catch (error: any) {
       toast({
-        title: "OTP Reset Failed",
-        description: error.message || "Could not reset OTP. Please try again.",
+        title: "❌ OTP Reset Failed",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
