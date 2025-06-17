@@ -17,8 +17,6 @@ import { useToast } from "@/components/ui/use-toast"
 
 interface DashboardStats {
   totalUsers: number
-  // activeUsers: number; // No longer directly displayed as a primary stat card
-  // inactiveUsers: number; // No longer directly displayed as a primary stat card
   totalGroups: number
   expiringUsersCount30Days: number
   currentlyConnectedUsers: number
@@ -126,8 +124,6 @@ ExpiringUsersTable.displayName = "ExpiringUsersTable";
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
-    // activeUsers: 0,
-    // inactiveUsers: 0,
     totalGroups: 0,
     expiringUsersCount30Days: 0,
     currentlyConnectedUsers: 0,
@@ -147,7 +143,6 @@ export default function DashboardPage() {
 
       const [
         usersData, 
-        // activeUsersData, // No longer fetched for primary stat cards
         groupsData, 
         expiring3DaysData, 
         expiring7DaysData, 
@@ -156,8 +151,7 @@ export default function DashboardPage() {
         vpnStatusData,
         serverInfoData,
       ] = await Promise.allSettled([
-        getUsers(1, 1), // Still needed for totalUsers
-        // getUsers(1, 1, { isEnabled: "true" }), // Removed as activeUsers card is removed
+        getUsers(1, 1),
         getGroups(1, 1),
         getUserExpirations(3),
         getUserExpirations(7),
@@ -171,7 +165,6 @@ export default function DashboardPage() {
         promiseResult.status === 'fulfilled' ? promiseResult.value : defaultValue;
 
       const usersResult = getResult(usersData, { total: 0 });
-      // const activeUsersResult = getResult(activeUsersData, { total: 0 }); // Removed
       const groupsResult = getResult(groupsData, { total: 0 });
       const expiring3DaysResult = getResult(expiring3DaysData, { count: 0, users: [] });
       const expiring7DaysResult = getResult(expiring7DaysData, { count: 0, users: [] });
@@ -183,8 +176,6 @@ export default function DashboardPage() {
 
       setStats({
         totalUsers: usersResult.total || 0,
-        // activeUsers: activeUsersResult.total || 0, // Removed
-        // inactiveUsers: (usersResult.total || 0) - (activeUsersResult.total || 0), // Removed
         totalGroups: groupsResult.total || 0,
         expiringUsersCount30Days: expiring30DaysResult.count || 0,
         currentlyConnectedUsers: vpnStatusResult.total_connected_users || 0,
@@ -195,7 +186,7 @@ export default function DashboardPage() {
       setExpiringUsers14Days(expiring14DaysResult.users || [])
       setServerInfo(serverInfoResult);
       
-      const errors = [usersData, /*activeUsersData,*/ groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
+      const errors = [usersData, groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
         .filter(r => r.status === 'rejected')
         // @ts-ignore
         .map(r => r.reason?.message || "An API call failed")
@@ -206,7 +197,7 @@ export default function DashboardPage() {
       }
 
 
-    } catch (err: any) { // This catch is for unforeseen errors during Promise.allSettled or state setting
+    } catch (err: any) { 
       console.error("Critical error fetching dashboard data:", err)
       setError("A critical error occurred while loading dashboard data.")
       toast({
@@ -267,7 +258,7 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2"> {/* Adjusted grid for remaining cards */}
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
             <Card className="shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Critical Expiry (3 Days)</CardTitle>
@@ -292,12 +283,12 @@ export default function DashboardPage() {
           </div>
           
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="shadow-sm">
+            <Card className="shadow-sm flex flex-col">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
                 <CardDescription>Common administrative tasks.</CardDescription>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <CardContent className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90" asChild>
                   <Link href="/dashboard/users"><Users className="mr-2 h-4 w-4"/>Manage Users</Link>
                 </Button>
@@ -313,7 +304,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm">
+            <Card className="shadow-sm flex flex-col">
                 <CardHeader>
                     <CardTitle className="flex items-center text-lg font-semibold">
                         <Server className="mr-2 h-5 w-5 text-primary" />
@@ -321,7 +312,7 @@ export default function DashboardPage() {
                     </CardTitle>
                     <CardDescription>Key details about your VPN server.</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-2 space-y-3 text-sm">
+                <CardContent className="pt-2 space-y-3 text-sm flex-1">
                     <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
                         <span className="font-medium text-muted-foreground">Server Name:</span>
                         {loading || !serverInfo ? <Skeleton className="h-5 w-24"/> : <Badge variant="secondary">{serverInfo.web_server_name || "N/A"}</Badge> }
@@ -345,7 +336,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-md">
                         <span className="font-medium text-muted-foreground">UI Version:</span>
-                        <Badge variant="secondary">1.0.0</Badge> {/* Keep UI version static or manage separately */}
+                        <Badge variant="secondary">1.0.0</Badge> 
                     </div>
                 </CardContent>
             </Card>
