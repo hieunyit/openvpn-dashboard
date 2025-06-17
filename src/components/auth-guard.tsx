@@ -2,10 +2,9 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { validateToken } from "@/lib/auth"
+import { getAccessToken, isTokenExpired, validateToken } from "@/lib/auth" // Removed logout as it's handled by validateToken or router
 import { Loader2 } from "lucide-react"
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -14,12 +13,27 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const isValid = await validateToken()
+      const token = getAccessToken()
 
-      if (!isValid) {
+      if (!token) {
         router.push("/login")
-      } else {
+        return
+      }
+
+      // Check local token expiration first
+      if (!isTokenExpired(token)) {
+        // Token exists and is not expired by local check
         setIsLoading(false)
+      } else {
+        // Token is expired locally or needs server validation (which includes refresh attempt)
+        const isValidAfterServerCheck = await validateToken()
+        if (!isValidAfterServerCheck) {
+          // validateToken handles logout internally if refresh fails critically.
+          // Router push ensures UI consistency if validateToken didn't redirect (e.g. passive failure).
+          router.push("/login")
+        } else {
+          setIsLoading(false)
+        }
       }
     }
 
@@ -36,4 +50,3 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>
 }
-

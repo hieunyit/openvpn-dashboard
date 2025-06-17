@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast"
 interface DashboardStats {
   totalUsers: number
   totalGroups: number
-  expiringUsersCount30Days: number
+  expiringUsersCount30Days: number // Still useful for internal logic if needed later, or for deferred display
   currentlyConnectedUsers: number
 }
 
@@ -133,10 +133,11 @@ export default function DashboardPage() {
   const [expiringUsers14Days, setExpiringUsers14Days] = useState<UserExpirationInfo[]>([])
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null) // For inline error display
+  const [loadingDeferred, setLoadingDeferred] = useState(true); // Separate loading for deferred data
+  const [error, setError] = useState<string | null>(null) 
   const { toast } = useToast();
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchInitialDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -146,8 +147,6 @@ export default function DashboardPage() {
         groupsData, 
         expiring3DaysData, 
         expiring7DaysData, 
-        expiring14DaysData, 
-        expiring30DaysData,
         vpnStatusData,
         serverInfoData,
       ] = await Promise.allSettled([
@@ -155,8 +154,6 @@ export default function DashboardPage() {
         getGroups(1, 1),
         getUserExpirations(3),
         getUserExpirations(7),
-        getUserExpirations(14),
-        getUserExpirations(30),
         getVPNStatus(),
         getServerInfo(),
       ]);
@@ -168,39 +165,33 @@ export default function DashboardPage() {
       const groupsResult = getResult(groupsData, { total: 0 });
       const expiring3DaysResult = getResult(expiring3DaysData, { count: 0, users: [] });
       const expiring7DaysResult = getResult(expiring7DaysData, { count: 0, users: [] });
-      const expiring14DaysResult = getResult(expiring14DaysData, { count: 0, users: [] });
-      const expiring30DaysResult = getResult(expiring30DaysData, { count: 0, users: [] });
       const vpnStatusResult = getResult(vpnStatusData, { total_connected_users: 0 });
       const serverInfoResult = getResult(serverInfoData, null);
 
-
-      setStats({
+      setStats(prevStats => ({
+        ...prevStats,
         totalUsers: usersResult.total || 0,
         totalGroups: groupsResult.total || 0,
-        expiringUsersCount30Days: expiring30DaysResult.count || 0,
         currentlyConnectedUsers: vpnStatusResult.total_connected_users || 0,
-      })
+      }));
 
       setExpiringUsers3Days(expiring3DaysResult.users || [])
       setExpiringUsers7Days(expiring7DaysResult.users || [])
-      setExpiringUsers14Days(expiring14DaysResult.users || [])
       setServerInfo(serverInfoResult);
       
-      const errors = [usersData, groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
+      const errors = [usersData, groupsData, expiring3DaysData, expiring7DaysData, vpnStatusData, serverInfoData]
         .filter(r => r.status === 'rejected')
-        // @ts-ignore
-        .map(r => getCoreApiErrorMessage(r.reason?.message) || "An API call failed")
+        .map(r => getCoreApiErrorMessage((r as PromiseRejectedResult).reason?.message) || "An API call failed")
       
       if (errors.length > 0) {
          const errorMessage = `Failed to load some dashboard data: ${errors.join(', ')}`;
-         setError(errorMessage); // For potential inline display
+         setError(errorMessage); 
          toast({ title: "Partial Data Loaded", description: "Some dashboard information could not be retrieved.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" />})
       }
 
-
     } catch (err: any) { 
       const coreMessage = getCoreApiErrorMessage(err.message)
-      setError(`A critical error occurred while loading dashboard data. ${coreMessage}`) // For inline display
+      setError(`A critical error occurred while loading dashboard data. ${coreMessage}`) 
       toast({
         title: "Error Loading Dashboard",
         description: coreMessage || "An unexpected critical error occurred.",
@@ -212,9 +203,57 @@ export default function DashboardPage() {
     }
   }, [toast])
 
+  const fetchDeferredDashboardData = useCallback(async () => {
+    try {
+      setLoadingDeferred(true);
+      const [
+        expiring14DaysData,
+        expiring30DaysData,
+      ] = await Promise.allSettled([
+        getUserExpirations(14),
+        getUserExpirations(30), // This is for the internal stats.expiringUsersCount30Days
+      ]);
+
+      const getResult = (promiseResult: PromiseSettledResult<any>, defaultValue: any) =>
+        promiseResult.status === 'fulfilled' ? promiseResult.value : defaultValue;
+      
+      const expiring14DaysResult = getResult(expiring14DaysData, { count: 0, users: [] });
+      const expiring30DaysResult = getResult(expiring30DaysData, { count: 0, users: [] });
+
+      setExpiringUsers14Days(expiring14DaysResult.users || []);
+      setStats(prevStats => ({
+        ...prevStats,
+        expiringUsersCount30Days: expiring30DaysResult.count || 0,
+      }));
+
+      const deferredErrors = [expiring14DaysData, expiring30DaysData]
+        .filter(r => r.status === 'rejected')
+        .map(r => getCoreApiErrorMessage((r as PromiseRejectedResult).reason?.message) || "A deferred API call failed");
+
+      if (deferredErrors.length > 0) {
+        console.warn("Failed to load some non-critical (deferred) dashboard data:", deferredErrors.join(', '));
+        // Optionally, inform the user with a less intrusive toast
+        // toast({ title: "Non-Critical Data Update", description: "Could not refresh all background data.", variant: "info", icon: <Info className="h-5 w-5" /> });
+      }
+
+    } catch (err: any) {
+      console.warn("Error fetching deferred dashboard data:", getCoreApiErrorMessage(err.message));
+    } finally {
+      setLoadingDeferred(false);
+    }
+  }, []);
+
+
   useEffect(() => {
-    fetchDashboardData()
-  }, [fetchDashboardData])
+    let isMounted = true;
+    fetchInitialDashboardData().then(() => {
+      if(isMounted) {
+        fetchDeferredDashboardData();
+      }
+    });
+    return () => { isMounted = false; }
+  }, [fetchInitialDashboardData, fetchDeferredDashboardData])
+
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -356,11 +395,9 @@ export default function DashboardPage() {
         </TabsContent>
 
         <TabsContent value="expiring-14">
-          <ExpiringUsersTable users={expiringUsers14Days} title="Users Expiring in Next 14 Days" isLoading={loading} />
+          <ExpiringUsersTable users={expiringUsers14Days} title="Users Expiring in Next 14 Days" isLoading={loadingDeferred} />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
-
-    
