@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { createUser, getGroups } from "@/lib/api"
 import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
 import { generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
@@ -92,9 +92,10 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     const newPassword = generateRandomPassword();
     setFormData((prev) => ({ ...prev, password: newPassword }));
     toast({
-      title: "Password Generated",
-      description: "A new random password has been generated and filled.",
+      title: "Đã Tạo Mật Khẩu",
+      description: "Một mật khẩu ngẫu nhiên mới đã được tạo và điền vào.",
       variant: "info",
+      icon: <RefreshCw className="h-5 w-5" />,
     });
   };
 
@@ -125,8 +126,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       await createUser(userData)
 
       toast({
-        title: "Success",
-        description: `User ${formData.username} has been created.`,
+        title: "Thành Công",
+        description: `Người dùng ${formData.username} đã được tạo.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       })
@@ -135,8 +136,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       onSuccess()
     } catch (error: any) {
       toast({
-        title: "Error Creating User",
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
+        title: "Lỗi Tạo Người Dùng",
+        description: getCoreApiErrorMessage(error.message) || "Đã xảy ra lỗi không mong muốn. Vui lòng kiểm tra lại thông tin và thử lại.",
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       })
@@ -151,10 +152,10 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
         <DialogHeader>
           <DialogTitle className="flex items-center text-xl">
             <User className="mr-2 h-5 w-5 text-primary" />
-            Create New User
+            Tạo Người Dùng Mới
           </DialogTitle>
           <DialogDescription>
-            Add a new OpenVPN user to your system. Fill in the required information below.
+            Thêm người dùng OpenVPN mới vào hệ thống của bạn. Điền các thông tin được yêu cầu dưới đây.
           </DialogDescription>
         </DialogHeader>
 
@@ -163,19 +164,19 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center">
               <User className="mr-2 h-5 w-5 text-primary" />
-              Basic Information
+              Thông Tin Cơ Bản
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="username-dialog" className="text-sm font-medium">
-                  Username *
+                  Tên người dùng *
                 </Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username-dialog"
                     name="username"
-                    placeholder="Enter username"
+                    placeholder="Nhập tên người dùng"
                     value={formData.username}
                     onChange={handleChange}
                     className="pl-10"
@@ -186,7 +187,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
 
               <div className="space-y-2">
                 <Label htmlFor="email-dialog" className="text-sm font-medium">
-                  Email Address *
+                  Địa chỉ Email *
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -194,7 +195,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                     id="email-dialog"
                     name="email"
                     type="email"
-                    placeholder="Enter email address"
+                    placeholder="Nhập địa chỉ email"
                     value={formData.email}
                     onChange={handleChange}
                     className="pl-10"
@@ -207,10 +208,10 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password-dialog" className="text-sm font-medium">
-                      Password *
+                      Mật khẩu *
                     </Label>
                     <Button type="button" variant="link" size="sm" onClick={handleGeneratePassword} className="p-0 h-auto text-xs">
-                       <RefreshCw className="mr-1 h-3 w-3"/> Generate
+                       <RefreshCw className="mr-1 h-3 w-3"/> Tạo mật khẩu
                     </Button>
                   </div>
                   <div className="relative">
@@ -219,7 +220,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                       id="password-dialog"
                       name="password"
                       type="text" 
-                      placeholder="Enter or generate password"
+                      placeholder="Nhập hoặc tạo mật khẩu"
                       value={formData.password}
                       onChange={handleChange}
                       className="pl-10"
@@ -231,7 +232,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
               
               <div className="space-y-2">
                 <Label htmlFor="userExpiration-dialog" className="text-sm font-medium">
-                  Expiration Date *
+                  Ngày hết hạn *
                 </Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -253,12 +254,12 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center">
               <Shield className="mr-2 h-5 w-5 text-primary" />
-              Authentication & Access
+              Xác Thực & Truy Cập
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="authMethod-dialog" className="text-sm font-medium">
-                  Authentication Method *
+                  Phương thức xác thực *
                 </Label>
                 <Select
                   value={formData.authMethod}
@@ -266,18 +267,18 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                   required
                 >
                   <SelectTrigger id="authMethod-dialog">
-                    <SelectValue placeholder="Select authentication method" />
+                    <SelectValue placeholder="Chọn phương thức xác thực" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="local">🔐 Local Authentication</SelectItem>
-                    <SelectItem value="ldap">🏢 LDAP Authentication</SelectItem>
+                    <SelectItem value="local">🔐 Xác thực Local</SelectItem>
+                    <SelectItem value="ldap">🏢 Xác thực LDAP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="groupName-dialog" className="text-sm font-medium">
-                  User Group
+                  Nhóm người dùng
                 </Label>
                 <Select
                   value={formData.groupName}
@@ -285,10 +286,10 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                   disabled={loadingGroups}
                 >
                   <SelectTrigger id="groupName-dialog">
-                    <SelectValue placeholder={loadingGroups ? "Loading groups..." : "Select a group (optional)"} />
+                    <SelectValue placeholder={loadingGroups ? "Đang tải nhóm..." : "Chọn nhóm (tùy chọn)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="No Group">👤 No Group</SelectItem>
+                    <SelectItem value="No Group">👤 Không thuộc nhóm nào</SelectItem>
                     {groups.map((group) => (
                       <SelectItem key={group.groupName} value={group.groupName}>
                         👥 {group.groupName}
@@ -304,17 +305,17 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center">
               <Network className="mr-2 h-5 w-5 text-primary" />
-              Network Configuration
+              Cấu Hình Mạng
             </h3>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="macAddresses-dialog" className="text-sm font-medium">
-                  MAC Addresses *
+                  Địa chỉ MAC *
                 </Label>
                 <Textarea
                   id="macAddresses-dialog"
                   name="macAddresses"
-                  placeholder="Enter MAC addresses separated by commas&#10;Example: 00:11:22:33:44:55, AA:BB:CC:DD:EE:FF"
+                  placeholder="Nhập các địa chỉ MAC, cách nhau bằng dấu phẩy&#10;Ví dụ: 00:11:22:33:44:55, AA:BB:CC:DD:EE:FF"
                   value={formData.macAddresses}
                   onChange={handleChange}
                   className="min-h-[80px]"
@@ -324,12 +325,12 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
 
               <div className="space-y-2">
                 <Label htmlFor="accessControl-dialog" className="text-sm font-medium">
-                  Access Control Rules
+                  Quy tắc kiểm soát truy cập
                 </Label>
                 <Textarea
                   id="accessControl-dialog"
                   name="accessControl"
-                  placeholder="Enter access control rules separated by commas&#10;Example: 192.168.1.0/24, 10.0.0.0/8"
+                  placeholder="Nhập các quy tắc kiểm soát truy cập, cách nhau bằng dấu phẩy&#10;Ví dụ: 192.168.1.0/24, 10.0.0.0/8"
                   value={formData.accessControl}
                   onChange={handleChange}
                   className="min-h-[80px]"
@@ -340,18 +341,18 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Hủy
             </Button>
             <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating...
+                  Đang tạo...
                 </>
               ) : (
                 <>
                   <User className="mr-2 h-4 w-4" />
-                  Create User
+                  Tạo Người Dùng
                 </>
               )}
             </Button>
