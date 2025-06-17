@@ -138,23 +138,22 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
         apiResponse = await importGroups(file, format, dryRun, override)
       }
 
-      // The API response might be nested under `success.data` or be direct
       const responseData = apiResponse.success?.data || apiResponse;
 
       const resultsToSet: ImportResult = {
         total: responseData.total ?? 0,
-        validRecords: responseData.validRecords ?? 0, // client-side or pre-check
-        invalidRecords: responseData.invalidRecords ?? 0, // client-side or pre-check
-        processedRecords: responseData.processedRecords ?? responseData.results?.total ?? 0, // backend processed
-        successCount: responseData.results?.success ?? responseData.successCount ?? 0, // backend successful
-        failureCount: responseData.results?.failed ?? responseData.failureCount ?? 0, // backend failed
+        validRecords: responseData.validRecords ?? 0,
+        invalidRecords: responseData.invalidRecords ?? 0,
+        processedRecords: responseData.processedRecords ?? responseData.results?.total ?? 0,
+        successCount: responseData.results?.success ?? responseData.successCount ?? 0,
+        failureCount: responseData.results?.failed ?? responseData.failureCount ?? 0,
         dryRun: responseData.dryRun ?? dryRun,
-        validationErrors: responseData.validationErrors || [], // client-side validation errors
-        results: responseData.results // detailed backend results if provided
+        validationErrors: responseData.validationErrors || [],
+        results: responseData.results
       };
       setImportResults(resultsToSet)
 
-      const backendValidationIssues = resultsToSet.validRecords < 0; // A specific indicator from backend if used
+      const backendValidationIssues = resultsToSet.validRecords < 0; 
       const hasClientValidationErrors = resultsToSet.validationErrors && resultsToSet.validationErrors.length > 0;
       const itemLevelFailures = resultsToSet.failureCount > 0 || (resultsToSet.results && resultsToSet.results.failed > 0);
 
@@ -162,47 +161,55 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
       if (resultsToSet.dryRun) {
         if (resultsToSet.invalidRecords > 0 || hasClientValidationErrors || backendValidationIssues || itemLevelFailures) {
           toast({
-            title: "Validation Found Issues",
+            title: "Dry Run: Validation Found Issues",
             description: `Validation found ${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0) + (resultsToSet.results?.failed || 0)} issues. Please review the details.`,
             variant: "destructive",
+            duration: 5000,
           })
         } else {
           toast({
-            title: "Validation Complete",
+            title: "Dry Run: Validation Complete",
             description: `All ${resultsToSet.total || 'N/A'} records appear valid for import.`,
+            duration: 5000,
           })
         }
       } else { // Actual import
         if (resultsToSet.successCount > 0 && !itemLevelFailures && resultsToSet.invalidRecords === 0 && !hasClientValidationErrors && !backendValidationIssues) {
           toast({
-            title: "Import Successful",
+            title: "✅ Import Successful!",
             description: `Successfully imported ${resultsToSet.successCount} of ${resultsToSet.total || resultsToSet.successCount} ${type}.`,
+            duration: 5000,
           })
           onImportComplete()
-          handleClose()
+          setTimeout(() => { // Delay closing dialog slightly
+            handleClose()
+          }, 500);
         } else if (resultsToSet.successCount > 0) {
            toast({
-            title: "Import Partially Successful",
-            description: `Imported ${resultsToSet.successCount} ${type}. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues detected. ': ''}Check details.`,
+            title: "⚠️ Import Partially Successful",
+            description: `Imported ${resultsToSet.successCount} ${type}. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues detected. ': ''}Check details below.`,
             variant: "default",
+            duration: 7000,
           })
           if (resultsToSet.successCount > 0) onImportComplete();
         } else {
           toast({
-            title: "Import Failed",
-            description: `No ${type} were imported. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues. ': ''}Please review errors.`,
+            title: "❌ Import Failed",
+            description: `No ${type} were imported. ${itemLevelFailures ? `${resultsToSet.failureCount || resultsToSet.results?.failed} failed. ` : ''}${resultsToSet.invalidRecords > 0 || hasClientValidationErrors ? `${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0)} had validation issues. ` : ''}${backendValidationIssues ? 'Backend validation issues. ': ''}Please review errors below.`,
             variant: "destructive",
+            duration: 7000,
           })
         }
       }
     } catch (error: any) {
       toast({
-        title: "Import Error",
+        title: "🚫 Import Error",
         description: error.message || "Failed to process import. Please check the file and try again.",
         variant: "destructive",
+        duration: 7000,
       })
       setImportResults({
-        total: file ? 1 : 0, // Assume 1 record if file exists, for error display
+        total: file ? 1 : 0, 
         validRecords: 0,
         invalidRecords: file ? 1 : 0,
         processedRecords: 0,
@@ -250,7 +257,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
   const hasErrorsOrFailures = importResults && (
     importResults.failureCount > 0 ||
     importResults.invalidRecords > 0 ||
-    importResults.validRecords < 0 || // Specific backend flag
+    importResults.validRecords < 0 || 
     (importResults.validationErrors && importResults.validationErrors.length > 0) ||
     (importResults.results && importResults.results.failed > 0)
   );
