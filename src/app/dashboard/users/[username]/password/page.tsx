@@ -1,3 +1,4 @@
+
 "use client"
 
 import type React from "react"
@@ -66,11 +67,10 @@ export default function ChangePasswordPage() {
       })
 
       router.push(`/dashboard/users/${username}`)
-    } catch (error) {
-      console.error("Failed to change password:", error)
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to change password. Please try again.",
+        description: error.message || "Failed to change password. Please try again.",
         variant: "destructive",
       })
     } finally {

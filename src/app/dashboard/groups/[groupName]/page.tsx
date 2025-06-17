@@ -115,7 +115,6 @@ export default function GroupDetailPage() {
         router.push("/dashboard/groups")
       }
     } catch (error: any) {
-      console.error("Failed to fetch group:", error)
       toast({
         title: "Error Loading Group",
         description: error.message || "Failed to load group details. Please try again.",
@@ -131,7 +130,6 @@ export default function GroupDetailPage() {
       const usersData = await getUsers(1, 100, { groupName }) // Fetch up to 100 members for preview
       setMembers(usersData.users || [])
     } catch (error: any) {
-      console.error("Failed to fetch group members:", error)
        toast({
         title: "Error Fetching Members",
         description: error.message || "Could not load group members.",
@@ -183,7 +181,6 @@ export default function GroupDetailPage() {
       setEditing(false)
       fetchGroup() 
     } catch (error: any) {
-      console.error("Failed to update group:", error)
       toast({
         title: "❌ Failed to Update Group",
         description: error.message || "An unexpected error occurred. Please check your input and try again.",
@@ -214,7 +211,7 @@ export default function GroupDetailPage() {
       });
       fetchGroup(); 
     } catch (error: any) {
-      console.error(`Failed to ${action} VPN access for group:`, error);
+      console.error(`Failed to ${action} VPN access for group:`, error); // Keep specific log
       toast({
         title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
         description: error.message || "An unexpected error occurred. Please try again.",
@@ -246,7 +243,7 @@ export default function GroupDetailPage() {
       });
       fetchGroup(); 
     } catch (error: any) {
-      console.error(`Failed to enable group:`, error);
+      console.error(`Failed to enable group:`, error); // Keep specific log
       toast({
         title: "❌ Failed to Enable Group",
         description: error.message || `An unexpected error occurred. Please try again.`,

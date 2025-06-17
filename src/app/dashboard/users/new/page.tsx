@@ -50,7 +50,6 @@ export default function NewUserPage() {
       const data = await getGroups(1, 100) 
       setGroups(data.groups || [])
     } catch (error: any) {
-      console.error("Failed to fetch groups:", error)
       toast({
         title: "Error Fetching Groups",
         description: error.message || "Could not load groups for selection.",
@@ -124,7 +123,6 @@ export default function NewUserPage() {
 
       router.push("/dashboard/users")
     } catch (error: any) {
-      console.error("Failed to create user:", error)
       toast({
         title: "❌ Failed to Create User",
         description: error.message || "An unexpected error occurred. Please check your input and try again.",

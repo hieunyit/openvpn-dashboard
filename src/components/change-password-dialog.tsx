@@ -86,7 +86,6 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
         onSuccess()
       }
     } catch (error: any) {
-      console.error("Failed to change password:", error)
       toast({
         title: "❌ Failed to Change Password",
         description: error.message || "An unexpected error occurred. Please try again.",

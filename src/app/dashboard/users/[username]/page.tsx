@@ -233,6 +233,7 @@ export default function UserDetailPage() {
       });
       fetchUser(); 
     } catch (error: any) {
+      console.error(`Failed to ${action} VPN access for user ${targetUsername}:`, error); // Keep specific log
       toast({
         title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
         description: error.message || "An unexpected error occurred. Please try again.",

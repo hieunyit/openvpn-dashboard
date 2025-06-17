@@ -68,7 +68,6 @@ export default function NewGroupPage() {
 
       router.push("/dashboard/groups")
     } catch (error: any) {
-      console.error("Failed to create group:", error)
       toast({
         title: "❌ Failed to Create Group",
         description: error.message || "An unexpected error occurred. Please check your input and try again.",

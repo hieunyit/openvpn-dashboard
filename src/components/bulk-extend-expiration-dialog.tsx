@@ -58,7 +58,6 @@ export function BulkExtendExpirationDialog({
       onOpenChange(false)
       setNewExpirationDate("") 
     } catch (error: any) {
-      console.error("Failed to extend expiration:", error)
       toast({
         title: "❌ Failed to Extend Expiration Dates",
         description: error.message || "An unexpected error occurred. Please try again.",

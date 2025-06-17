@@ -73,7 +73,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       const data = await getGroups(1, 100)
       setGroups(data.groups || [])
     } catch (error) {
-      console.error("Failed to fetch groups:", error)
+      console.error("Failed to fetch groups for dialog:", error)
     } finally {
       setLoadingGroups(false)
     }
@@ -131,7 +131,6 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
-      console.error("Failed to create user:", error)
       toast({
         title: "❌ Failed to Create User",
         description: error.message || "An unexpected error occurred. Please check your input and try again.",
