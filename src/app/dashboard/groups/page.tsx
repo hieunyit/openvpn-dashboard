@@ -28,8 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
+
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -58,13 +57,12 @@ import {
   ListFilter,
   FileText,
   Eye,
-  PowerOff, // Added for disable action
+  PowerOff, 
   CalendarDays,
   X as XIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { formatDateForInput } from "@/lib/utils"
-import { format as formatDateFns } from "date-fns"
+
 
 interface Group {
   groupName: string
@@ -84,7 +82,7 @@ interface GroupTableRowProps {
   onSelectGroup: (groupName: string, checked: boolean) => void;
   onUpdateGroupAccess: (groupName: string, deny: boolean) => void;
   onEnableGroup: (groupName: string) => void;
-  onDisableGroup: (groupName: string) => void; // Added for disable action
+  onDisableGroup: (groupName: string) => void; 
   onDeleteGroup: (groupName: string) => void;
 }
 
@@ -242,16 +240,11 @@ export default function GroupsPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddGroupDialogOpen, setIsAddGroupDialogOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  
-  const [createdDateFrom, setCreatedDateFrom] = useState<Date | undefined>()
-  const [createdDateTo, setCreatedDateTo] = useState<Date | undefined>()
-  
+    
   const [currentFilters, setCurrentFilters] = useState<any>({
     sortBy: "groupName",
     sortOrder: "asc",
     includeMemberCount: true,
-    createdAfter: undefined,
-    createdBefore: undefined,
   })
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
@@ -275,18 +268,6 @@ export default function GroupsPage() {
         criteriaForSearch.searchText = searchTerm.trim();
       }
       
-      if (createdDateFrom) {
-        criteriaForSearch.createdAfter = formatDateForInput(createdDateFrom.toISOString());
-      } else {
-        delete criteriaForSearch.createdAfter;
-      }
-      if (createdDateTo) {
-        criteriaForSearch.createdBefore = formatDateForInput(createdDateTo.toISOString());
-      } else {
-         delete criteriaForSearch.createdBefore;
-      }
-
-
       for (const key in filtersToApply) {
         if (key !== 'sortBy' && key !== 'sortOrder' && key !== 'includeMemberCount' && filtersToApply[key] !== undefined && filtersToApply[key] !== "" && filtersToApply[key] !== "any") {
           criteriaForSearch[key] = filtersToApply[key];
@@ -324,7 +305,7 @@ export default function GroupsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchTerm, toast, createdDateFrom, createdDateTo]);
+  }, [page, limit, searchTerm, toast]);
 
   useEffect(() => {
     if (actionQueryParam === "new" && !isAddGroupDialogOpen) {
@@ -337,53 +318,32 @@ export default function GroupsPage() {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      const filtersWithDates = {
-        ...currentFilters,
-        createdAfter: createdDateFrom ? formatDateForInput(createdDateFrom.toISOString()) : undefined,
-        createdBefore: createdDateTo ? formatDateForInput(createdDateTo.toISOString()) : undefined,
-      };
       if (page !== 1) setPage(1);
-      else fetchGroupsCallback(filtersWithDates);
+      else fetchGroupsCallback(currentFilters);
     }, 500);
 
     return () => {
       clearTimeout(handler);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, currentFilters, createdDateFrom, createdDateTo]); 
+  }, [searchTerm, currentFilters]); 
   
-  useEffect(() => { // separate effect for page changes
+  useEffect(() => { 
     fetchGroupsCallback(currentFilters)
-  }, [page, limit, fetchGroupsCallback]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit]);
 
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
-    const filtersWithDates = {
+    const filtersWithInclude = {
       ...newFilters,
-      createdAfter: createdDateFrom ? formatDateForInput(createdDateFrom.toISOString()) : undefined,
-      createdBefore: createdDateTo ? formatDateForInput(createdDateTo.toISOString()) : undefined,
       includeMemberCount: true
     };
-    setCurrentFilters(filtersWithDates);
+    setCurrentFilters(filtersWithInclude);
     if (page !== 1) setPage(1);
-    else fetchGroupsCallback(filtersWithDates);
-  }, [page, fetchGroupsCallback, createdDateFrom, createdDateTo]);
-
-  const handleDateFilterChange = (date: Date | undefined, type: "from" | "to") => {
-    if (type === "from") {
-      setCreatedDateFrom(date);
-    } else {
-      setCreatedDateTo(date);
-    }
-  };
-
-  const clearDateFilters = () => {
-    setCreatedDateFrom(undefined);
-    setCreatedDateTo(undefined);
-    const newFilters = { ...currentFilters, createdAfter: undefined, createdBefore: undefined };
-    setCurrentFilters(newFilters);
-    fetchGroupsCallback(newFilters);
-  };
+    else fetchGroupsCallback(filtersWithInclude);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, fetchGroupsCallback]);
 
 
   const handleDeleteGroupCallback = useCallback(async () => {
@@ -667,35 +627,6 @@ export default function GroupsPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button id="createdDateFrom" variant="outline" className="h-10 w-full sm:w-auto justify-start text-left font-normal">
-                                <CalendarDays className="mr-2 h-4 w-4" />
-                                {createdDateFrom ? formatDateFns(createdDateFrom, "LLL dd, y") : <span>Created From</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={createdDateFrom} onSelect={(date) => handleDateFilterChange(date, "from")} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button id="createdDateTo" variant="outline" className="h-10 w-full sm:w-auto justify-start text-left font-normal">
-                                <CalendarDays className="mr-2 h-4 w-4" />
-                                {createdDateTo ? formatDateFns(createdDateTo, "LLL dd, y") : <span>Created To</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={createdDateTo} onSelect={(date) => handleDateFilterChange(date, "to")} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    {(createdDateFrom || createdDateTo) && (
-                        <Button variant="ghost" size="icon" onClick={clearDateFilters} className="h-10 w-10" title="Clear date filters">
-                            <XIcon className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
             </div>
             <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 h-10 w-full sm:w-auto">
               <ListFilter className="h-4 w-4" />
@@ -960,4 +891,5 @@ export default function GroupsPage() {
     </div>
   )
 }
+
 
