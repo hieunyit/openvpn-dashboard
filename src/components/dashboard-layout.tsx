@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const SidebarContent = ({ isMobileNav = false }: { isMobileNav?: boolean}) => (
     <>
-      <div className="flex items-center gap-3 p-4 border-b h-16">
+      <div className="flex items-center gap-3 p-4 border-b h-16 shrink-0">
         <ShieldCheck className="h-8 w-8 text-primary" />
         <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
       </div>
@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         ))}
       </nav>
-      <div className="mt-auto p-3 border-t space-y-1.5">
+      <div className="mt-auto p-3 border-t space-y-1.5 shrink-0">
          {bottomNavItems.map((item) => (
           <Link
             key={item.href}
@@ -143,13 +143,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SheetContent>
         </Sheet>
       ) : (
-        <aside className="hidden md:flex flex-col w-64 bg-background border-r shadow-sm">
+        <aside className="hidden md:flex flex-col w-64 bg-background border-r shadow-sm fixed top-0 left-0 h-screen z-20">
            <SidebarContent />
         </aside>
       )}
 
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
+      <div className={cn(
+          "flex flex-1 flex-col",
+          !isMobile && "md:ml-64" 
+        )}>
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between shrink-0 gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
           {isMobile && (
              <Button variant="outline" size="icon" onClick={() => setMobileNavOpen(true)} className="md:hidden">
               <Menu className="h-5 w-5" />
@@ -198,10 +201,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </DropdownMenu>
           )}
         </header>
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto bg-background md:bg-transparent">
           {children}
         </main>
       </div>
     </div>
   )
 }
+
