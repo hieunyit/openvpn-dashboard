@@ -7,7 +7,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -85,10 +85,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const SidebarContent = ({ isMobileNav = false }: { isMobileNav?: boolean}) => (
     <>
-      <div className="flex items-center gap-3 p-4 border-b h-16 shrink-0">
-        <ShieldCheck className="h-8 w-8 text-primary" />
-        <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
-      </div>
+      <SheetHeader className="p-0 border-b h-16 shrink-0">
+        <div className="flex items-center gap-3 p-4 h-full">
+          <ShieldCheck className="h-8 w-8 text-primary" />
+          <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
+        </div>
+        <SheetTitle className="sr-only">Main Navigation Menu</SheetTitle>
+      </SheetHeader>
       <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => (
           <Link
@@ -137,7 +140,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen w-full bg-muted/40">
       {isMobile ? (
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          {/* Trigger is part of header for mobile */}
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="fixed top-4 left-4 z-40 md:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
           <SheetContent side="left" className="w-[280px] p-0 bg-background flex flex-col border-r shadow-lg">
             <SidebarContent isMobileNav={true} />
           </SheetContent>
@@ -152,16 +160,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           "flex flex-1 flex-col",
           !isMobile && "md:ml-64" 
         )}>
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between shrink-0 gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
-          {isMobile && (
-             <Button variant="outline" size="icon" onClick={() => setMobileNavOpen(true)} className="md:hidden">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between shrink-0 gap-4 border-b bg-background px-4 md:px-6 shadow-sm">
+          {isMobile ? (
+             <div className="w-9 h-9"/> // Placeholder to balance the user menu button on the right
+          ) : (
+            <div/> // Empty div to push user menu to the right on desktop
           )}
-          <div className={cn("flex-1", isMobile ? "text-center" : "")}>
-            {/* Optional: Breadcrumbs or page title can go here */}
-          </div>
           
           {user && (
             <DropdownMenu>
@@ -201,11 +205,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </DropdownMenu>
           )}
         </header>
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto bg-background md:bg-transparent">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto bg-background md:bg-muted/40">
           {children}
         </main>
       </div>
     </div>
   )
 }
-
