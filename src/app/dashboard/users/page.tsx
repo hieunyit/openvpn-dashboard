@@ -63,7 +63,7 @@ import {
   X as XIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay, getExpirationStatus, formatDateForInput } from "@/lib/utils"
+import { formatDateForDisplay, getExpirationStatus, formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { format as formatDateFns } from "date-fns"
 
@@ -327,10 +327,9 @@ export default function UsersPage() {
       setUsers(data.users.map(u => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
       setTotal(data.total || 0)
     } catch (error: any) {
-      console.error("Failed to fetch users:", error)
       toast({
-        title: "Error Fetching Users",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        title: "❌ Error Fetching Users",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -344,8 +343,8 @@ export default function UsersPage() {
       setAvailableGroups(data.groups?.map((g: any) => g.groupName) || [])
     } catch (error: any) {
       toast({
-        title: "Error Fetching Groups",
-        description: error.message || "Could not load groups for filter selection.",
+        title: "❌ Error Fetching Groups",
+        description: getCoreApiErrorMessage(error.message) || "Could not load groups for filter selection.",
         variant: "destructive"
       });
     }
@@ -431,7 +430,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to Delete User",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -471,7 +470,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: `❌ Failed to Update VPN Access`,
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -502,7 +501,7 @@ export default function UsersPage() {
     } catch (error: any) {
         toast({
             title: `❌ Failed to Enable User`,
-            description: error.message || `An unexpected error occurred.`,
+            description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred.`,
             variant: "destructive",
         });
     } finally {
@@ -522,7 +521,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "❌ OTP Reset Failed",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
@@ -558,7 +557,7 @@ export default function UsersPage() {
         successCount++;
       } catch (error) {
         failCount++;
-        console.error(`Failed to update access for ${username}:`, error);
+        // console.error(`Failed to update access for ${username}:`, error);
       }
     }
 
@@ -902,6 +901,3 @@ export default function UsersPage() {
     </div>
   )
 }
-
-
-    

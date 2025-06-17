@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useTheme } from "next-themes"
 import { Sun, Moon, Bell, FileText, Info, Check, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 
 export default function SettingsPage() {
@@ -29,16 +30,28 @@ export default function SettingsPage() {
 
   const handleSaveSettings = (section: string) => {
     setIsLoading(true)
-
+    // Simulate API call
     setTimeout(() => {
-      toast({
-        title: `${section} Settings Saved`,
-        description: `Your ${section.toLowerCase()} settings have been updated. (Simulated)`,
-        className: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300",
-        icon: <Check className="h-5 w-5 text-green-600" />
-      })
-      setIsLoading(false)
-    }, 1000)
+      // Example of how you might handle an error from a real API
+      // const simulateError = Math.random() < 0.2; // 20% chance of error
+      const simulateError = false;
+
+      if (simulateError) {
+        toast({
+          title: `❌ Failed to Save ${section} Settings`,
+          description: getCoreApiErrorMessage("Server error: Simulated API error saving settings."), // Example of using the helper
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: `✅ ${section} Settings Saved`,
+          description: `Your ${section.toLowerCase()} settings have been updated. (Simulated)`,
+          className: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300",
+          icon: <Check className="h-5 w-5 text-green-600" />
+        });
+      }
+      setIsLoading(false);
+    }, 1000);
   }
 
   return (

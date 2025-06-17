@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/components/ui/use-toast"
 import { getVPNStatus, disconnectUser, bulkDisconnectUsers, updateUser } from "@/lib/api"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
-import { formatDateForDisplay, formatBytes } from "@/lib/utils"
+import { formatDateForDisplay, formatBytes, getCoreApiErrorMessage } from "@/lib/utils"
 import { Server, Users, Globe, Clock, ArrowDownCircle, ArrowUpCircle, Wifi, AlertTriangle, FileText, PowerOff, MoreHorizontal, LockKeyhole, Activity, RefreshCw, UserCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -98,10 +98,11 @@ export default function VPNStatusPage() {
       const statusData = await getVPNStatus()
       setStatus(statusData)
     } catch (err: any) {
-      setError(err.message || "Failed to load VPN status. Please try again.")
+      const coreMessage = getCoreApiErrorMessage(err.message);
+      setError(coreMessage || "Failed to load VPN status. Please try again.")
       toast({
-        title: "Error Loading VPN Status",
-        description: err.message || "An unexpected error occurred.",
+        title: "❌ Error Loading VPN Status",
+        description: coreMessage || "An unexpected error occurred.",
         variant: "destructive",
       })
     } finally {
@@ -155,7 +156,7 @@ export default function VPNStatusPage() {
     } catch (err: any) {
       toast({
         title: "❌ Failed to Disconnect User",
-        description: err.message || `An unexpected error occurred while disconnecting ${userToDisconnect.username}.`,
+        description: getCoreApiErrorMessage(err.message) || `An unexpected error occurred while disconnecting ${userToDisconnect.username}.`,
         variant: "destructive",
       })
     } finally {
@@ -172,7 +173,7 @@ export default function VPNStatusPage() {
         description += ` ${result.skipped_users.length} user(s) skipped.`;
       }
       toast({
-        title: "Bulk Disconnect Complete",
+        title: "✅ Bulk Disconnect Complete",
         description: result.message || description,
       })
       fetchStatus(false) // Refresh list
@@ -181,7 +182,7 @@ export default function VPNStatusPage() {
     } catch (err: any) {
       toast({
         title: "❌ Bulk Disconnect Failed",
-        description: err.message || "An unexpected error occurred during bulk disconnect.",
+        description: getCoreApiErrorMessage(err.message) || "An unexpected error occurred during bulk disconnect.",
         variant: "destructive",
       })
     } finally {
@@ -216,7 +217,7 @@ export default function VPNStatusPage() {
     } catch (err: any) {
       toast({
         title: "❌ Failed to Deny VPN Access",
-        description: err.message || `An unexpected error occurred for ${userToDenyAccess}.`,
+        description: getCoreApiErrorMessage(err.message) || `An unexpected error occurred for ${userToDenyAccess}.`,
         variant: "destructive",
       });
     } finally {

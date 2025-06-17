@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { bulkExtendUserExpiration } from "@/lib/api"
 import { CalendarClock, AlertTriangle } from "lucide-react"
-import { formatDateForInput } from "@/lib/utils" 
+import { formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils" 
 
 interface BulkExtendExpirationDialogProps {
   open: boolean
@@ -60,7 +60,7 @@ export function BulkExtendExpirationDialog({
     } catch (error: any) {
       toast({
         title: "❌ Failed to Extend Expiration Dates",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {

@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { createGroup } from "@/lib/api"
 import { ArrowLeft, Upload, Users, Network, Shield, Router, KeyRound } from "lucide-react"
 import Link from "next/link"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 export default function NewGroupPage() {
   const [formData, setFormData] = useState({
@@ -70,7 +71,7 @@ export default function NewGroupPage() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to Create Group",
-        description: error.message || "An unexpected error occurred. Please check your input and try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

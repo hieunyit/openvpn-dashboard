@@ -49,7 +49,7 @@ import {
   Info,
 } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay, formatDateForInput } from "@/lib/utils"
+import { formatDateForDisplay, formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils"
 
 interface UserDetail {
   username: string
@@ -139,8 +139,8 @@ export default function UserDetailPage() {
       }
     } catch (error: any) {
       toast({
-        title: "Error Loading User",
-        description: error.message || "Failed to load user details. Please try again.",
+        title: "❌ Error Loading User",
+        description: getCoreApiErrorMessage(error.message) || "Failed to load user details. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -155,8 +155,8 @@ export default function UserDetailPage() {
       setGroups(data.groups || [])
     } catch (error: any) {
       toast({
-        title: "Error Fetching Groups",
-        description: error.message || "Could not load groups for selection.",
+        title: "❌ Error Fetching Groups",
+        description: getCoreApiErrorMessage(error.message) || "Could not load groups for selection.",
         variant: "destructive"
       });
     } finally {
@@ -198,7 +198,7 @@ export default function UserDetailPage() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to Update User",
-        description: error.message || "An unexpected error occurred. Please check input and try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check input and try again.",
         variant: "destructive",
       })
     } finally {
@@ -233,10 +233,9 @@ export default function UserDetailPage() {
       });
       fetchUser(); 
     } catch (error: any) {
-      console.error(`Failed to ${action} VPN access for user ${targetUsername}:`, error); // Keep specific log
       toast({
         title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -258,7 +257,7 @@ export default function UserDetailPage() {
     } catch (error: any) {
       toast({
         title: "❌ OTP Reset Failed",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

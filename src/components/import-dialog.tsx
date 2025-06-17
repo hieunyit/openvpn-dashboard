@@ -22,6 +22,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { importUsers, importGroups, downloadUserTemplate, downloadGroupTemplate } from "@/lib/api"
 import { Upload, FileText, Download, AlertCircle, CheckCircle, XCircle, ListChecks } from "lucide-react"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface ImportDialogProps {
   open: boolean
@@ -161,14 +162,14 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
       if (resultsToSet.dryRun) {
         if (resultsToSet.invalidRecords > 0 || hasClientValidationErrors || backendValidationIssues || itemLevelFailures) {
           toast({
-            title: "Dry Run: Validation Found Issues",
+            title: "⚠️ Dry Run: Validation Found Issues",
             description: `Validation found ${resultsToSet.invalidRecords + (resultsToSet.validationErrors?.length || 0) + (resultsToSet.results?.failed || 0)} issues. Please review the details.`,
             variant: "destructive",
             duration: 5000,
           })
         } else {
           toast({
-            title: "Dry Run: Validation Complete",
+            title: "✅ Dry Run: Validation Complete",
             description: `All ${resultsToSet.total || 'N/A'} records appear valid for import.`,
             duration: 5000,
           })
@@ -181,7 +182,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
             duration: 5000,
           })
           onImportComplete()
-          setTimeout(() => { // Delay closing dialog slightly
+          setTimeout(() => { 
             handleClose()
           }, 500);
         } else if (resultsToSet.successCount > 0) {
@@ -204,7 +205,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
     } catch (error: any) {
       toast({
         title: "🚫 Import Error",
-        description: error.message || "Failed to process import. Please check the file and try again.",
+        description: getCoreApiErrorMessage(error.message) || "Failed to process import. Please check the file and try again.",
         variant: "destructive",
         duration: 7000,
       })
@@ -216,7 +217,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
         successCount: 0,
         failureCount: file ? 1 : 0,
         dryRun: dryRun,
-        validationErrors: [{ row: 0, field: 'general', value: '', message: error.message || "Unknown API error" }]
+        validationErrors: [{ row: 0, field: 'general', value: '', message: getCoreApiErrorMessage(error.message) || "Unknown API error" }]
       });
     } finally {
       setImporting(false)
@@ -235,10 +236,10 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
         title: "Template downloaded",
         description: `${type} template downloaded successfully.`,
       })
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Download failed",
-        description: "Failed to download template. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "Failed to download template. Please try again.",
         variant: "destructive",
       })
     } finally {

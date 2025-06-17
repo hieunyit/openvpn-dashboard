@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { createUser, getGroups } from "@/lib/api"
-import { formatDateForInput, generateRandomPassword } from "@/lib/utils"
+import { formatDateForInput, generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
 import Link from "next/link"
 
@@ -51,8 +51,8 @@ export default function NewUserPage() {
       setGroups(data.groups || [])
     } catch (error: any) {
       toast({
-        title: "Error Fetching Groups",
-        description: error.message || "Could not load groups for selection.",
+        title: "❌ Error Fetching Groups",
+        description: getCoreApiErrorMessage(error.message) || "Could not load groups for selection.",
         variant: "destructive"
       });
     } finally {
@@ -125,7 +125,7 @@ export default function NewUserPage() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to Create User",
-        description: error.message || "An unexpected error occurred. Please check your input and try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

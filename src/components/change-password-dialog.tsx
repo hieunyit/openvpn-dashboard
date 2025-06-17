@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { performUserAction } from "@/lib/api"
 import { Key, Eye, EyeOff } from "lucide-react"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface ChangePasswordDialogProps {
   open: boolean
@@ -88,7 +89,7 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
     } catch (error: any) {
       toast({
         title: "❌ Failed to Change Password",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {

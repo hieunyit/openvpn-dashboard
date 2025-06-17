@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { createGroup } from "@/lib/api"
 import { Users, Network, Shield, Router, KeyRound } from "lucide-react"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface AddGroupDialogProps {
   open: boolean
@@ -96,7 +97,7 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
     } catch (error: any) {
       toast({
         title: "❌ Failed to Create Group",
-        description: error.message || "An unexpected error occurred. Please check your input and try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {

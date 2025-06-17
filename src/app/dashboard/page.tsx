@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getUserExpirations, getUsers, getGroups, getVPNStatus, getServerInfo, type ServerInfo } from "@/lib/api"
 import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay } from "@/lib/utils"
+import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
 interface DashboardStats {
@@ -189,20 +189,21 @@ export default function DashboardPage() {
       const errors = [usersData, groupsData, expiring3DaysData, expiring7DaysData, expiring14DaysData, expiring30DaysData, vpnStatusData, serverInfoData]
         .filter(r => r.status === 'rejected')
         // @ts-ignore
-        .map(r => r.reason?.message || "An API call failed")
+        .map(r => getCoreApiErrorMessage(r.reason?.message) || "An API call failed")
       
       if (errors.length > 0) {
-         setError(`Failed to load some dashboard data: ${errors.join(', ')}`);
-         toast({ title: "Partial Data Loaded", description: "Some dashboard information could not be retrieved.", variant: "default"})
+         const errorMessage = `Failed to load some dashboard data: ${errors.join(', ')}`;
+         setError(errorMessage);
+         toast({ title: "⚠️ Partial Data Loaded", description: "Some dashboard information could not be retrieved.", variant: "default"})
       }
 
 
     } catch (err: any) { 
-      console.error("Critical error fetching dashboard data:", err)
-      setError("A critical error occurred while loading dashboard data.")
+      const coreMessage = getCoreApiErrorMessage(err.message)
+      setError(`A critical error occurred while loading dashboard data. ${coreMessage}`)
       toast({
-        title: "Error Loading Dashboard",
-        description: err.message || "An unexpected critical error occurred.",
+        title: "❌ Error Loading Dashboard",
+        description: coreMessage || "An unexpected critical error occurred.",
         variant: "destructive",
       });
     } finally {
@@ -282,14 +283,14 @@ export default function DashboardPage() {
             </Card>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-2">
+           <div className="grid gap-4 md:grid-cols-2">
             <Card className="shadow-sm flex flex-col">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
                 <CardDescription>Common administrative tasks.</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90" asChild>
                     <Link href="/dashboard/users"><Users className="mr-2 h-4 w-4"/>Manage Users</Link>
                     </Button>

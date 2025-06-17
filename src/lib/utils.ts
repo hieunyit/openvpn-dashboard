@@ -156,3 +156,22 @@ export function getExpirationStatus(dateString?: string): "expired" | "expiring_
 
   return "active";
 }
+
+export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): string {
+  if (!fullErrorMessage) return "An unexpected error occurred.";
+  
+  if (fullErrorMessage === "SESSION_EXPIRED") {
+    return "Your session has expired. Please log in again.";
+  }
+
+  const prefix = "Server error: ";
+  const index = fullErrorMessage.indexOf(prefix);
+  if (index !== -1) {
+    return fullErrorMessage.substring(index + prefix.length);
+  }
+  
+  // Fallback for messages that don't match the "Server error: " prefix exactly,
+  // but might still be from our API error handling (e.g., proxy errors before hitting the actual API)
+  // or other client-side errors.
+  return fullErrorMessage;
+}

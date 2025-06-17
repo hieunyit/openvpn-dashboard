@@ -12,7 +12,7 @@ import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
 import { Search, Download, FileText } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay } from "@/lib/utils"
+import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
 
 export default function SearchPage() {
   const [activeTab, setActiveTab] = useState("users")
@@ -29,7 +29,7 @@ export default function SearchPage() {
       const data = await getGroups(1, 100); // Fetch up to 100 groups for filtering
       setAvailableGroups(data.groups?.map((g: any) => g.groupName) || []);
     } catch (error) {
-      console.error("Failed to fetch groups for filter:", error);
+      // console.error("Failed to fetch groups for filter:", error);
     }
   }, []);
 
@@ -86,10 +86,9 @@ export default function SearchPage() {
 
       setSearchResults(results);
     } catch (error: any) {
-      console.error("Search failed:", error);
       toast({
-        title: "Search Failed",
-        description: error.message || "Failed to perform search. Please try again.",
+        title: "❌ Search Failed",
+        description: getCoreApiErrorMessage(error.message) || "Failed to perform search. Please try again.",
         variant: "destructive",
       });
       setSearchResults(null); 
@@ -394,4 +393,3 @@ export default function SearchPage() {
     </div>
   )
 }
-

@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { performUserAction } from "@/lib/api"
 import { ArrowLeft, Key, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 export default function ChangePasswordPage() {
   const params = useParams()
@@ -62,15 +63,15 @@ export default function ChangePasswordPage() {
       })
 
       toast({
-        title: "Password changed",
+        title: "✅ Password changed",
         description: `Password for user ${username} has been changed successfully.`,
       })
 
       router.push(`/dashboard/users/${username}`)
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to change password. Please try again.",
+        title: "❌ Error",
+        description: getCoreApiErrorMessage(error.message) || "Failed to change password. Please try again.",
         variant: "destructive",
       })
     } finally {

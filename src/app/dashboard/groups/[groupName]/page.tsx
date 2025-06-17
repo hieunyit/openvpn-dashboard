@@ -28,6 +28,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, Network, Router, KeyRound, Info } from "lucide-react"
 import Link from "next/link"
+import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface Group {
   groupName: string
@@ -116,8 +117,8 @@ export default function GroupDetailPage() {
       }
     } catch (error: any) {
       toast({
-        title: "Error Loading Group",
-        description: error.message || "Failed to load group details. Please try again.",
+        title: "❌ Error Loading Group",
+        description: getCoreApiErrorMessage(error.message) || "Failed to load group details. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -131,8 +132,8 @@ export default function GroupDetailPage() {
       setMembers(usersData.users || [])
     } catch (error: any) {
        toast({
-        title: "Error Fetching Members",
-        description: error.message || "Could not load group members.",
+        title: "❌ Error Fetching Members",
+        description: getCoreApiErrorMessage(error.message) || "Could not load group members.",
         variant: "destructive"
       });
     }
@@ -183,7 +184,7 @@ export default function GroupDetailPage() {
     } catch (error: any) {
       toast({
         title: "❌ Failed to Update Group",
-        description: error.message || "An unexpected error occurred. Please check your input and try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
     } finally {
@@ -211,10 +212,9 @@ export default function GroupDetailPage() {
       });
       fetchGroup(); 
     } catch (error: any) {
-      console.error(`Failed to ${action} VPN access for group:`, error); // Keep specific log
       toast({
         title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -243,10 +243,9 @@ export default function GroupDetailPage() {
       });
       fetchGroup(); 
     } catch (error: any) {
-      console.error(`Failed to enable group:`, error); // Keep specific log
       toast({
         title: "❌ Failed to Enable Group",
-        description: error.message || `An unexpected error occurred. Please try again.`,
+        description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred. Please try again.`,
         variant: "destructive",
       });
     } finally {
