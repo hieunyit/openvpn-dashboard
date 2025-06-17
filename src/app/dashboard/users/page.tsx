@@ -103,6 +103,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
   };
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
+  const displayedExpirationDate = formatDateForDisplay(user.userExpiration);
   
   return (
     <TableRow key={user.username} className={selectedUsers.includes(user.username) ? "bg-muted hover:bg-muted/80" : "hover:bg-muted/50 transition-colors"}>
@@ -141,7 +142,9 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
           {expirationStatus === "expired" && <span className="h-2 w-2 rounded-full bg-red-500" title="Expired"></span>}
           {expirationStatus === "expiring_soon" && <span className="h-2 w-2 rounded-full bg-orange-500" title="Expiring Soon"></span>}
           {expirationStatus === "active" && <span className="h-2 w-2 rounded-full bg-green-500" title="Active"></span>}
-          {formatDateForDisplay(user.userExpiration)}
+          <span className={expirationStatus === "unknown" ? "text-destructive font-medium" : ""}>
+            {displayedExpirationDate}
+          </span>
         </div>
       </TableCell>
       <TableCell>
@@ -815,3 +818,6 @@ export default function UsersPage() {
     </div>
   )
 }
+
+
+    
