@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { searchUsers, searchGroups, getGroups } from "@/lib/api"
+import { searchUsers, searchGroups, getGroups } from "@/lib/api" // searchUsers will be updated
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
 import { Search, Download, FileText } from "lucide-react"
@@ -34,7 +34,7 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'users') { // Only fetch groups if user search tab is active, as it's used in user filters
+    if (activeTab === 'users') { 
         fetchAvailableGroups();
     }
   }, [activeTab, fetchAvailableGroups]);
@@ -42,63 +42,68 @@ export default function SearchPage() {
 
   const handleSearchCallback = useCallback(async (filters: any) => {
     setIsSearching(true)
-    setCurrentFilters(filters); // Store the applied filters
+    setCurrentFilters(filters); 
     try {
-      const searchCriteria: Record<string, any> = {
-        ...filters,
+      const searchParamsForApi: Record<string, any> = {
+        ...filters, // filters from AdvancedFilters
         page: currentPage,
         limit: itemsPerPage,
-      }
+      };
 
-      Object.keys(searchCriteria).forEach((key) => {
-        if (searchCriteria[key] === "" || searchCriteria[key] === undefined || searchCriteria[key] === "any") {
-          delete searchCriteria[key]
+      // Clean up "any" or empty string values before sending to API,
+      // though the API client (getUsers/searchUsers) should also handle this.
+      Object.keys(searchParamsForApi).forEach((key) => {
+        if (searchParamsForApi[key] === "" || searchParamsForApi[key] === undefined || searchParamsForApi[key] === "any") {
+          delete searchParamsForApi[key];
         }
       });
       
-      // Ensure boolean filters are correctly formatted if they exist
-      if (searchCriteria.isEnabled !== undefined) {
-        searchCriteria.isEnabled = searchCriteria.isEnabled === 'true';
-      }
-      if (searchCriteria.hasMFA !== undefined) {
-        searchCriteria.hasMFA = searchCriteria.hasMFA === 'true';
-      }
-      if (searchCriteria.isExpired !== undefined ) {
-         searchCriteria.isExpired = searchCriteria.isExpired === 'true';
-      }
-      if (searchCriteria.expiringInDays && typeof searchCriteria.expiringInDays === 'string') {
-        searchCriteria.expiringInDays = parseInt(searchCriteria.expiringInDays);
+      // Ensure specific conversions if needed (e.g., string to number for counts, string "true"/"false" to boolean if API expects that)
+      // The API spec now shows booleans for most flags.
+      const booleanFields = ['isEnabled', 'denyAccess', 'mfaEnabled', 'includeExpired', 'hasAccessControl', 'exactMatch', 'caseSensitive', 'isExpired'];
+      booleanFields.forEach(field => {
+        if (searchParamsForApi[field] !== undefined && searchParamsForApi[field] !== "any") {
+          searchParamsForApi[field] = searchParamsForApi[field] === 'true';
+        } else if (searchParamsForApi[field] === "any") {
+            delete searchParamsForApi[field];
+        }
+      });
+
+      if (searchParamsForApi.expiringInDays && typeof searchParamsForApi.expiringInDays === 'string') {
+        searchParamsForApi.expiringInDays = parseInt(searchParamsForApi.expiringInDays, 10);
+        if (isNaN(searchParamsForApi.expiringInDays)) delete searchParamsForApi.expiringInDays;
       }
 
 
-      let results
+      let results;
       if (activeTab === "users") {
-        results = await searchUsers(searchCriteria)
+        // The searchUsers function in api.ts now makes a GET request to /api/users with query params
+        results = await searchUsers(searchParamsForApi); 
       } else { // groups
-        results = await searchGroups(searchCriteria)
+        // searchGroups might also need similar adjustments if its API changes
+        results = await searchGroups(searchParamsForApi);
       }
 
-      setSearchResults(results)
-    } catch (error) {
-      console.error("Search failed:", error)
+      setSearchResults(results);
+    } catch (error: any) {
+      console.error("Search failed:", error);
       toast({
         title: "Search Failed",
-        description: "Failed to perform search. Please try again.",
+        description: error.message || "Failed to perform search. Please try again.",
         variant: "destructive",
-      })
-      setSearchResults(null); // Clear results on error
+      });
+      setSearchResults(null); 
     } finally {
-      setIsSearching(false)
+      setIsSearching(false);
     }
   }, [activeTab, currentPage, itemsPerPage, toast]);
 
   useEffect(() => {
-    // Re-fetch data when currentPage or itemsPerPage changes, if filters have been applied
     if (Object.keys(currentFilters).length > 0 || (searchResults && searchResults.total > 0) ) {
         handleSearchCallback(currentFilters);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, itemsPerPage]); // currentFilters dependency removed to avoid loop on initial filter set if handleSearch is called directly
+  }, [currentPage, itemsPerPage]);
 
   const handleExportCallback = useCallback(() => {
     if (!searchResults) return
@@ -130,14 +135,14 @@ export default function SearchPage() {
             formatDateForDisplay(item.userExpiration || "N/A"),
             item.isEnabled !== false ? "Active" : "Disabled",
             item.role || "N/A",
-            item.mfa ? "Yes" : "No",
+            item.mfa || item.mfaEnabled ? "Yes" : "No", // Use mfa or mfaEnabled
           ].join(",")
         } else { // groups
           return [
             item.groupName || "",
             item.authMethod || "N/A",
             item.role || "N/A",
-            item.mfa ? "Yes" : "No",
+            item.mfa || item.mfaEnabled ? "Yes" : "No",  // Use mfa or mfaEnabled
             item.memberCount ?? "N/A",
             item.isEnabled !== false ? "Active" : "Disabled",
           ].join(",")
@@ -176,9 +181,9 @@ export default function SearchPage() {
 
       <Tabs defaultValue="users" value={activeTab} onValueChange={(newTab) => {
         setActiveTab(newTab);
-        setSearchResults(null); // Clear results when switching tabs
-        setCurrentFilters({}); // Reset filters
-        setCurrentPage(1); // Reset page
+        setSearchResults(null); 
+        setCurrentFilters({}); 
+        setCurrentPage(1); 
       }}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="users">Search Users</TabsTrigger>
@@ -346,8 +351,8 @@ export default function SearchPage() {
                                       <Badge variant="secondary">{group.role || "N/A"}</Badge>
                                     </td>
                                     <td className="p-3">
-                                      <Badge variant={group.mfa ? "default" : "outline"}>
-                                        {group.mfa ? "Yes" : "No"}
+                                      <Badge variant={group.mfa || group.mfaEnabled ? "default" : "outline"}>
+                                        {group.mfa || group.mfaEnabled ? "Yes" : "No"}
                                       </Badge>
                                     </td>
                                     <td className="p-3">{group.memberCount ?? "N/A"}</td>
@@ -389,3 +394,4 @@ export default function SearchPage() {
     </div>
   )
 }
+

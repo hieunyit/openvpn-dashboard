@@ -125,15 +125,24 @@ async function handleApiError(response: Response, operation: string): Promise<Er
 
 
 // User API functions
-export async function getUsers(page = 1, limit = 10, filters = {}) {
+export async function getUsers(page = 1, limit = 10, filters: Record<string, any> = {}) {
   console.log("[API getUsers] Fetching users with page:", page, "limit:", limit, "filters:", JSON.stringify(filters, null, 2));
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
 
+  // Define all possible filter keys based on the new API spec
+  const allowedFilterKeys = [
+    "username", "email", "authMethod", "role", "groupName", 
+    "isEnabled", "denyAccess", "mfaEnabled", 
+    "userExpirationAfter", "userExpirationBefore", "includeExpired", "expiringInDays",
+    "hasAccessControl", "macAddress", "searchText",
+    "sortBy", "sortOrder", "exactMatch", "caseSensitive"
+  ];
+
   Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "" && value !== "any") {
+    if (allowedFilterKeys.includes(key) && value !== undefined && value !== null && value !== "" && value !== "any") {
       queryParams.append(key, String(value));
     }
   });
@@ -492,9 +501,30 @@ export async function downloadGroupTemplate(format: "csv" | "xlsx" = "csv") {
 // Advanced Search API functions
 export async function searchUsers(searchCriteria: any) {
   console.log("[API searchUsers] Searching users with criteria:", JSON.stringify(searchCriteria, null, 2));
-  const response = await fetchWithAuth(`api/search/users`, {
-    method: "POST",
-    body: JSON.stringify(searchCriteria),
+  const queryParams = new URLSearchParams();
+  
+  const allowedFilterKeys = [
+    "username", "email", "authMethod", "role", "groupName", 
+    "isEnabled", "denyAccess", "mfaEnabled", 
+    "userExpirationAfter", "userExpirationBefore", "includeExpired", "expiringInDays",
+    "hasAccessControl", "macAddress", "searchText",
+    "sortBy", "sortOrder", "exactMatch", "caseSensitive",
+    "page", "limit" 
+  ];
+
+  Object.entries(searchCriteria).forEach(([key, value]) => {
+    if (allowedFilterKeys.includes(key) && value !== undefined && value !== null && value !== "" && value !== "any") {
+      queryParams.append(key, String(value));
+    }
+  });
+  
+  // Ensure page and limit have defaults if not provided, as API has defaults but good practice for client.
+  if (!queryParams.has("page")) queryParams.set("page", "1");
+  if (!queryParams.has("limit")) queryParams.set("limit", "20");
+
+
+  const response = await fetchWithAuth(`api/users?${queryParams.toString()}`, { // Changed from POST to GET
+    method: "GET", // API spec is GET for /api/users
   });
 
   if (!response.ok) {
@@ -502,7 +532,13 @@ export async function searchUsers(searchCriteria: any) {
   }
   const data = await response.json();
   console.log("[API searchUsers] Received data:", data);
-  return parseApiResponse(data);
+  const parsed = parseApiResponse(data);
+  return {
+    users: parsed.users || [],
+    total: parsed.total || 0,
+    page: parsed.page || searchCriteria.page || 1,
+    totalPages: Math.ceil((parsed.total || 0) / (searchCriteria.limit || 20)),
+  };
 }
 
 export async function searchGroups(searchCriteria: any) {

@@ -255,6 +255,13 @@ export default function UsersPage() {
     sortOrder: "asc",
     userExpirationAfter: undefined,
     userExpirationBefore: undefined,
+    // New API filter defaults
+    mfaEnabled: "any",
+    includeExpired: "true", 
+    hasAccessControl: "any",
+    macAddress: "",
+    exactMatch: "false",
+    caseSensitive: "false",
   })
   const [availableGroups, setAvailableGroups] = useState<string[]>([])
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
@@ -275,8 +282,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     let initialFiltersVal = { 
-        sortBy: "username", 
-        sortOrder: "asc",
+        ...currentFilters, // Preserve existing defaults like sortOrder, mfaEnabled etc.
         userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
         userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
     };
@@ -284,7 +290,7 @@ export default function UsersPage() {
         initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
         if (!showFilters) setShowFilters(true); 
     }
-    setCurrentFilters(prev => ({...prev, ...initialFiltersVal}));
+    setCurrentFilters(prev => ({...prev, ...initialFiltersVal})); // Merge, don't overwrite all
     fetchGroupsCallback();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupNameQueryParam]);
@@ -293,47 +299,39 @@ export default function UsersPage() {
   const fetchUsersCallback = useCallback(async (filtersToApply: any) => {
     try {
       setLoading(true)
-      const queryFilters: Record<string, any> = { ...filtersToApply }
-
-      if (searchTerm.trim()) {
-        if (searchTerm.includes("@")) {
-          queryFilters.email = searchTerm.trim()
-        } else {
-          queryFilters.username = searchTerm.trim()
-        }
-      }
-      
-      if (expirationDateFrom) {
-        queryFilters.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
-      } else {
-        delete queryFilters.userExpirationAfter;
-      }
-      if (expirationDateTo) {
-        queryFilters.userExpirationBefore = formatDateForInput(expirationDateTo.toISOString());
-      } else {
-        delete queryFilters.userExpirationBefore;
-      }
-
-
       const finalAPIFilters: Record<string, any> = {
-        username: queryFilters.username || undefined,
-        email: queryFilters.email || undefined,
-        authMethod: queryFilters.authMethod === 'any' ? undefined : queryFilters.authMethod,
-        role: queryFilters.role === 'any' ? undefined : queryFilters.role,
-        groupName: queryFilters.groupName === 'any' ? undefined : queryFilters.groupName,
-        isEnabled: queryFilters.isEnabled === 'any' ? undefined : (queryFilters.isEnabled === 'true'),
-        denyAccess: queryFilters.denyAccess === 'any' ? undefined : (queryFilters.denyAccess === 'true'),
-        userExpirationAfter: queryFilters.userExpirationAfter,
-        userExpirationBefore: queryFilters.userExpirationBefore,
-        sortBy: queryFilters.sortBy || "username",
-        sortOrder: queryFilters.sortOrder || "asc",
+        ...filtersToApply, // Includes sortBy, sortOrder, and all advanced filters
+        // page and limit are handled directly by getUsers call
       };
 
-      Object.keys(finalAPIFilters).forEach((key) => {
-        if (finalAPIFilters[key] === undefined || finalAPIFilters[key] === "") {
-          delete finalAPIFilters[key]
-        }
-      })
+      // Handle main search term
+      if (searchTerm.trim()) {
+        finalAPIFilters.searchText = searchTerm.trim();
+      } else if (filtersToApply.searchText && filtersToApply.searchText.trim()) {
+        // If advanced filters have searchText, use that (this case might be redundant if UI is simplified)
+        finalAPIFilters.searchText = filtersToApply.searchText.trim();
+      } else {
+        delete finalAPIFilters.searchText; // Ensure no empty searchText is sent
+      }
+      
+      // Ensure date formats are correct for API (YYYY-MM-DD)
+      if (expirationDateFrom) {
+        finalAPIFilters.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
+      } else {
+        delete finalAPIFilters.userExpirationAfter;
+      }
+      if (expirationDateTo) {
+        finalAPIFilters.userExpirationBefore = formatDateForInput(expirationDateTo.toISOString());
+      } else {
+        delete finalAPIFilters.userExpirationBefore;
+      }
+      
+      // Clean up "any" values before sending to API - API function getUsers should do this
+      // Object.keys(finalAPIFilters).forEach((key) => {
+      //   if (finalAPIFilters[key] === "any" || finalAPIFilters[key] === "") {
+      //     delete finalAPIFilters[key];
+      //   }
+      // });
 
       const data = await getUsers(page, limit, finalAPIFilters)
       setUsers(data.users.map(u => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
@@ -392,20 +390,30 @@ export default function UsersPage() {
   }, [searchTerm, currentFilters, expirationDateFrom, expirationDateTo]); 
 
   useEffect(() => { // separate effect for page changes
-    fetchUsersCallback(currentFilters)
-  }, [page, limit, fetchUsersCallback]);
+    const filtersWithDates = {
+        ...currentFilters,
+        userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
+        userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
+      };
+    fetchUsersCallback(filtersWithDates)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit]); // fetchUsersCallback removed from deps to avoid re-triggering
 
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
     const filtersWithDates = {
-      ...newFilters,
+      ...newFilters, // newFilters from AdvancedFilters already contains its specific searchText
       userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
       userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
     };
+    // If AdvancedFilters are being applied, its searchText should take precedence or be the one used.
+    // The page-level searchTerm might need to be cleared or ignored in fetchUsersCallback if newFilters.searchText is set.
+    // For now, fetchUsersCallback handles merging/prioritizing searchText from page's searchTerm vs filtersToApply.searchText
     setCurrentFilters(filtersWithDates);
     if (page !== 1) setPage(1);
     else fetchUsersCallback(filtersWithDates); 
-  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]); // Removed fetchUsersCallback to simplify deps
 
   const handleDateFilterChange = (date: Date | undefined, type: "from" | "to") => {
     if (type === "from") {
@@ -421,7 +429,7 @@ export default function UsersPage() {
     setExpirationDateTo(undefined);
      const newFilters = { ...currentFilters, userExpirationAfter: undefined, userExpirationBefore: undefined };
     setCurrentFilters(newFilters);
-    fetchUsersCallback(newFilters);
+    // fetchUsersCallback(newFilters); // This will be triggered by the useEffect for currentFilters
   };
 
 
@@ -643,7 +651,7 @@ export default function UsersPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             id="search"
-                            placeholder="Search username or email..."
+                            placeholder="General search..."
                             className="pl-10 h-10"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -681,7 +689,7 @@ export default function UsersPage() {
                 </div>
                 <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 h-10 w-full sm:w-auto">
                     <ListFilter className="h-4 w-4" />
-                    {showFilters ? "Hide Filters" : "Show Filters"} ({Object.values(currentFilters).filter(v => v && v !== "any" && v !== "username" && v !== "asc" && v !== undefined).length})
+                    {showFilters ? "Hide Filters" : "Show Filters"} ({Object.values(currentFilters).filter(v => v && v !== "any" && v !== "username" && v !== "asc" && v !== undefined && v !== "true" && v !== "false" && v !== "" && !['userExpirationAfter', 'userExpirationBefore'].includes(String(v))).length})
                 </Button>
             </div>
         </CardHeader>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+// import { Checkbox } from "@/components/ui/checkbox" // Checkbox might be replaced by Select for true/false/any
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Filter, X, RotateCcw, Check } from "lucide-react"
@@ -21,17 +21,25 @@ interface FilterProps {
 
 export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = [], initialFilters }: FilterProps) => {
   const defaultUserFilters = useMemo(() => ({
-    searchText: "",
+    searchText: "", // General text search
+    username: "", // Specific username search
+    email: "", // Specific email search
     authMethod: "any",
     role: "any",
     groupName: "any",
     isEnabled: "any",
-    hasMFA: "any",
-    isExpired: "any",
+    denyAccess: "any",
+    mfaEnabled: "any", // API uses mfaEnabled
+    userExpirationAfter: undefined, // Should be handled by UsersPage's date pickers
+    userExpirationBefore: undefined, // Should be handled by UsersPage's date pickers
+    includeExpired: "true", // API default is true
     expiringInDays: "", 
+    hasAccessControl: "any",
+    macAddress: "",
     sortBy: "username",
     sortOrder: "asc",
-    denyAccess: "any",
+    exactMatch: "false", // API default is false
+    caseSensitive: "false", // API default is false
   }), []);
 
   const defaultGroupFilters = useMemo(() => ({
@@ -39,7 +47,7 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
     authMethod: "any",
     role: "any",
     isEnabled: "any", 
-    hasMFA: "any",
+    mfaEnabled: "any", // API uses mfaEnabled
     denyAccess: "any",
     hasAccessControl: "any",
     accessControlPattern: "",
@@ -61,11 +69,15 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   const [activeFilterBadges, setActiveFilterBadges] = useState<string[]>([])
 
   useEffect(() => {
-    setInternalFilters({
-      ...defaultFilters,
-      ...(initialFilters || {}),
-    });
-  }, [initialFilters, defaultFilters]);
+    // Merge initialFilters carefully, prioritizing its values over defaults
+    // but ensuring all default keys are present if not in initialFilters.
+    const mergedInitial = { ...defaultFilters, ...(initialFilters || {}) };
+    // If initialFilters causes a change, update internalFilters
+    if (JSON.stringify(internalFilters) !== JSON.stringify(mergedInitial)) {
+        setInternalFilters(mergedInitial);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFilters, defaultFilters]); // internalFilters removed to prevent loop
   
   const updateActiveFilterBadges = useCallback((currentFilters: any) => {
     const active = Object.keys(currentFilters).filter(
@@ -74,8 +86,13 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
         currentFilters[k] !== null &&
         currentFilters[k] !== undefined &&
         currentFilters[k] !== "any" &&
+        // Exclude default sort orders from badges unless changed
         (k !== 'sortBy' || currentFilters[k] !== (type === "users" ? "username" : "groupName")) && 
-        (k !== 'sortOrder' || currentFilters[k] !== "asc") 
+        (k !== 'sortOrder' || currentFilters[k] !== "asc") &&
+        // Exclude specific defaults that match API behavior if they are "any" or default boolean state
+        (k !== 'includeExpired' || currentFilters[k] !== "true") &&
+        (k !== 'exactMatch' || currentFilters[k] !== "false") &&
+        (k !== 'caseSensitive' || currentFilters[k] !== "false")
     );
     setActiveFilterBadges(active);
   }, [type]);
@@ -113,9 +130,16 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
 
   const removeFilterBadge = useCallback((key: string) => {
     const newFilters = { ...internalFilters, [key]: defaultFilters[key] || "any" }
-    if (key === "searchText" || key === "expiringInDays" || key === "accessControlPattern" || key === "minMemberCount" || key === "maxMemberCount" || key === "createdAfter" || key === "createdBefore") {
+     // Reset specific input fields to empty string instead of "any"
+    const inputFields = ["searchText", "username", "email", "expiringInDays", "macAddress", "accessControlPattern", "minMemberCount", "maxMemberCount", "createdAfter", "createdBefore"];
+    if (inputFields.includes(key)) {
         newFilters[key] = "";
     }
+    // Reset specific boolean defaults correctly
+    if (key === 'includeExpired') newFilters[key] = "true";
+    if (key === 'exactMatch' || key === 'caseSensitive') newFilters[key] = "false";
+
+
     setInternalFilters(newFilters)
     onFiltersChange(newFilters); 
     updateActiveFilterBadges(newFilters);
@@ -151,14 +175,38 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor={`searchText-${type}`}>Search Text</Label>
+            <Label htmlFor={`searchText-${type}`}>General Search Text</Label>
             <Input
               id={`searchText-${type}`}
-              placeholder={`Search by name/email...`}
+              placeholder={`Search across fields...`}
               value={internalFilters.searchText || ""}
               onChange={(e) => handleInputChange("searchText", e.target.value)}
             />
           </div>
+          
+          {type === "users" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor={`username-filter-${type}`}>Specific Username</Label>
+                <Input
+                  id={`username-filter-${type}`}
+                  placeholder="Filter by username..."
+                  value={internalFilters.username || ""}
+                  onChange={(e) => handleInputChange("username", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`email-filter-${type}`}>Specific Email</Label>
+                <Input
+                  id={`email-filter-${type}`}
+                  placeholder="Filter by email..."
+                  value={internalFilters.email || ""}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
 
           <div className="space-y-2">
             <Label htmlFor={`authMethod-${type}`}>Authentication Method</Label>
@@ -237,9 +285,9 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`hasMFA-${type}`}>MFA Status</Label>
-            <Select value={internalFilters.hasMFA} onValueChange={(value) => handleInputChange("hasMFA", value)}>
-              <SelectTrigger id={`hasMFA-${type}`}>
+            <Label htmlFor={`mfaEnabled-${type}`}>MFA Status</Label>
+            <Select value={internalFilters.mfaEnabled} onValueChange={(value) => handleInputChange("mfaEnabled", value)}>
+              <SelectTrigger id={`mfaEnabled-${type}`}>
                 <SelectValue placeholder="Any MFA status" />
               </SelectTrigger>
               <SelectContent>
@@ -266,9 +314,9 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`isExpired-${type}`}>Expiration Status</Label>
+                <Label htmlFor={`isExpired-users`}>Expiration Status</Label>
                 <Select value={internalFilters.isExpired} onValueChange={(value) => handleInputChange("isExpired", value)}>
-                  <SelectTrigger id={`isExpired-${type}`}>
+                  <SelectTrigger id={`isExpired-users`}>
                     <SelectValue placeholder="Any expiration state" />
                   </SelectTrigger>
                   <SelectContent>
@@ -278,6 +326,62 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="includeExpired-users">Include Expired Users</Label>
+                <Select value={internalFilters.includeExpired} onValueChange={(value) => handleInputChange("includeExpired", value)}>
+                  <SelectTrigger id="includeExpired-users"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Yes (Default)</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                     <SelectItem value="any">Any (API Default)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hasAccessControl-users">Has Custom Access Rules</Label>
+                <Select value={internalFilters.hasAccessControl} onValueChange={(value) => handleInputChange("hasAccessControl", value)}>
+                  <SelectTrigger id="hasAccessControl-users"><SelectValue placeholder="Any" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any</SelectItem>
+                    <SelectItem value="true">Yes</SelectItem>
+                    <SelectItem value="false">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="macAddress-users">Filter by MAC Address</Label>
+                <Input
+                  id="macAddress-users"
+                  placeholder="Enter MAC Address"
+                  value={internalFilters.macAddress || ""}
+                  onChange={(e) => handleInputChange("macAddress", e.target.value)}
+                />
+              </div>
+            </div>
+            <Separator className="my-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="exactMatch-users">Exact Match (for text searches)</Label>
+                    <Select value={internalFilters.exactMatch} onValueChange={(value) => handleInputChange("exactMatch", value)}>
+                    <SelectTrigger id="exactMatch-users"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="false">No (Default - Partial)</SelectItem>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="any">Any (API Default)</SelectItem>
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="caseSensitive-users">Case Sensitive (for text searches)</Label>
+                    <Select value={internalFilters.caseSensitive} onValueChange={(value) => handleInputChange("caseSensitive", value)}>
+                    <SelectTrigger id="caseSensitive-users"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="false">No (Default - Insensitive)</SelectItem>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="any">Any (API Default)</SelectItem>
+                    </SelectContent>
+                    </Select>
+                </div>
             </div>
           </>
         )}
@@ -391,3 +495,4 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   )
 });
 AdvancedFilters.displayName = "AdvancedFilters";
+
