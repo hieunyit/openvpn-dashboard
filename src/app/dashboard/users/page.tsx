@@ -91,23 +91,23 @@ interface UserTableRowProps {
   isCurrentUser: boolean;
   onSelectUser: (username: string, checked: boolean) => void;
   onUpdateUserAccess: (username: string, deny: boolean) => void;
-  onEnableUser: (username: string) => void; 
-  onDisableUser: (username: string) => void;
+  onEnableUserAccount: (username: string) => void; 
+  onDisableUserAccount: (username: string) => void;
   onDeleteUser: (username: string) => void;
   onChangePassword: (username: string) => void;
   onResetOtp: (username: string) => void;
 }
 
-const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, onUpdateUserAccess, onEnableUser, onDisableUser, onDeleteUser, onChangePassword, onResetOtp }: UserTableRowProps) => {
+const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, onUpdateUserAccess, onEnableUserAccount, onDisableUserAccount, onDeleteUser, onChangePassword, onResetOtp }: UserTableRowProps) => {
   
   const getStatusBadge = () => {
     if (user.isEnabled === false) {
       return <Badge variant="outline" className="flex items-center gap-1 text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><UserX className="h-3 w-3" />System Disabled</Badge>;
     }
     if (user.denyAccess) {
-      return <Badge variant="secondary" className="flex items-center gap-1 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="h-3 w-3" /> Access Denied</Badge>;
+      return <Badge variant="secondary" className="flex items-center gap-1 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/30"><LockKeyhole className="h-3 w-3" /> VPN Disabled</Badge>;
     }
-    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> Access Allowed</Badge>;
+    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" /> VPN Enabled</Badge>;
   };
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
@@ -186,21 +186,21 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
              {user.denyAccess ? (
               <DropdownMenuItem onClick={() => onUpdateUserAccess(user.username, false)} disabled={user.isEnabled === false}>
                 <UnlockKeyhole className="mr-2 h-4 w-4 text-green-600" />
-                Allow VPN Access
+                Enable User
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem onClick={() => onUpdateUserAccess(user.username, true)} disabled={isCurrentUser || user.isEnabled === false}>
                 <LockKeyhole className="mr-2 h-4 w-4 text-red-600" />
-                Deny VPN Access
+                Disable User
               </DropdownMenuItem>
             )}
 
             {user.isEnabled === false ? (
-                 <DropdownMenuItem onClick={() => onEnableUser(user.username)} disabled={isCurrentUser}>
+                 <DropdownMenuItem onClick={() => onEnableUserAccount(user.username)} disabled={isCurrentUser}>
                     <UserCheck className="mr-2 h-4 w-4 text-green-600" /> Enable Account
                 </DropdownMenuItem>
             ) : (
-                 <DropdownMenuItem onClick={() => onDisableUser(user.username)} disabled={isCurrentUser}>
+                 <DropdownMenuItem onClick={() => onDisableUserAccount(user.username)} disabled={isCurrentUser}>
                     <UserMinus className="mr-2 h-4 w-4 text-orange-600" /> Disable Account
                 </DropdownMenuItem>
             )}
@@ -246,14 +246,14 @@ export default function UsersPage() {
   const [userToUpdateAccess, setUserToUpdateAccess] = useState<{ username: string; deny: boolean } | null>(null);
   const [isConfirmSingleAccessDialogOpen, setIsConfirmSingleAccessDialogOpen] = useState(false);
   
-  const [userToEnable, setUserToEnable] = useState<{ username: string } | null>(null); 
-  const [isConfirmSingleEnableDialogOpen, setIsConfirmSingleEnableDialogOpen] = useState(false);
+  const [userToEnableAccount, setUserToEnableAccount] = useState<{ username: string } | null>(null); 
+  const [isConfirmSingleEnableAccountDialogOpen, setIsConfirmSingleEnableAccountDialogOpen] = useState(false);
   
-  const [userToDisable, setUserToDisable] = useState<{ username: string } | null>(null);
-  const [isConfirmSingleDisableDialogOpen, setIsConfirmSingleDisableDialogOpen] = useState(false);
+  const [userToDisableAccount, setUserToDisableAccount] = useState<{ username: string } | null>(null);
+  const [isConfirmSingleDisableAccountDialogOpen, setIsConfirmSingleDisableAccountDialogOpen] = useState(false);
 
 
-  const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
+  const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"enable" | "disable" | null>(null); // Changed from "allow" | "deny"
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
   
   const [bulkAccountActionToConfirm, setBulkAccountActionToConfirm] = useState<"enable" | "disable" | null>(null);
@@ -344,7 +344,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "Error Fetching Users",
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       })
@@ -360,7 +360,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "Error Fetching Groups",
-        description: getCoreApiErrorMessage(error.message) || "Could not load groups for filter selection.",
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -449,7 +449,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "Error Deleting User",
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       })
@@ -461,7 +461,7 @@ export default function UsersPage() {
 
   const confirmDeleteUser = useCallback((username: string) => {
     if (username === currentAuthUser?.username) {
-      toast({ title: "Action Prevented", description: "You cannot delete your own account.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+      toast({ title: "Action Prevented", description: "You cannot delete your own account.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setUserToDelete(username);
@@ -470,7 +470,7 @@ export default function UsersPage() {
 
   const confirmUpdateUserAccess = useCallback((username: string, deny: boolean) => {
     if (deny && username === currentAuthUser?.username) {
-      toast({ title: "Action Prevented", description: "You cannot deny VPN access to your own account.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+      toast({ title: "Action Prevented", description: "You cannot disable your own VPN access.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setUserToUpdateAccess({ username, deny });
@@ -484,15 +484,15 @@ export default function UsersPage() {
       await updateUser(username, { denyAccess: deny });
       toast({
         title: "Success",
-        description: `VPN access for user ${username} has been ${deny ? "denied" : "allowed"}.`,
+        description: `User ${username} has been ${deny ? "disabled" : "enabled"}.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchUsersCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: `Error Updating VPN Access`,
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
+        title: `Error ${deny ? "Disabling" : "Enabling"} User`,
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -502,18 +502,18 @@ export default function UsersPage() {
     }
   }, [userToUpdateAccess, fetchUsersCallback, toast, currentFilters]);
 
-  const confirmEnableUser = useCallback((username: string) => {
+  const confirmEnableUserAccount = useCallback((username: string) => {
     if (username === currentAuthUser?.username) {
-        toast({ title: "Action Prevented", description: `You cannot re-enable your own account.`, variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+        toast({ title: "Action Prevented", description: `You cannot enable your own account.`, variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
         return;
     }
-    setUserToEnable({ username });
-    setIsConfirmSingleEnableDialogOpen(true);
+    setUserToEnableAccount({ username });
+    setIsConfirmSingleEnableAccountDialogOpen(true);
   }, [currentAuthUser, toast]);
   
-  const executeEnableUser = useCallback(async () => {
-    if (!userToEnable) return;
-    const { username } = userToEnable;
+  const executeEnableUserAccount = useCallback(async () => {
+    if (!userToEnableAccount) return;
+    const { username } = userToEnableAccount;
     try {
         await performUserAction(username, "enable");
         toast({
@@ -525,29 +525,29 @@ export default function UsersPage() {
         fetchUsersCallback(currentFilters);
     } catch (error: any) {
         toast({
-            title: `Error Enabling User`,
-            description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred.`,
+            title: `Error Enabling User Account`,
+            description: getCoreApiErrorMessage(error),
             variant: "destructive",
             icon: <AlertTriangle className="h-5 w-5" />,
         });
     } finally {
-        setIsConfirmSingleEnableDialogOpen(false);
-        setUserToEnable(null);
+        setIsConfirmSingleEnableAccountDialogOpen(false);
+        setUserToEnableAccount(null);
     }
-  }, [userToEnable, fetchUsersCallback, toast, currentFilters]);
+  }, [userToEnableAccount, fetchUsersCallback, toast, currentFilters]);
 
-  const confirmDisableUser = useCallback((username: string) => {
+  const confirmDisableUserAccount = useCallback((username: string) => {
     if (username === currentAuthUser?.username) {
-        toast({ title: "Action Prevented", description: `You cannot disable your own account.`, variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+        toast({ title: "Action Prevented", description: `You cannot disable your own account.`, variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
         return;
     }
-    setUserToDisable({ username });
-    setIsConfirmSingleDisableDialogOpen(true);
+    setUserToDisableAccount({ username });
+    setIsConfirmSingleDisableAccountDialogOpen(true);
   }, [currentAuthUser, toast]);
 
-  const executeDisableUser = useCallback(async () => {
-    if (!userToDisable) return;
-    const { username } = userToDisable;
+  const executeDisableUserAccount = useCallback(async () => {
+    if (!userToDisableAccount) return;
+    const { username } = userToDisableAccount;
     try {
         await performUserAction(username, "disable");
         toast({
@@ -559,16 +559,16 @@ export default function UsersPage() {
         fetchUsersCallback(currentFilters);
     } catch (error: any) {
         toast({
-            title: `Error Disabling User`,
-            description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred.`,
+            title: `Error Disabling User Account`,
+            description: getCoreApiErrorMessage(error),
             variant: "destructive",
             icon: <AlertTriangle className="h-5 w-5" />,
         });
     } finally {
-        setIsConfirmSingleDisableDialogOpen(false);
-        setUserToDisable(null);
+        setIsConfirmSingleDisableAccountDialogOpen(false);
+        setUserToDisableAccount(null);
     }
-  }, [userToDisable, fetchUsersCallback, toast, currentFilters]);
+  }, [userToDisableAccount, fetchUsersCallback, toast, currentFilters]);
 
 
   const handleResetOtp = useCallback(async (username: string) => {
@@ -583,7 +583,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "Error Resetting OTP",
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -591,13 +591,13 @@ export default function UsersPage() {
   }, [toast]);
 
 
-  const confirmBulkUpdateAccess = useCallback((action: "allow" | "deny") => {
+  const confirmBulkUpdateAccess = useCallback((action: "enable" | "disable") => { // Changed from "allow" | "deny"
     if (selectedUsers.length === 0) {
-      toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+      toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
-    if (action === "deny" && selectedUsers.includes(currentAuthUser?.username)) {
-        toast({ title: "Action Prevented", description: "You cannot deny VPN access to your own account in a bulk operation. Please deselect yourself.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+    if (action === "disable" && selectedUsers.includes(currentAuthUser?.username)) {
+        toast({ title: "Action Prevented", description: "You cannot disable your own account in a bulk operation. Please deselect yourself.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
         return;
     }
     setBulkAccessActionToConfirm(action);
@@ -607,12 +607,12 @@ export default function UsersPage() {
   const executeBulkUpdateAccess = useCallback(async () => {
     if (!bulkAccessActionToConfirm || selectedUsers.length === 0) return;
 
-    const deny = bulkAccessActionToConfirm === "deny";
+    const deny = bulkAccessActionToConfirm === "disable"; // "disable" means denyAccess = true
     setBulkActionLoading(true);
     let successCount = 0;
     let failCount = 0;
 
-    toast({ title: "Info", description: `Attempting to ${bulkAccessActionToConfirm} VPN access for ${selectedUsers.length} users...`, variant:"info", icon: <RefreshCcw className="h-5 w-5 animate-spin" />});
+    toast({ title: "Processing...", description: `Attempting to ${bulkAccessActionToConfirm} ${selectedUsers.length} users...`, variant:"info", icon: <RefreshCcw className="h-5 w-5 animate-spin" />});
 
     for (const username of selectedUsers) {
       try {
@@ -627,7 +627,7 @@ export default function UsersPage() {
     setIsConfirmBulkAccessDialogOpen(false);
     setBulkAccessActionToConfirm(null);
 
-    let summaryMessage = `${successCount} users had VPN access ${deny ? "denied" : "allowed"}.`;
+    let summaryMessage = `${successCount} users ${deny ? "disabled" : "enabled"}.`;
     if (failCount > 0) {
       summaryMessage += ` ${failCount} users failed to update.`;
     }
@@ -644,11 +644,11 @@ export default function UsersPage() {
   
   const confirmBulkAccountAction = useCallback((action: "enable" | "disable") => {
     if (selectedUsers.length === 0) {
-      toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+      toast({ title: "No Users Selected", description: "Please select users to perform bulk actions.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     if (action === "disable" && selectedUsers.includes(currentAuthUser?.username)) {
-        toast({ title: "Action Prevented", description: "You cannot disable your own account in a bulk operation. Please deselect yourself.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+        toast({ title: "Action Prevented", description: "You cannot disable your own account in a bulk operation. Please deselect yourself.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
         return;
     }
     setBulkAccountActionToConfirm(action);
@@ -663,7 +663,7 @@ export default function UsersPage() {
       const result = await bulkUserActions(selectedUsers, bulkAccountActionToConfirm);
       toast({
         title: "Bulk Action Complete",
-        description: `${result.success || 0} users ${bulkAccountActionToConfirm}d. ${result.failed || 0} failed.`,
+        description: `${result.success || 0} user accounts ${bulkAccountActionToConfirm}d. ${result.failed || 0} failed.`,
         variant: result.failed > 0 ? "warning" : "success",
         icon: result.failed > 0 ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5"/>
       });
@@ -671,8 +671,8 @@ export default function UsersPage() {
       setSelectedUsers([]);
     } catch (error: any) {
       toast({
-        title: `Error Bulk ${bulkAccountActionToConfirm.charAt(0).toUpperCase() + bulkAccountActionToConfirm.slice(1)} Users`,
-        description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred.",
+        title: `Error Bulk ${bulkAccountActionToConfirm.charAt(0).toUpperCase() + bulkAccountActionToConfirm.slice(1)} Accounts`,
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -800,11 +800,11 @@ export default function UsersPage() {
                          <Button variant="outline" size="sm" onClick={() => confirmBulkAccountAction("disable")} disabled={bulkActionLoading} className="border-orange-500 text-orange-700 hover:bg-orange-500/10">
                           <UserMinus className="mr-2 h-4 w-4" /> Disable Account
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("allow")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
-                          <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow VPN Access
+                        <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
+                          <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Users
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("deny")} disabled={bulkActionLoading} className="border-red-500 text-red-700 hover:bg-red-500/10">
-                          <LockKeyhole className="mr-2 h-4 w-4" /> Deny VPN Access
+                        <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("disable")} disabled={bulkActionLoading} className="border-red-500 text-red-700 hover:bg-red-500/10">
+                          <LockKeyhole className="mr-2 h-4 w-4" /> Disable Users
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => setIsExtendExpirationDialogOpen(true)} disabled={bulkActionLoading}>
                           <CalendarClock className="mr-2 h-4 w-4" /> Extend Expiration
@@ -864,8 +864,8 @@ export default function UsersPage() {
                           isCurrentUser={user.username === currentAuthUser?.username}
                           onSelectUser={handleSelectUserCallback}
                           onUpdateUserAccess={confirmUpdateUserAccess}
-                          onEnableUser={confirmEnableUser} 
-                          onDisableUser={confirmDisableUser}
+                          onEnableUserAccount={confirmEnableUserAccount} 
+                          onDisableUserAccount={confirmDisableUserAccount}
                           onDeleteUser={confirmDeleteUser}
                           onChangePassword={openChangePasswordDialog}
                           onResetOtp={handleResetOtp}
@@ -912,9 +912,9 @@ export default function UsersPage() {
       <AlertDialog open={isConfirmSingleAccessDialogOpen} onOpenChange={setIsConfirmSingleAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm VPN Access Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm User VPN Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {userToUpdateAccess?.deny ? "deny" : "allow"} VPN access for user "{userToUpdateAccess?.username}"?
+              Are you sure you want to {userToUpdateAccess?.deny ? "disable" : "enable"} user "{userToUpdateAccess?.username}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -923,24 +923,24 @@ export default function UsersPage() {
               onClick={executeUpdateUserAccess}
               className={userToUpdateAccess?.deny ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
             >
-              Confirm {userToUpdateAccess?.deny ? "Deny Access" : "Allow Access"}
+              Confirm {userToUpdateAccess?.deny ? "Disable User" : "Enable User"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       
-      <AlertDialog open={isConfirmSingleEnableDialogOpen} onOpenChange={setIsConfirmSingleEnableDialogOpen}>
+      <AlertDialog open={isConfirmSingleEnableAccountDialogOpen} onOpenChange={setIsConfirmSingleEnableAccountDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Confirm Enable User Account</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Are you sure you want to enable user account "{userToEnable?.username}"? They will be able to authenticate if their VPN access is allowed.
+                    Are you sure you want to enable user account "{userToEnableAccount?.username}"? They will be able to authenticate if their VPN access is allowed.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsConfirmSingleEnableDialogOpen(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setIsConfirmSingleEnableAccountDialogOpen(false)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                    onClick={executeEnableUser}
+                    onClick={executeEnableUserAccount}
                     className={"bg-green-600 hover:bg-green-600/90 text-white"}
                 >
                     Confirm Enable Account
@@ -949,18 +949,18 @@ export default function UsersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmSingleDisableDialogOpen} onOpenChange={setIsConfirmSingleDisableDialogOpen}>
+      <AlertDialog open={isConfirmSingleDisableAccountDialogOpen} onOpenChange={setIsConfirmSingleDisableAccountDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Confirm Disable User Account</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Are you sure you want to disable user account "{userToDisable?.username}"? They will not be able to authenticate.
+                    Are you sure you want to disable user account "{userToDisableAccount?.username}"? They will not be able to authenticate.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsConfirmSingleDisableDialogOpen(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setIsConfirmSingleDisableAccountDialogOpen(false)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                    onClick={executeDisableUser}
+                    onClick={executeDisableUserAccount}
                     className={"bg-orange-500 hover:bg-orange-500/90 text-white"}
                 >
                     Confirm Disable Account
@@ -973,11 +973,11 @@ export default function UsersPage() {
       <AlertDialog open={isConfirmBulkAccessDialogOpen} onOpenChange={setIsConfirmBulkAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk VPN Access Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Bulk User VPN Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {bulkAccessActionToConfirm === "deny" ? "deny" : "allow"} VPN access for {selectedUsers.length} selected user(s)?
-              {bulkAccessActionToConfirm === "deny" && selectedUsers.includes(currentAuthUser?.username) && (
-                <p className="text-destructive text-sm mt-2">Warning: Your own account is selected and will be denied access.</p>
+              Are you sure you want to {bulkAccessActionToConfirm === "disable" ? "disable" : "enable"} {selectedUsers.length} selected user(s)?
+              {bulkAccessActionToConfirm === "disable" && selectedUsers.includes(currentAuthUser?.username) && (
+                <p className="text-destructive text-sm mt-2">Warning: Your own account is selected and will be disabled.</p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -986,9 +986,9 @@ export default function UsersPage() {
             <AlertDialogAction
               onClick={executeBulkUpdateAccess}
               disabled={bulkActionLoading}
-              className={bulkAccessActionToConfirm === "deny" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
+              className={bulkAccessActionToConfirm === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
             >
-              {bulkActionLoading ? "Processing..." : `Confirm ${bulkAccessActionToConfirm === "deny" ? "Deny Access" : "Allow Access"}`}
+              {bulkActionLoading ? "Processing..." : `Confirm ${bulkAccessActionToConfirm === "disable" ? "Disable Users" : "Enable Users"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1058,3 +1058,4 @@ export default function UsersPage() {
     </div>
   )
 }
+

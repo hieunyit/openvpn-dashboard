@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useToast } from "@/hooks/use-toast" // Corrected import path
+import { useToast } from "@/hooks/use-toast"
 import { getVPNStatus, disconnectUser, bulkDisconnectUsers, updateUser } from "@/lib/api"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { formatDateForDisplay, formatBytes, getCoreApiErrorMessage } from "@/lib/utils"
@@ -83,8 +83,8 @@ export default function VPNStatusPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [currentAuthUser, setCurrentAuthUser] = useState<any>(null);
 
-  const [isConfirmDenyAccessDialogOpen, setIsConfirmDenyAccessDialogOpen] = useState(false);
-  const [userToDenyAccess, setUserToDenyAccess] = useState<string | null>(null);
+  const [isConfirmDisableUserDialogOpen, setIsConfirmDisableUserDialogOpen] = useState(false); // Renamed from DenyAccess
+  const [userToDisable, setUserToDisable] = useState<string | null>(null); // Renamed
 
 
   useEffect(() => {
@@ -98,11 +98,11 @@ export default function VPNStatusPage() {
       const statusData = await getVPNStatus()
       setStatus(statusData)
     } catch (err: any) {
-      const coreMessage = getCoreApiErrorMessage(err.message);
+      const coreMessage = getCoreApiErrorMessage(err);
       setError(coreMessage || "Failed to load VPN status. Please try again.")
       toast({
         title: "Error Loading VPN Status",
-        description: coreMessage || "An unexpected error occurred.",
+        description: coreMessage,
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       })
@@ -135,7 +135,7 @@ export default function VPNStatusPage() {
 
   const openBulkDisconnectDialog = () => {
     if (selectedUsers.length === 0) {
-      toast({ title: "No Users Selected", description: "Please select users to disconnect.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
+      toast({ title: "No Users Selected", description: "Please select users to disconnect.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setDisconnectMessage("")
@@ -153,13 +153,13 @@ export default function VPNStatusPage() {
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       })
-      fetchStatus(false) // Refresh list
+      fetchStatus(false) 
       setIsSingleDisconnectDialogOpen(false)
       setUserToDisconnect(null)
     } catch (err: any) {
       toast({
         title: "Failed to Disconnect User",
-        description: getCoreApiErrorMessage(err.message) || `An unexpected error occurred while disconnecting ${userToDisconnect.username}.`,
+        description: getCoreApiErrorMessage(err) || `An unexpected error occurred while disconnecting ${userToDisconnect.username}.`,
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       })
@@ -182,13 +182,13 @@ export default function VPNStatusPage() {
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       })
-      fetchStatus(false) // Refresh list
+      fetchStatus(false) 
       setIsBulkDisconnectDialogOpen(false)
       setSelectedUsers([])
     } catch (err: any) {
       toast({
         title: "Bulk Disconnect Failed",
-        description: getCoreApiErrorMessage(err.message) || "An unexpected error occurred during bulk disconnect.",
+        description: getCoreApiErrorMessage(err),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       })
@@ -197,44 +197,44 @@ export default function VPNStatusPage() {
     }
   }
 
-  const initiateDenyAccessAction = (username: string) => {
+  const initiateDisableUserAction = (username: string) => { // Renamed
     if (username === currentAuthUser?.username) {
       toast({
         title: "Action Prevented",
-        description: "You cannot deny VPN access to your own account.",
-        variant: "destructive",
+        description: "You cannot disable your own user account.",
+        variant: "warning",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
       return;
     }
-    setUserToDenyAccess(username);
-    setIsConfirmDenyAccessDialogOpen(true);
+    setUserToDisable(username);
+    setIsConfirmDisableUserDialogOpen(true);
   };
 
-  const executeDenyAccessAction = async () => {
-    if (!userToDenyAccess) return;
+  const executeDisableUserAction = async () => { // Renamed
+    if (!userToDisable) return;
 
     setActionLoading(true);
     try {
-      await updateUser(userToDenyAccess, { denyAccess: true });
+      await updateUser(userToDisable, { denyAccess: true }); // denyAccess: true means disable VPN for this user
       toast({
-        title: "VPN Access Denied Successfully",
-        description: `VPN access for user ${userToDenyAccess} has been denied. Their current session will be disconnected.`,
+        title: "User Disabled Successfully",
+        description: `User ${userToDisable} has been disabled. Their current session will be disconnected.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchStatus(false); 
     } catch (err: any) {
       toast({
-        title: "Failed to Deny VPN Access",
-        description: getCoreApiErrorMessage(err.message) || `An unexpected error occurred for ${userToDenyAccess}.`,
+        title: "Failed to Disable User",
+        description: getCoreApiErrorMessage(err) || `An unexpected error occurred for ${userToDisable}.`,
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setActionLoading(false);
-      setIsConfirmDenyAccessDialogOpen(false);
-      setUserToDenyAccess(null);
+      setIsConfirmDisableUserDialogOpen(false);
+      setUserToDisable(null);
     }
   };
 
@@ -401,8 +401,8 @@ export default function VPNStatusPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {user.username !== currentAuthUser?.username && (
-                            <DropdownMenuItem onClick={() => initiateDenyAccessAction(user.username)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={actionLoading}>
-                              <LockKeyhole className="mr-2 h-4 w-4" /> Deny VPN Access
+                            <DropdownMenuItem onClick={() => initiateDisableUserAction(user.username)} className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={actionLoading}>
+                              <LockKeyhole className="mr-2 h-4 w-4" /> Disable User
                             </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -467,19 +467,19 @@ export default function VPNStatusPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isConfirmDenyAccessDialogOpen} onOpenChange={setIsConfirmDenyAccessDialogOpen}>
+      <AlertDialog open={isConfirmDisableUserDialogOpen} onOpenChange={setIsConfirmDisableUserDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deny VPN Access</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Disable User</AlertDialogTitle>
             <AlertDialogDescription>
-              Denying VPN access for "{userToDenyAccess}" will prevent them from future connections and disconnect their current session. Are you sure?
+              Disabling user "{userToDisable}" will prevent them from future connections and disconnect their current session. Are you sure?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmDenyAccessDialogOpen(false)} disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeDenyAccessAction} disabled={actionLoading} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogCancel onClick={() => setIsConfirmDisableUserDialogOpen(false)} disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeDisableUserAction} disabled={actionLoading} className="bg-destructive hover:bg-destructive/90">
               {actionLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin"/> : <LockKeyhole className="mr-2 h-4 w-4" />}
-              {actionLoading ? "Denying..." : "Confirm Deny Access"}
+              {actionLoading ? "Disabling..." : "Confirm Disable User"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
