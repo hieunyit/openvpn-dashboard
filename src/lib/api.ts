@@ -119,7 +119,8 @@ async function handleApiError(response: Response, operation: string): Promise<Er
   } catch (e) {
     console.warn(`[API Error - ${operation}] Failed to read error response body:`, e);
   }
-  console.error(`[API Error - ${operation}] ${response.status}: ${errorDetails}`);
+  // The console.error here can trigger the Next.js error overlay even if the error is caught by the UI.
+  // console.error(`[API Error - ${operation}] ${response.status}: ${errorDetails}`);
   return new Error(`Failed to ${operation}. Server error: ${errorDetails}`);
 }
 
@@ -418,7 +419,7 @@ export async function deleteGroup(groupName: string) {
   return responseData;
 }
 
-export async function performGroupAction(groupName: string, action: "enable" | "disable") {
+export async function performGroupAction(groupName: string, action: "enable" ) {
   console.log(`[API performGroupAction] Performing action ${action} on group ${groupName}`);
   const response = await fetchWithAuth(`api/groups/${groupName}/${action}`, {
     method: "PUT", // No body is needed for these actions as per typical REST patterns for enable/disable
