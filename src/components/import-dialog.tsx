@@ -120,7 +120,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
   const handleImport = async () => {
     if (!file) {
       toast({
-        title: "No File Selected",
+        title: "Error",
         description: "Please select a file to import.",
         variant: "destructive",
         icon: <AlertCircle className="h-5 w-5" />,
@@ -174,7 +174,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
           toast({
             title: "Dry Run: Validation Complete",
             description: `All ${resultsToSet.total || 'N/A'} records appear valid for import.`,
-            variant: "success",
+            variant: "info", // Changed to info for successful dry run
             icon: <CheckCircle className="h-5 w-5" />,
             duration: 5000,
           })
@@ -213,7 +213,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
       }
     } catch (error: any) {
       toast({
-        title: "Import Error",
+        title: "Error",
         description: getCoreApiErrorMessage(error.message) || "Failed to process import. Please check the file and try again.",
         variant: "destructive",
         icon: <XCircle className="h-5 w-5" />,
