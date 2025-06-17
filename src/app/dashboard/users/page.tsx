@@ -33,7 +33,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { getUsers, deleteUser, updateUser, getGroups, performUserAction } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
@@ -918,3 +918,5 @@ export default function UsersPage() {
     </div>
   )
 }
+
+    

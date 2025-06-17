@@ -13,7 +13,7 @@ import { getUserExpirations, getUsers, getGroups, getVPNStatus, getServerInfo, t
 import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server, CheckCircle, Info } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 
 interface DashboardStats {
   totalUsers: number
@@ -133,7 +133,7 @@ export default function DashboardPage() {
   const [expiringUsers14Days, setExpiringUsers14Days] = useState<UserExpirationInfo[]>([])
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null) // For inline error display
   const { toast } = useToast();
 
   const fetchDashboardData = useCallback(async () => {
@@ -193,14 +193,14 @@ export default function DashboardPage() {
       
       if (errors.length > 0) {
          const errorMessage = `Failed to load some dashboard data: ${errors.join(', ')}`;
-         setError(errorMessage);
+         setError(errorMessage); // For potential inline display
          toast({ title: "Partial Data Loaded", description: "Some dashboard information could not be retrieved.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" />})
       }
 
 
     } catch (err: any) { 
       const coreMessage = getCoreApiErrorMessage(err.message)
-      setError(`A critical error occurred while loading dashboard data. ${coreMessage}`)
+      setError(`A critical error occurred while loading dashboard data. ${coreMessage}`) // For inline display
       toast({
         title: "Error Loading Dashboard",
         description: coreMessage || "An unexpected critical error occurred.",
@@ -362,3 +362,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    

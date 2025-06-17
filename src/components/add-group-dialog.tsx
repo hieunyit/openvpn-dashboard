@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast" // Changed from @/hooks/use-toast
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { createGroup } from "@/lib/api"
 import { Users, Network, Shield, Router, KeyRound, CheckCircle, AlertTriangle } from "lucide-react"
 import { getCoreApiErrorMessage } from "@/lib/utils"
@@ -88,8 +88,8 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
       await createGroup(groupData)
 
       toast({
-        title: "Thành Công",
-        description: `Nhóm ${formData.groupName} đã được tạo.`,
+        title: "Success",
+        description: `Group ${formData.groupName} has been created.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
         duration: 3000,
@@ -99,9 +99,9 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
       onSuccess()
     } catch (error: any) {
       const apiErrorMessage = getCoreApiErrorMessage(error.message);
-      console.log("Attempting to display error toast. Title: Lỗi Tạo Nhóm, Description:", apiErrorMessage);
+      console.log("Attempting to display error toast. Title: Error Creating Group, Description:", apiErrorMessage);
       toast({
-        title: "Lỗi Tạo Nhóm",
+        title: "Error Creating Group",
         description: apiErrorMessage,
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -118,9 +118,9 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
         <DialogHeader>
           <DialogTitle className="flex items-center text-xl">
             <Users className="mr-2 h-5 w-5 text-primary" />
-            Tạo Nhóm Mới
+            Create New Group
           </DialogTitle>
-          <DialogDescription>Thêm một nhóm người dùng mới để tổ chức và quản lý quyền của người dùng.</DialogDescription>
+          <DialogDescription>Add a new user group to organize and manage user permissions.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -128,19 +128,19 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center">
               <Shield className="mr-2 h-5 w-5 text-primary" />
-              Chi Tiết Cơ Bản & Xác Thực
+              Basic Details & Authentication
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="groupName-dialog" className="text-sm font-medium">
-                  Tên Nhóm *
+                  Group Name *
                 </Label>
                 <div className="relative">
                   <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="groupName-dialog"
                     name="groupName"
-                    placeholder="Nhập tên nhóm"
+                    placeholder="Enter group name"
                     value={formData.groupName}
                     onChange={handleChange}
                     className="pl-10"
@@ -151,7 +151,7 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
 
               <div className="space-y-2">
                 <Label htmlFor="authMethod-group-dialog" className="text-sm font-medium">
-                  Phương Thức Xác Thực *
+                  Authentication Method *
                 </Label>
                 <Select
                   value={formData.authMethod}
@@ -159,7 +159,7 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
                   required
                 >
                   <SelectTrigger id="authMethod-group-dialog">
-                    <SelectValue placeholder="Chọn phương thức xác thực" />
+                    <SelectValue placeholder="Select authentication method" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="local">🔐 Local</SelectItem>
@@ -169,9 +169,9 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
               </div>
               
               <div className="space-y-2">
-                  <Label htmlFor="role-dialog" className="text-sm font-medium">Vai Trò *</Label>
+                  <Label htmlFor="role-dialog" className="text-sm font-medium">Role *</Label>
                   <Select value={formData.role} onValueChange={(value) => handleSelectChange("role", value)} required>
-                      <SelectTrigger id="role-dialog"><SelectValue placeholder="Chọn vai trò" /></SelectTrigger>
+                      <SelectTrigger id="role-dialog"><SelectValue placeholder="Select role" /></SelectTrigger>
                       <SelectContent>
                           <SelectItem value="User">👤 User</SelectItem>
                           <SelectItem value="Admin">👑 Admin</SelectItem>
@@ -186,7 +186,7 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
                   onCheckedChange={(checked) => handleCheckboxChange("mfa", Boolean(checked))}
                 />
                 <Label htmlFor="mfa-dialog" className="text-sm font-medium">
-                  <KeyRound className="inline h-4 w-4 mr-1" /> Yêu Cầu MFA
+                  <KeyRound className="inline h-4 w-4 mr-1" /> Require MFA
                 </Label>
               </div>
             </div>
@@ -196,16 +196,16 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center">
               <Network className="mr-2 h-5 w-5 text-primary" />
-              Cấu Hình Mạng (Tùy Chọn)
+              Network Configuration (Optional)
             </h3>
             <div className="space-y-2">
               <Label htmlFor="accessControl-group-dialog" className="text-sm font-medium">
-                Quy Tắc Kiểm Soát Truy Cập
+                Access Control Rules
               </Label>
               <Textarea
                 id="accessControl-group-dialog"
                 name="accessControl"
-                placeholder="Nhập các quy tắc kiểm soát truy cập, cách nhau bằng dấu phẩy (vd: 192.168.1.0/24)"
+                placeholder="Enter access control rules, comma-separated (e.g., 192.168.1.0/24)"
                 value={formData.accessControl}
                 onChange={handleChange}
                 rows={2}
@@ -214,11 +214,11 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="groupRange-dialog" className="text-sm font-medium">Dải IP Nhóm</Label>
+                <Label htmlFor="groupRange-dialog" className="text-sm font-medium">Group IP Range</Label>
                 <Textarea
                   id="groupRange-dialog"
                   name="groupRange"
-                  placeholder="vd: 10.8.0.10-10.8.0.100"
+                  placeholder="e.g., 10.8.0.10-10.8.0.100"
                   value={formData.groupRange}
                   onChange={handleChange}
                   rows={2}
@@ -226,11 +226,11 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="groupSubnet-dialog" className="text-sm font-medium">Subnet Nhóm</Label>
+                <Label htmlFor="groupSubnet-dialog" className="text-sm font-medium">Group Subnet</Label>
                 <Textarea
                   id="groupSubnet-dialog"
                   name="groupSubnet"
-                  placeholder="vd: 10.8.0.0/24"
+                  placeholder="e.g., 10.8.0.0/24"
                   value={formData.groupSubnet}
                   onChange={handleChange}
                   rows={2}
@@ -242,18 +242,18 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
-                  Đang Tạo...
+                  Creating...
                 </>
               ) : (
                 <>
                   <Users className="mr-2 h-4 w-4" />
-                  Tạo Nhóm
+                  Create Group
                 </>
               )}
             </Button>
@@ -263,3 +263,5 @@ export function AddGroupDialog({ open, onOpenChange, onSuccess }: AddGroupDialog
     </Dialog>
   )
 }
+
+    

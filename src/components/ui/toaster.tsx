@@ -13,6 +13,7 @@ import {
 
 export function Toaster() {
   const { toasts } = useToast()
+  console.log('Toaster rendering with toasts:', toasts); // Debugging line
 
   return (
     <ToastProvider>
@@ -34,3 +35,5 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
+    

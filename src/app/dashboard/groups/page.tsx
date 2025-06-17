@@ -32,7 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { deleteGroup, updateGroup, bulkGroupActions, searchGroups, performGroupAction } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
@@ -229,7 +229,7 @@ export default function GroupsPage() {
   const [bulkAccessActionToConfirm, setBulkAccessActionToConfirm] = useState<"allow" | "deny" | null>(null);
   const [isConfirmBulkAccessDialogOpen, setIsConfirmBulkAccessDialogOpen] = useState(false);
   
-  const [bulkActionToConfirm, setBulkActionToConfirm] = useState<"enable" | "disable" | null>(null); 
+  const [bulkActionToConfirm, setBulkActionToConfirm] = useState<"enable" | null>(null); 
   const [isConfirmBulkActionDialogOpen, setIsConfirmBulkActionDialogOpen] = useState(false);
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
@@ -498,7 +498,7 @@ export default function GroupsPage() {
     setSelectedGroups([]);
   }, [bulkAccessActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters, groups]);
   
-  const confirmBulkAction = useCallback((action: "enable" | "disable") => { 
+  const confirmBulkAction = useCallback((action: "enable") => { 
     if (selectedGroups.length === 0) {
       toast({ title: "No groups selected", description: "Please select groups for this bulk action.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
@@ -615,9 +615,7 @@ export default function GroupsPage() {
                         <Button variant="outline" size="sm" onClick={() => confirmBulkAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <Power className="mr-2 h-4 w-4" /> Enable
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => confirmBulkAction("disable")} disabled={bulkActionLoading} className="border-yellow-600 text-yellow-700 hover:bg-yellow-600/10 dark:border-yellow-500 dark:text-yellow-400 dark:hover:bg-yellow-500/20">
-                          <UserX className="mr-2 h-4 w-4" /> Disable
-                        </Button>
+                        {/* Disable Group button removed */}
                         <Button variant="outline" size="sm" onClick={() => confirmBulkUpdateAccess("allow")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Allow Access
                         </Button>
@@ -796,7 +794,7 @@ export default function GroupsPage() {
             <AlertDialogAction
               onClick={executeBulkAction}
               disabled={bulkActionLoading}
-              className={bulkActionToConfirm === 'disable' ? "bg-yellow-500 hover:bg-yellow-500/90 text-white" : "bg-primary hover:bg-primary/90"}
+              className={bulkActionToConfirm === 'enable' ? "bg-primary hover:bg-primary/90" : "bg-yellow-500 hover:bg-yellow-500/90 text-white" }
             >
               {bulkActionLoading ? "Processing..." : `Confirm ${bulkActionToConfirm?.charAt(0).toUpperCase() + (bulkActionToConfirm || "").slice(1)} Groups`}
             </AlertDialogAction>
@@ -815,3 +813,5 @@ export default function GroupsPage() {
     </div>
   )
 }
+
+    

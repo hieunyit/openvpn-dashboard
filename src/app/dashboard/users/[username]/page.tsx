@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { getUser as fetchApiUser, updateUser, getGroups, performUserAction } from "@/lib/api"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { ChangePasswordDialog } from "@/components/change-password-dialog"
@@ -561,3 +561,5 @@ export default function UserDetailPage() {
     </div>
   )
 }
+
+    

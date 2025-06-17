@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { getGroup, updateGroup, getUsers, performGroupAction } from "@/lib/api"
 import {
   AlertDialog,
@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, Network, Router, KeyRound, Info } from "lucide-react"
+import { ArrowLeft, Edit, Save, X, Shield, Users, Settings, FolderKanban, LockKeyhole, UnlockKeyhole, Activity, Power, Network, Router, KeyRound, Info, AlertTriangle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
@@ -109,17 +109,19 @@ export default function GroupDetailPage() {
         })
       } else {
         toast({
-          title: "Group not found",
+          title: "Group Not Found",
           description: `Group ${groupName} could not be found. Redirecting...`,
           variant: "destructive",
+          icon: <AlertTriangle className="h-5 w-5" />,
         })
         router.push("/dashboard/groups")
       }
     } catch (error: any) {
       toast({
-        title: "❌ Error Loading Group",
+        title: "Error Loading Group",
         description: getCoreApiErrorMessage(error.message) || "Failed to load group details. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setLoading(false)
@@ -132,9 +134,10 @@ export default function GroupDetailPage() {
       setMembers(usersData.users || [])
     } catch (error: any) {
        toast({
-        title: "❌ Error Fetching Members",
+        title: "Error Fetching Members",
         description: getCoreApiErrorMessage(error.message) || "Could not load group members.",
-        variant: "destructive"
+        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />
       });
     }
   }
@@ -175,17 +178,20 @@ export default function GroupDetailPage() {
       await updateGroup(group.groupName, groupDataToUpdate)
 
       toast({
-        title: "✅ Group Updated Successfully",
+        title: "Success",
         description: `Group ${group.groupName} has been updated.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
 
       setEditing(false)
       fetchGroup() 
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Update Group",
+        title: "Failed to Update Group",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setSaving(false)
@@ -207,15 +213,18 @@ export default function GroupDetailPage() {
       const newDenyAccessState = action === "deny";
       await updateGroup(targetGroupName, { denyAccess: newDenyAccessState });
       toast({
-        title: `✅ VPN Access ${action === "allow" ? "Allowed" : "Denied"}`,
+        title: "Success",
         description: `VPN access for group ${targetGroupName} has been ${action === "allow" ? "allowed" : "denied"}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroup(); 
     } catch (error: any) {
       toast({
-        title: `❌ Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
+        title: `Failed to ${action.charAt(0).toUpperCase() + action.slice(1)} VPN Access`,
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setSaving(false);
@@ -238,15 +247,18 @@ export default function GroupDetailPage() {
       setSaving(true);
       await performGroupAction(targetGroupName, "enable");
       toast({
-        title: `✅ Group Enabled Successfully`,
+        title: `Success`,
         description: `Group ${targetGroupName} has been enabled.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroup(); 
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Enable Group",
+        title: "Failed to Enable Group",
         description: getCoreApiErrorMessage(error.message) || `An unexpected error occurred. Please try again.`,
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setSaving(false);
@@ -555,3 +567,5 @@ export default function GroupDetailPage() {
     </div>
   )
 }
+
+    

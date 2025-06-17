@@ -9,17 +9,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { ShieldCheck, LogIn } from "lucide-react"
 import { login } from "@/lib/auth"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { getCoreApiErrorMessage } from "@/lib/utils"
+
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null) // For inline error display
   const { toast } = useToast()
   const router = useRouter()
 
@@ -29,7 +31,13 @@ export default function LoginPage() {
     setError(null)
 
     if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password.")
+      const validationError = "Please enter both username and password."
+      setError(validationError)
+      toast({
+        title: "Login Validation Failed",
+        description: validationError,
+        variant: "destructive",
+      })
       setIsLoading(false)
       return
     }
@@ -39,25 +47,27 @@ export default function LoginPage() {
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.username}!`,
+        variant: "success", // Assuming you have a success variant
       })
       router.push("/dashboard")
     } catch (loginError: any) {
-      let errorMessage = "Invalid username or password. Please try again."
+      let errorMessage = "An unexpected error occurred. Please try again."
       if (loginError instanceof Error) {
+         errorMessage = getCoreApiErrorMessage(loginError.message)
+
         if (loginError.message.includes("fetch") || loginError.message.includes("NetworkError")) {
-          errorMessage = "Unable to connect to the server. Please check your connection."
+          errorMessage = "Unable to connect to the server. Please check your connection or try again later."
         } else if (loginError.message.includes("JSON")) {
           errorMessage = "Server returned an invalid response. Please try again."
         } else if (loginError.message.includes("401")) {
           errorMessage = "Invalid username or password."
         } else if (loginError.message.includes("500")) {
           errorMessage = "Server error. Please try again later."
-        } else if (loginError.message !== "SESSION_EXPIRED") { // Avoid duplicate toast for session expiry
-            errorMessage = loginError.message;
         }
       }
-      setError(errorMessage)
-      if (errorMessage !== "SESSION_EXPIRED") { // Avoid duplicate toast for session expiry
+      
+      setError(errorMessage) // Set error for inline display if needed
+      if (loginError.message !== "SESSION_EXPIRED") {
           toast({
             title: "Login Failed",
             description: errorMessage,
@@ -134,8 +144,10 @@ export default function LoginPage() {
         </form>
       </Card>
       <p className="text-center text-xs text-muted-foreground mt-8">
-        &copy; {new Date().getFullYear()} Your Company Name. All rights reserved.
+        &copy; {new Date().getFullYear()} OpenVPN Access Manager. All rights reserved.
       </p>
     </div>
   )
 }
+
+    

@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { getVPNStatus, disconnectUser, bulkDisconnectUsers, updateUser } from "@/lib/api"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { formatDateForDisplay, formatBytes, getCoreApiErrorMessage } from "@/lib/utils"
-import { Server, Users, Globe, Clock, ArrowDownCircle, ArrowUpCircle, Wifi, AlertTriangle, FileText, PowerOff, MoreHorizontal, LockKeyhole, Activity, RefreshCw, UserCircle2 } from "lucide-react"
+import { Server, Users, Globe, Clock, ArrowDownCircle, ArrowUpCircle, Wifi, AlertTriangle, FileText, PowerOff, MoreHorizontal, LockKeyhole, Activity, RefreshCw, UserCircle2, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -101,9 +101,10 @@ export default function VPNStatusPage() {
       const coreMessage = getCoreApiErrorMessage(err.message);
       setError(coreMessage || "Failed to load VPN status. Please try again.")
       toast({
-        title: "❌ Error Loading VPN Status",
+        title: "Error Loading VPN Status",
         description: coreMessage || "An unexpected error occurred.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       if(showLoadingIndicator) setLoading(false);
@@ -134,7 +135,7 @@ export default function VPNStatusPage() {
 
   const openBulkDisconnectDialog = () => {
     if (selectedUsers.length === 0) {
-      toast({ title: "No Users Selected", description: "Please select users to disconnect.", variant: "destructive" });
+      toast({ title: "No Users Selected", description: "Please select users to disconnect.", variant: "destructive", icon: <AlertTriangle className="h-5 w-5" /> });
       return;
     }
     setDisconnectMessage("")
@@ -147,17 +148,20 @@ export default function VPNStatusPage() {
     try {
       const result = await disconnectUser(userToDisconnect.username, disconnectMessage)
       toast({
-        title: "✅ User Disconnected Successfully",
+        title: "User Disconnected Successfully",
         description: result.message || `Disconnect command sent for ${userToDisconnect.username}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       fetchStatus(false) // Refresh list
       setIsSingleDisconnectDialogOpen(false)
       setUserToDisconnect(null)
     } catch (err: any) {
       toast({
-        title: "❌ Failed to Disconnect User",
+        title: "Failed to Disconnect User",
         description: getCoreApiErrorMessage(err.message) || `An unexpected error occurred while disconnecting ${userToDisconnect.username}.`,
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setActionLoading(false)
@@ -173,17 +177,20 @@ export default function VPNStatusPage() {
         description += ` ${result.skipped_users.length} user(s) skipped.`;
       }
       toast({
-        title: "✅ Bulk Disconnect Complete",
+        title: "Bulk Disconnect Complete",
         description: result.message || description,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       fetchStatus(false) // Refresh list
       setIsBulkDisconnectDialogOpen(false)
       setSelectedUsers([])
     } catch (err: any) {
       toast({
-        title: "❌ Bulk Disconnect Failed",
+        title: "Bulk Disconnect Failed",
         description: getCoreApiErrorMessage(err.message) || "An unexpected error occurred during bulk disconnect.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setActionLoading(false)
@@ -196,6 +203,7 @@ export default function VPNStatusPage() {
         title: "Action Prevented",
         description: "You cannot deny VPN access to your own account.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
       return;
     }
@@ -210,15 +218,18 @@ export default function VPNStatusPage() {
     try {
       await updateUser(userToDenyAccess, { denyAccess: true });
       toast({
-        title: "✅ VPN Access Denied Successfully",
+        title: "VPN Access Denied Successfully",
         description: `VPN access for user ${userToDenyAccess} has been denied. Their current session will be disconnected.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchStatus(false); 
     } catch (err: any) {
       toast({
-        title: "❌ Failed to Deny VPN Access",
+        title: "Failed to Deny VPN Access",
         description: getCoreApiErrorMessage(err.message) || `An unexpected error occurred for ${userToDenyAccess}.`,
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setActionLoading(false);
@@ -476,3 +487,5 @@ export default function VPNStatusPage() {
     </div>
   )
 }
+
+    

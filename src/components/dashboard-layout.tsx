@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { useMobile } from "@/hooks/use-mobile"
 import { getUser, logout } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -72,6 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     toast({
       title: "Logged Out Successfully",
       description: "You have been securely logged out of your account.",
+      variant: "success",
     })
     router.push("/login")
   }
@@ -87,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <>
       {isMobileNav ? (
         <SheetHeader className="p-0 border-b h-16 shrink-0">
-          <div className="flex items-center gap-3 p-4 h-full">
+           <div className="flex items-center gap-3 p-4 h-full">
             <ShieldCheck className="h-8 w-8 text-primary" />
             <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
           </div>
@@ -220,3 +221,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   )
 }
 
+    

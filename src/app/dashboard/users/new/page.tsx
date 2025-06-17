@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { createUser, getGroups } from "@/lib/api"
 import { formatDateForInput, generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw } from "lucide-react"
@@ -51,7 +51,7 @@ export default function NewUserPage() {
       setGroups(data.groups || [])
     } catch (error: any) {
       toast({
-        title: "❌ Error Fetching Groups",
+        title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error.message) || "Could not load groups for selection.",
         variant: "destructive"
       });
@@ -75,6 +75,7 @@ export default function NewUserPage() {
     toast({
       title: "Password Generated",
       description: "A new random password has been generated and filled.",
+      variant: "info",
     });
   };
 
@@ -117,14 +118,15 @@ export default function NewUserPage() {
       await createUser(userData)
 
       toast({
-        title: "✅ User Created Successfully",
+        title: "User Created Successfully",
         description: `User ${formData.username} has been created.`,
+        variant: "success",
       })
 
       router.push("/dashboard/users")
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Create User",
+        title: "Failed to Create User",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
@@ -135,8 +137,9 @@ export default function NewUserPage() {
 
   const handleImportUsers = () => {
     toast({
-      title: "🚀 Coming Soon",
+      title: "Coming Soon",
       description: "Import users functionality will be available soon.",
+      variant: "info",
     })
   }
 
@@ -168,7 +171,7 @@ export default function NewUserPage() {
           <form onSubmit={handleSubmit}>
             <CardHeader className="border-b">
               <CardTitle className="flex items-center text-xl">
-                <User className="mr-2 h-5 w-5" />
+                <User className="mr-2 h-5 w-5 text-primary" />
                 User Information
               </CardTitle>
               <CardDescription>
@@ -395,3 +398,5 @@ export default function NewUserPage() {
     </div>
   )
 }
+
+    

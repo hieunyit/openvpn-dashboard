@@ -75,7 +75,7 @@ export function formatDateForAPI(dateString: string): string {
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   } catch (e) {
-    console.error("Error formatting date for API:", e, "Original string:", dateString);
+    // console.error("Error formatting date for API:", e, "Original string:", dateString);
     return dateString; // Fallback
   }
 }
@@ -158,10 +158,10 @@ export function getExpirationStatus(dateString?: string): "expired" | "expiring_
 }
 
 export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): string {
-  if (!fullErrorMessage) return "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.";
+  if (!fullErrorMessage) return "An unexpected error occurred. Please try again.";
   
   if (fullErrorMessage === "SESSION_EXPIRED") {
-    return "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.";
+    return "Your session has expired. Please log in again.";
   }
 
   const prefix = "Server error: ";
@@ -170,9 +170,7 @@ export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): st
     return fullErrorMessage.substring(index + prefix.length);
   }
   
-  // Fallback for messages that don't match the "Server error: " prefix exactly,
-  // but might still be from our API error handling (e.g., proxy errors before hitting the actual API)
-  // or other client-side errors.
   return fullErrorMessage;
 }
 
+    

@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { searchUsers, searchGroups, getGroups } from "@/lib/api" // searchUsers will be updated
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
-import { Search, Download, FileText } from "lucide-react"
+import { Search, Download, FileText, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
 
@@ -87,9 +87,10 @@ export default function SearchPage() {
       setSearchResults(results);
     } catch (error: any) {
       toast({
-        title: "❌ Search Failed",
+        title: "Search Failed",
         description: getCoreApiErrorMessage(error.message) || "Failed to perform search. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       });
       setSearchResults(null); 
     } finally {
@@ -162,6 +163,7 @@ export default function SearchPage() {
     toast({
       title: "Export successful",
       description: `Search results exported to ${activeTab}_search_results.csv`,
+      variant: "success",
     })
   }, [searchResults, activeTab, toast]);
 
@@ -393,3 +395,5 @@ export default function SearchPage() {
     </div>
   )
 }
+
+    

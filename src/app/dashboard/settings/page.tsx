@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { useTheme } from "next-themes"
 import { Sun, Moon, Bell, FileText, Info, Check, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -38,16 +38,17 @@ export default function SettingsPage() {
 
       if (simulateError) {
         toast({
-          title: `❌ Failed to Save ${section} Settings`,
+          title: `Failed to Save ${section} Settings`,
           description: getCoreApiErrorMessage("Server error: Simulated API error saving settings."), // Example of using the helper
           variant: "destructive",
+          icon: <AlertTriangle className="h-5 w-5" />,
         });
       } else {
         toast({
-          title: `✅ ${section} Settings Saved`,
+          title: `${section} Settings Saved`,
           description: `Your ${section.toLowerCase()} settings have been updated. (Simulated)`,
-          className: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300",
-          icon: <Check className="h-5 w-5 text-green-600" />
+          variant: "success",
+          icon: <Check className="h-5 w-5" />
         });
       }
       setIsLoading(false);
@@ -125,8 +126,8 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
-           <Alert className="bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300">
-            <Info className="h-5 w-5 text-blue-600" />
+           <Alert variant="info">
+            <Info className="h-5 w-5" />
             <AlertTitle className="font-semibold">Feature Update</AlertTitle>
             <AlertDescription>
               More customization options and advanced settings will be available in future updates.
@@ -177,8 +178,8 @@ export default function SettingsPage() {
                 </p>
              </CardFooter>
           </Card>
-          <Alert variant="destructive" className="bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-300">
-            <AlertTriangle className="h-5 w-5 text-orange-600" />
+          <Alert variant="warning">
+            <AlertTriangle className="h-5 w-5" />
             <AlertTitle className="font-semibold">Experimental Features</AlertTitle>
             <AlertDescription>
               Some features on this dashboard might be experimental. Use with caution and report any issues.
@@ -189,3 +190,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+    

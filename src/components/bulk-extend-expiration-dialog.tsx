@@ -14,9 +14,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { bulkExtendUserExpiration } from "@/lib/api"
-import { CalendarClock, AlertTriangle } from "lucide-react"
+import { CalendarClock, AlertTriangle, CheckCircle } from "lucide-react"
 import { formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils" 
 
 interface BulkExtendExpirationDialogProps {
@@ -43,6 +43,7 @@ export function BulkExtendExpirationDialog({
         title: "Validation Error",
         description: "Please select a new expiration date.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
       return
     }
@@ -51,17 +52,20 @@ export function BulkExtendExpirationDialog({
     try {
       await bulkExtendUserExpiration(selectedUsernames, newExpirationDate)
       toast({
-        title: "✅ Expiration Dates Extended Successfully",
+        title: "Expiration Dates Extended Successfully",
         description: `Extended expiration for ${selectedUsernames.length} user(s) to ${formatDateForInput(newExpirationDate)}.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       onSuccess()
       onOpenChange(false)
       setNewExpirationDate("") 
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Extend Expiration Dates",
+        title: "Failed to Extend Expiration Dates",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setIsSubmitting(false)
@@ -130,3 +134,5 @@ export function BulkExtendExpirationDialog({
     </Dialog>
   )
 }
+
+    

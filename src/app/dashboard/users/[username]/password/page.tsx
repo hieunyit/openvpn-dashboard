@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { performUserAction } from "@/lib/api"
 import { ArrowLeft, Key, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
@@ -39,7 +39,7 @@ export default function ChangePasswordPage() {
 
     if (formData.newPassword !== formData.confirmPassword) {
       toast({
-        title: "Password mismatch",
+        title: "Password Mismatch",
         description: "The passwords do not match. Please try again.",
         variant: "destructive",
       })
@@ -48,7 +48,7 @@ export default function ChangePasswordPage() {
 
     if (formData.newPassword.length < 8) {
       toast({
-        title: "Password too short",
+        title: "Password Too Short",
         description: "Password must be at least 8 characters long.",
         variant: "destructive",
       })
@@ -63,14 +63,15 @@ export default function ChangePasswordPage() {
       })
 
       toast({
-        title: "✅ Password changed",
-        description: `Password for user ${username} has been changed successfully.`,
+        title: "Password Changed Successfully",
+        description: `Password for user ${username} has been changed.`,
+        variant: "success",
       })
 
       router.push(`/dashboard/users/${username}`)
     } catch (error: any) {
       toast({
-        title: "❌ Error",
+        title: "Error Changing Password",
         description: getCoreApiErrorMessage(error.message) || "Failed to change password. Please try again.",
         variant: "destructive",
       })
@@ -95,7 +96,7 @@ export default function ChangePasswordPage() {
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5" />
+              <Key className="h-5 w-5 text-primary" />
               Change Password for {username}
             </CardTitle>
             <CardDescription>Enter a new password for this user account.</CardDescription>
@@ -172,3 +173,5 @@ export default function ChangePasswordPage() {
     </div>
   )
 }
+
+    

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { createGroup } from "@/lib/api"
 import { ArrowLeft, Upload, Users, Network, Shield, Router, KeyRound } from "lucide-react"
 import Link from "next/link"
@@ -63,14 +63,15 @@ export default function NewGroupPage() {
       await createGroup(groupData)
 
       toast({
-        title: "✅ Group Created Successfully",
+        title: "Group Created Successfully",
         description: `Group ${formData.groupName} has been created.`,
+        variant: "success",
       })
 
       router.push("/dashboard/groups")
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Create Group",
+        title: "Failed to Create Group",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please check your input and try again.",
         variant: "destructive",
       })
@@ -83,6 +84,7 @@ export default function NewGroupPage() {
     toast({
       title: "Coming Soon",
       description: "Import groups functionality will be available soon.",
+      variant: "info",
     })
   }
 
@@ -261,3 +263,5 @@ export default function NewGroupPage() {
     </div>
   )
 }
+
+    

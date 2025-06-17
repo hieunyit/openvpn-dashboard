@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { importUsers, importGroups, downloadUserTemplate, downloadGroupTemplate } from "@/lib/api"
 import { Upload, FileText, Download, AlertCircle, CheckCircle, XCircle, ListChecks, Info } from "lucide-react"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
@@ -189,7 +189,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
             duration: 5000,
           })
           onImportComplete()
-          setTimeout(() => { 
+           setTimeout(() => { 
             handleClose()
           }, 500);
         } else if (resultsToSet.successCount > 0) {
@@ -325,7 +325,7 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
               </div>
             </div>
 
-            <Alert>
+            <Alert variant="info">
               <Info className="h-4 w-4" />
               <AlertTitle>Important</AlertTitle>
               <AlertDescription>
@@ -477,3 +477,5 @@ export function ImportDialog({ open, onOpenChange, type, onImportComplete }: Imp
     </Dialog>
   )
 }
+
+    

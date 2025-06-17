@@ -14,9 +14,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast" // Corrected import path
 import { performUserAction } from "@/lib/api"
-import { Key, Eye, EyeOff } from "lucide-react"
+import { Key, Eye, EyeOff, CheckCircle, AlertTriangle } from "lucide-react"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface ChangePasswordDialogProps {
@@ -58,6 +58,7 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
         title: "Password Mismatch",
         description: "The passwords do not match. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
       return
     }
@@ -67,6 +68,7 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
         title: "Password Too Short",
         description: "Password must be at least 8 characters long.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
       return
     }
@@ -79,8 +81,10 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
       })
 
       toast({
-        title: "✅ Password Changed Successfully",
+        title: "Password Changed Successfully",
         description: `Password for user ${username} has been changed.`,
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
       })
       onOpenChange(false) 
       if (onSuccess) {
@@ -88,9 +92,10 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
       }
     } catch (error: any) {
       toast({
-        title: "❌ Failed to Change Password",
+        title: "Failed to Change Password",
         description: getCoreApiErrorMessage(error.message) || "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
       })
     } finally {
       setIsSubmitting(false)
@@ -102,7 +107,7 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Key className="mr-2 h-5 w-5" />
+            <Key className="mr-2 h-5 w-5 text-primary" />
             Change Password for {username}
           </DialogTitle>
           <DialogDescription>
@@ -179,3 +184,5 @@ export function ChangePasswordDialog({ open, onOpenChange, username, onSuccess }
     </Dialog>
   )
 }
+
+    
