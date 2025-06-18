@@ -72,11 +72,11 @@ export default function GroupDetailPage() {
     groupSubnet: "",
   })
 
-  const [isConfirmGroupActionDialogOpen, setIsConfirmGroupActionDialogOpen] = useState(false);
-  const [confirmGroupActionDetails, setConfirmGroupActionDetails] = useState<{ action: "enable" | "disable"; groupName: string } | null>(null);
+  const [isConfirmDenyAccessActionDialogOpen, setIsConfirmDenyAccessActionDialogOpen] = useState(false);
+  const [confirmDenyAccessDetails, setConfirmDenyAccessDetails] = useState<{ action: "enable" | "disable"; groupName: string } | null>(null);
 
-  const [isConfirmEnableAccountActionDialogOpen, setIsConfirmEnableAccountActionDialogOpen] = useState(false);
-  const [enableAccountActionDetails, setEnableAccountActionDetails] = useState<{ groupName: string } | null>(null);
+  const [isConfirmEnableSystemActionDialogOpen, setIsConfirmEnableSystemActionDialogOpen] = useState(false);
+  const [enableSystemActionDetails, setEnableSystemActionDetails] = useState<{ groupName: string } | null>(null);
 
 
   useEffect(() => {
@@ -198,15 +198,15 @@ export default function GroupDetailPage() {
     }
   }
 
-  const initiateGroupAction = (action: "enable" | "disable") => {
+  const initiateDenyAccessAction = (action: "enable" | "disable") => {
     if (!group) return;
-    setConfirmGroupActionDetails({ action, groupName: group.groupName });
-    setIsConfirmGroupActionDialogOpen(true);
+    setConfirmDenyAccessDetails({ action, groupName: group.groupName });
+    setIsConfirmDenyAccessActionDialogOpen(true);
   };
 
-  const executeGroupAction = async () => {
-    if (!confirmGroupActionDetails || !group) return;
-    const { action, groupName: targetGroupName } = confirmGroupActionDetails;
+  const executeDenyAccessAction = async () => {
+    if (!confirmDenyAccessDetails || !group) return;
+    const { action, groupName: targetGroupName } = confirmDenyAccessDetails;
 
     try {
       setSaving(true);
@@ -228,27 +228,27 @@ export default function GroupDetailPage() {
       });
     } finally {
       setSaving(false);
-      setIsConfirmGroupActionDialogOpen(false);
-      setConfirmGroupActionDetails(null);
+      setIsConfirmDenyAccessActionDialogOpen(false);
+      setConfirmDenyAccessDetails(null);
     }
   };
 
-  const initiateEnableAccountAction = () => {
+  const initiateEnableSystemAction = () => {
     if (!group) return;
-    setEnableAccountActionDetails({ groupName: group.groupName });
-    setIsConfirmEnableAccountActionDialogOpen(true);
+    setEnableSystemActionDetails({ groupName: group.groupName });
+    setIsConfirmEnableSystemActionDialogOpen(true);
   };
 
-  const executeEnableAccountAction = async () => {
-    if (!enableAccountActionDetails || !group) return;
-    const { groupName: targetGroupName } = enableAccountActionDetails;
+  const executeEnableSystemAction = async () => {
+    if (!enableSystemActionDetails || !group) return;
+    const { groupName: targetGroupName } = enableSystemActionDetails;
 
     try {
       setSaving(true);
       await performGroupAction(targetGroupName, "enable");
       toast({
         title: `Success`,
-        description: `Group ${targetGroupName} (system) has been enabled.`,
+        description: `Group ${targetGroupName} has been enabled (system-wide).`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
@@ -262,8 +262,8 @@ export default function GroupDetailPage() {
       });
     } finally {
       setSaving(false);
-      setIsConfirmEnableAccountActionDialogOpen(false);
-      setEnableAccountActionDetails(null);
+      setIsConfirmEnableSystemActionDialogOpen(false);
+      setEnableSystemActionDetails(null);
     }
   };
 
@@ -304,7 +304,7 @@ export default function GroupDetailPage() {
   
   const getStatusBadge = () => {
     if (group.isEnabled === false) {
-      return <Badge variant="outline" className="text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="mr-1.5 h-3 w-3" />System Disabled</Badge>;
+      return <Badge variant="outline" className="text-yellow-600 border-yellow-500 dark:text-yellow-400 dark:border-yellow-600"><Activity className="mr-1.5 h-3 w-3" />Disabled</Badge>;
     }
     if (group.denyAccess) {
       return <Badge variant="destructive" className="text-destructive-foreground"><LockKeyhole className="mr-1.5 h-3 w-3" /> Disabled</Badge>;
@@ -451,11 +451,11 @@ export default function GroupDetailPage() {
                 </div>
               </div>
               
-              {editing && (
+              {editing && group.isEnabled && (
                 <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border space-y-1.5">
                     <div className="flex items-center space-x-3">
                         <Checkbox id="denyAccess" checked={formData.denyAccess} onCheckedChange={(checked) => handleCheckboxChange("denyAccess", Boolean(checked))} />
-                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Disable Group</Label>
+                        <Label htmlFor="denyAccess" className="text-sm font-medium text-foreground">Disable Group (Deny VPN Access)</Label>
                     </div>
                     <p className="text-xs text-muted-foreground pl-7">If checked, users in this group (not individually allowed) will be denied VPN access.</p>
                 </div>
@@ -470,20 +470,23 @@ export default function GroupDetailPage() {
               <CardTitle className="text-lg font-semibold text-foreground flex items-center"><Settings className="mr-2 h-5 w-5 text-primary"/>Group Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-6">
-              {group.denyAccess ? (
-                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={() => initiateGroupAction("enable")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Enable Group"}>
-                  <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Group
+              {group.isEnabled === false ? (
+                <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={initiateEnableSystemAction} disabled={saving} title="Enable this group system-wide">
+                  <Power className="mr-2 h-4 w-4" /> Enable Group
                 </Button>
               ) : (
-                <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20" onClick={() => initiateGroupAction("disable")} disabled={saving || group.isEnabled === false} title={group.isEnabled === false ? "Group is system disabled" : "Disable Group"}>
-                  <LockKeyhole className="mr-2 h-4 w-4" /> Disable Group
-                </Button>
-              )}
-
-              {group.isEnabled === false && (
-                 <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={initiateEnableAccountAction} disabled={saving} title="Enable this group system-wide">
-                  <Power className="mr-2 h-4 w-4" /> Enable Group (System)
-                </Button>
+                <>
+                  {group.denyAccess ? (
+                    <Button variant="outline" className="w-full justify-start hover:bg-green-500/10 border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 dark:hover:bg-green-700/20" onClick={() => initiateDenyAccessAction("enable")} disabled={saving} title="Enable Group (Allow VPN)">
+                      <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Group (VPN)
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="w-full justify-start hover:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-700/20" onClick={() => initiateDenyAccessAction("disable")} disabled={saving} title="Disable Group (Deny VPN)">
+                      <LockKeyhole className="mr-2 h-4 w-4" /> Disable Group (VPN)
+                    </Button>
+                  )}
+                  {/* Option to system-disable an already enabled group could be added here if needed, but usually done via edit */}
+                </>
               )}
               
               {group.isEnabled === false && (
@@ -531,35 +534,35 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
-      <AlertDialog open={isConfirmGroupActionDialogOpen} onOpenChange={setIsConfirmGroupActionDialogOpen}>
+      <AlertDialog open={isConfirmDenyAccessActionDialogOpen} onOpenChange={setIsConfirmDenyAccessActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Group Status Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Group VPN Access Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {confirmGroupActionDetails?.action} group "{confirmGroupActionDetails?.groupName}"?
+              Are you sure you want to {confirmDenyAccessDetails?.action} VPN access for group "{confirmDenyAccessDetails?.groupName}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmGroupActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeGroupAction} disabled={saving} className={confirmGroupActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
-              {saving ? "Processing..." : `Confirm ${confirmGroupActionDetails?.action === "enable" ? "Enable Group" : "Disable Group"}`}
+            <AlertDialogCancel onClick={() => setIsConfirmDenyAccessActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeDenyAccessAction} disabled={saving} className={confirmDenyAccessDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
+              {saving ? "Processing..." : `Confirm ${confirmDenyAccessDetails?.action === "enable" ? "Enable Group (VPN)" : "Disable Group (VPN)"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmEnableAccountActionDialogOpen} onOpenChange={setIsConfirmEnableAccountActionDialogOpen}>
+      <AlertDialog open={isConfirmEnableSystemActionDialogOpen} onOpenChange={setIsConfirmEnableSystemActionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Enable Group (System)</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Enable Group</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to enable (system-wide) the group "{enableAccountActionDetails?.groupName}"? This will allow users in this group to connect if not individually disabled.
+              Are you sure you want to enable (system-wide) the group "{enableSystemActionDetails?.groupName}"? This will allow users in this group to connect if not individually disabled.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmEnableAccountActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeEnableAccountAction} disabled={saving} className={"bg-primary hover:bg-primary/90"}>
-              {saving ? "Processing..." : `Confirm Enable Group (System)`}
+            <AlertDialogCancel onClick={() => setIsConfirmEnableSystemActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeEnableSystemAction} disabled={saving} className={"bg-primary hover:bg-primary/90"}>
+              {saving ? "Processing..." : `Confirm Enable Group`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -567,5 +570,3 @@ export default function GroupDetailPage() {
     </div>
   )
 }
-
-    
