@@ -92,22 +92,20 @@ interface UserTableRowProps {
   isCurrentUser: boolean;
   onSelectUser: (username: string, checked: boolean) => void;
   onUpdateUserDenyAccess: (username: string, deny: boolean) => void;
-  onUpdateUserAccountStatus: (username: string, enable: boolean) => void;
   onDeleteUser: (username: string) => void;
   onChangePassword: (username: string) => void;
   onResetOtp: (username: string) => void;
 }
 
-const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, onUpdateUserDenyAccess, onUpdateUserAccountStatus, onDeleteUser, onChangePassword, onResetOtp }: UserTableRowProps) => {
+const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, onUpdateUserDenyAccess, onDeleteUser, onChangePassword, onResetOtp }: UserTableRowProps) => {
 
   const getStatusBadge = () => {
     if (user.isEnabled === false) {
-      return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="h-3 w-3" />Disabled</Badge>;
+      return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><Activity className="h-3 w-3" />Disabled</Badge>;
     }
-    if (user.denyAccess) { // isEnabled is true, but VPN access is denied
+    if (user.denyAccess) { 
       return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled</Badge>;
     }
-    // isEnabled is true and denyAccess is false
     return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" />Enabled</Badge>;
   };
 
@@ -184,12 +182,8 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-
-            {user.isEnabled === false ? (
-              <DropdownMenuItem onClick={() => onUpdateUserAccountStatus(user.username, true)} disabled={isCurrentUser}>
-                <UserCheck className="mr-2 h-4 w-4 text-green-600" /> Enable Account
-              </DropdownMenuItem>
-            ) : (
+            
+            {user.isEnabled === true && (
               <>
                 {user.denyAccess ? (
                   <DropdownMenuItem onClick={() => onUpdateUserDenyAccess(user.username, false)}>
@@ -246,15 +240,8 @@ export default function UsersPage() {
   const [userToUpdateDenyAccess, setUserToUpdateDenyAccess] = useState<{ username: string; deny: boolean } | null>(null);
   const [isConfirmSingleDenyAccessDialogOpen, setIsConfirmSingleDenyAccessDialogOpen] = useState(false);
 
-  const [userToUpdateAccountStatus, setUserToUpdateAccountStatus] = useState<{ username: string; enable: boolean } | null>(null);
-  const [isConfirmSingleAccountStatusDialogOpen, setIsConfirmSingleAccountStatusDialogOpen] = useState(false);
-
-
   const [bulkDenyAccessActionToConfirm, setBulkDenyAccessActionToConfirm] = useState<"enable" | "disable" | null>(null);
   const [isConfirmBulkDenyAccessDialogOpen, setIsConfirmBulkDenyAccessDialogOpen] = useState(false);
-
-  const [bulkAccountStatusActionToConfirm, setBulkAccountStatusActionToConfirm] = useState<"enable" | "disable" | null>(null);
-  const [isConfirmBulkAccountStatusDialogOpen, setIsConfirmBulkAccountStatusDialogOpen] = useState(false);
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
@@ -301,7 +288,7 @@ export default function UsersPage() {
     };
     if (groupNameQueryParam) {
         initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
-        if (!showFilters) setShowFilters(true);
+        if (!showFilters) setShowFilters(true); 
     }
     setCurrentFilters(prev => ({...prev, ...initialFiltersVal}));
     fetchGroupsCallback();
@@ -502,41 +489,6 @@ export default function UsersPage() {
     }
   }, [userToUpdateDenyAccess, fetchUsersCallback, toast, currentFilters]);
 
-  const confirmUpdateUserAccountStatus = useCallback((username: string, enable: boolean) => {
-    if (!enable && username === currentAuthUser?.username) {
-        toast({ title: "Action Prevented", description: `You cannot disable your own account.`, variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
-        return;
-    }
-    setUserToUpdateAccountStatus({ username, enable });
-    setIsConfirmSingleAccountStatusDialogOpen(true);
-  }, [currentAuthUser, toast]);
-
-  const executeUpdateUserAccountStatus = useCallback(async () => {
-    if (!userToUpdateAccountStatus) return;
-    const { username, enable } = userToUpdateAccountStatus;
-    try {
-        await performUserAction(username, enable ? "enable" : "disable");
-        toast({
-            title: `Success`,
-            description: `User account for ${username} has been ${enable ? "enabled" : "disabled"}.`,
-            variant: "success",
-            icon: <CheckCircle className="h-5 w-5" />,
-        });
-        fetchUsersCallback(currentFilters);
-    } catch (error: any) {
-        toast({
-            title: `Error ${enable ? "Enabling" : "Disabling"} User Account`,
-            description: getCoreApiErrorMessage(error),
-            variant: "destructive",
-            icon: <AlertTriangle className="h-5 w-5" />,
-        });
-    } finally {
-        setIsConfirmSingleAccountStatusDialogOpen(false);
-        setUserToUpdateAccountStatus(null);
-    }
-  }, [userToUpdateAccountStatus, fetchUsersCallback, toast, currentFilters]);
-
-
   const handleResetOtp = useCallback(async (username: string) => {
      try {
       await performUserAction(username, "reset-otp");
@@ -586,7 +538,7 @@ export default function UsersPage() {
     for (const username of selectedUsers) {
       try {
         const user = users.find(u => u.username === username);
-        if (deny && user && !user.isEnabled) { // Skip disabling VPN for already system-disabled users
+        if (deny && user && !user.isEnabled) { 
             continue;
         }
         await updateUser(username, { denyAccess: deny });
@@ -614,48 +566,6 @@ export default function UsersPage() {
     fetchUsersCallback(currentFilters);
     setSelectedUsers([]);
   }, [bulkDenyAccessActionToConfirm, selectedUsers, fetchUsersCallback, toast, currentFilters, users]);
-
-  const confirmBulkAccountStatusAction = useCallback((action: "enable" | "disable") => {
-    if (selectedUsers.length === 0) {
-      toast({ title: "No Users Selected", description: "Please select users for this bulk action.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
-      return;
-    }
-    if (action === "disable" && selectedUsers.includes(currentAuthUser?.username)) {
-        toast({ title: "Action Prevented", description: "You cannot disable your own account in a bulk operation. Please deselect yourself.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
-        return;
-    }
-    setBulkAccountStatusActionToConfirm(action);
-    setIsConfirmBulkAccountStatusDialogOpen(true);
-  }, [selectedUsers, currentAuthUser, toast]);
-
-  const executeBulkAccountStatusAction = useCallback(async () => {
-    if (!bulkAccountStatusActionToConfirm || selectedUsers.length === 0) return;
-
-    setBulkActionLoading(true);
-    try {
-      const result = await bulkUserActions(selectedUsers, bulkAccountStatusActionToConfirm);
-      toast({
-        title: "Bulk Action Complete",
-        description: `${result.success || 0} user accounts ${bulkAccountStatusActionToConfirm}d. ${result.failed || 0} failed.`,
-        variant: result.failed > 0 ? "warning" : "success",
-        icon: result.failed > 0 ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5"/>
-      });
-      fetchUsersCallback(currentFilters);
-      setSelectedUsers([]);
-    } catch (error: any) {
-      toast({
-        title: `Error Bulk ${bulkAccountStatusActionToConfirm.charAt(0).toUpperCase() + bulkAccountStatusActionToConfirm.slice(1)} Accounts`,
-        description: getCoreApiErrorMessage(error),
-        variant: "destructive",
-        icon: <AlertTriangle className="h-5 w-5" />,
-      });
-    } finally {
-      setBulkActionLoading(false);
-      setIsConfirmBulkAccountStatusDialogOpen(false);
-      setBulkAccountStatusActionToConfirm(null);
-    }
-  }, [bulkAccountStatusActionToConfirm, selectedUsers, fetchUsersCallback, toast, currentFilters]);
-
 
   const handleSelectUserCallback = useCallback((username: string, checked: boolean) => {
     setSelectedUsers(prev => checked ? [...prev, username] : prev.filter(u => u !== username));
@@ -767,12 +677,6 @@ export default function UsersPage() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <span className="text-sm font-medium text-primary">{selectedUsers.length} user(s) selected</span>
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => confirmBulkAccountStatusAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
-                          <UserCheck className="mr-2 h-4 w-4" /> Enable Accounts
-                        </Button>
-                         <Button variant="outline" size="sm" onClick={() => confirmBulkAccountStatusAction("disable")} disabled={bulkActionLoading} className="border-orange-500 text-orange-700 hover:bg-orange-500/10">
-                          <UserMinus className="mr-2 h-4 w-4" /> Disable Accounts
-                        </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkDenyAccessAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
                           <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Users (VPN)
                         </Button>
@@ -837,7 +741,6 @@ export default function UsersPage() {
                           isCurrentUser={user.username === currentAuthUser?.username}
                           onSelectUser={handleSelectUserCallback}
                           onUpdateUserDenyAccess={confirmUpdateUserDenyAccess}
-                          onUpdateUserAccountStatus={confirmUpdateUserAccountStatus}
                           onDeleteUser={confirmDeleteUser}
                           onChangePassword={openChangePasswordDialog}
                           onResetOtp={handleResetOtp}
@@ -901,27 +804,6 @@ export default function UsersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isConfirmSingleAccountStatusDialogOpen} onOpenChange={setIsConfirmSingleAccountStatusDialogOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Confirm User Account Status Change</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Are you sure you want to {userToUpdateAccountStatus?.enable ? "enable" : "disable"} the account for "{userToUpdateAccountStatus?.username}"?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsConfirmSingleAccountStatusDialogOpen(false)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                    onClick={executeUpdateUserAccountStatus}
-                    className={userToUpdateAccountStatus?.enable === false ? "bg-orange-500 hover:bg-orange-500/90 text-white" : "bg-green-600 hover:bg-green-600/90 text-white"}
-                >
-                    Confirm {userToUpdateAccountStatus?.enable ? "Enable Account" : "Disable Account"}
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-
       <AlertDialog open={isConfirmBulkDenyAccessDialogOpen} onOpenChange={setIsConfirmBulkDenyAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -945,31 +827,6 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={isConfirmBulkAccountStatusDialogOpen} onOpenChange={setIsConfirmBulkAccountStatusDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Account Action: {bulkAccountStatusActionToConfirm?.charAt(0).toUpperCase() + (bulkAccountStatusActionToConfirm || "").slice(1)}</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to {bulkAccountStatusActionToConfirm} the {selectedUsers.length} selected account(s)?
-              {bulkAccountStatusActionToConfirm === "disable" && selectedUsers.includes(currentAuthUser?.username) && (
-                <p className="text-destructive text-sm mt-2">Warning: Your own account is selected and will be disabled.</p>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmBulkAccountStatusDialogOpen(false)} disabled={bulkActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeBulkAccountStatusAction}
-              disabled={bulkActionLoading}
-              className={bulkAccountStatusActionToConfirm === 'enable' ? "bg-green-600 hover:bg-green-600/90 text-white" : "bg-orange-500 hover:bg-orange-500/90 text-white" }
-            >
-              {bulkActionLoading ? "Processing..." : `Confirm ${bulkAccountStatusActionToConfirm?.charAt(0).toUpperCase() + (bulkAccountStatusActionToConfirm || "").slice(1)} Accounts`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
 
       <ImportDialog
         open={isImportDialogOpen}
@@ -1010,3 +867,4 @@ export default function UsersPage() {
     </div>
   )
 }
+
