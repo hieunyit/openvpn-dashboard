@@ -34,7 +34,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { getUsers, deleteUser, updateUser, getGroups, performUserAction, bulkUserActions } from "@/lib/api"
+import { getUsers, deleteUser, updateUser, getGroups, performUserAction, bulkUserActions, exportSearchResults } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
@@ -101,12 +101,12 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
 
   const getStatusBadge = () => {
     if (user.isEnabled === false) {
-      return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><Activity className="h-3 w-3" />Disabled</Badge>;
+      return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="h-3 w-3" />Disabled</Badge>;
     }
     if (user.denyAccess) { 
-      return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled</Badge>;
+      return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled (VPN)</Badge>;
     }
-    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" />Enabled</Badge>;
+    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UserCheck className="h-3 w-3" />Enabled</Badge>;
   };
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
@@ -270,6 +270,8 @@ export default function UsersPage() {
 
   const [userForPasswordChange, setUserForPasswordChange] = useState<string | null>(null);
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
 
   const { toast } = useToast()
   const searchParams = useSearchParams()
@@ -576,13 +578,69 @@ export default function UsersPage() {
   }, [users]);
 
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
     toast({
-      title: "Export Coming Soon",
-      description: "This feature will be available in a future update.",
-      variant: "info"
-    })
-  }, [toast]);
+      title: "Exporting Users...",
+      description: "Preparing your user data for download.",
+      variant: "info",
+      icon: <Download className="h-5 w-5 animate-pulse" />,
+    });
+
+    const exportCriteria: any = {
+      ...currentFilters,
+      type: 'users',
+    };
+    if (searchTerm.trim()) {
+      exportCriteria.searchText = searchTerm.trim();
+    }
+    if (expirationDateFrom) {
+      exportCriteria.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
+    }
+    if (expirationDateTo) {
+      exportCriteria.userExpirationBefore = formatDateForInput(expirationDateTo.toISOString());
+    }
+    delete exportCriteria.page;
+    delete exportCriteria.limit;
+
+    try {
+      const blob = await exportSearchResults(exportCriteria, 'csv');
+      if (blob.size === 0) {
+        toast({
+            title: "No Data to Export",
+            description: "There are no users matching the current filters to export.",
+            variant: "warning",
+            icon: <AlertTriangle className="h-5 w-5" />,
+        });
+        return;
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      a.download = `users_export_${timestamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast({
+        title: "Export Successful",
+        description: "User data has been downloaded.",
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: getCoreApiErrorMessage(error) || "Could not export user data.",
+        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [currentFilters, searchTerm, expirationDateFrom, expirationDateTo, toast]);
+
 
   const openChangePasswordDialog = useCallback((username: string) => {
     setUserForPasswordChange(username);
@@ -600,15 +658,15 @@ export default function UsersPage() {
             <p className="text-muted-foreground mt-1">Manage OpenVPN users, their permissions, and access settings.</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="h-10">
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="h-10" disabled={isExporting}>
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
-          <Button variant="outline" onClick={handleExport} className="h-10">
-            <Download className="mr-2 h-4 w-4" />
-            Export
+          <Button variant="outline" onClick={handleExport} className="h-10" disabled={isExporting}>
+            {isExporting ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            {isExporting ? "Exporting..." : "Export"}
           </Button>
-          <Button onClick={() => setIsAddUserDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-10">
+          <Button onClick={() => setIsAddUserDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-10" disabled={isExporting}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add User
           </Button>
