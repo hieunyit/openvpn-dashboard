@@ -66,7 +66,7 @@ import {
   RefreshCcw,
 } from "lucide-react"
 import Link from "next/link"
-import { getCoreApiErrorMessage } from "@/lib/utils"
+import { getCoreApiErrorMessage, formatDateForDisplay } from "@/lib/utils"
 
 
 interface Group {
@@ -179,22 +179,21 @@ const GroupTableRow = memo(({ group, selectedGroups, onSelectGroup, onUpdateGrou
             <DropdownMenuSeparator />
              {group.isEnabled === false ? (
                 <DropdownMenuItem onClick={() => onEnableGroupSystem(group.groupName)}>
-                    <Power className="mr-2 h-4 w-4 text-green-600" /> Enable Group
+                    <Power className="mr-2 h-4 w-4 text-green-600" /> Enable Group (System)
                 </DropdownMenuItem>
              ) : (
                 <>
                  {group.denyAccess ? (
                   <DropdownMenuItem onClick={() => onUpdateGroupDenyAccess(group.groupName, false)}>
                     <UnlockKeyhole className="mr-2 h-4 w-4 text-green-600" />
-                    Enable Group (VPN)
+                    Enable Group
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem onClick={() => onUpdateGroupDenyAccess(group.groupName, true)}>
                     <LockKeyhole className="mr-2 h-4 w-4 text-red-600" />
-                    Disable Group (VPN)
+                    Disable Group
                   </DropdownMenuItem>
                 )}
-                {/* Option to system-disable could be added here, if needed */}
                </>
              )}
             <DropdownMenuSeparator />
@@ -247,6 +246,8 @@ export default function GroupsPage() {
   })
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [isExporting, setIsExporting] = useState(false);
+
 
   const { toast } = useToast()
   const searchParams = useSearchParams()
@@ -403,14 +404,14 @@ export default function GroupsPage() {
       await updateGroup(groupName, { denyAccess: deny });
       toast({
         title: "Success",
-        description: `Group ${groupName} VPN access has been ${deny ? "disabled" : "enabled"}.`,
+        description: `Group ${groupName} has been ${deny ? "disabled" : "enabled"}.`,
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
       toast({
-        title: `Error ${deny ? "Disabling" : "Enabling"} Group VPN Access`,
+        title: `Error ${deny ? "Disabling" : "Enabling"} Group`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -468,12 +469,12 @@ export default function GroupsPage() {
     let successCount = 0;
     let failCount = 0;
 
-    toast({ title: "Processing...", description: `Attempting to ${bulkDenyAccessActionToConfirm} VPN access for ${selectedGroups.length} groups...`, variant:"info", icon: <RefreshCcw className="h-5 w-5 animate-spin" />});
+    toast({ title: "Processing...", description: `Attempting to ${bulkDenyAccessActionToConfirm} ${selectedGroups.length} groups...`, variant:"info", icon: <RefreshCcw className="h-5 w-5 animate-spin" />});
 
     for (const groupName of selectedGroups) {
       try {
         const group = groups.find(g => g.groupName === groupName);
-        if (group && !group.isEnabled) { // Skip if group is system-disabled
+        if (group && !group.isEnabled) { 
             continue; 
         }
         await updateGroup(groupName, { denyAccess: deny });
@@ -487,7 +488,7 @@ export default function GroupsPage() {
     setIsConfirmBulkDenyAccessDialogOpen(false);
     setBulkDenyAccessActionToConfirm(null);
 
-    let summaryMessage = `${successCount} groups VPN access ${deny ? "disabled" : "enabled"}.`;
+    let summaryMessage = `${successCount} groups ${deny ? "disabled" : "enabled"}.`;
     if (failCount > 0) {
       summaryMessage += ` ${failCount} groups failed to update.`;
     }
@@ -550,12 +551,71 @@ export default function GroupsPage() {
 
 
   const handleExport = useCallback(() => {
+    setIsExporting(true);
     toast({
-      title: "Export Coming Soon",
-      description: "This feature will be available in a future update.",
-      variant: "info"
-    })
-  }, [toast]);
+      title: "Exporting Groups...",
+      description: "Preparing your group data for download.",
+      variant: "info",
+      icon: <Download className="h-5 w-5 animate-pulse" />,
+    });
+
+    if (!groups || groups.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "There are no groups currently displayed to export.",
+        variant: "warning",
+        icon: <AlertTriangle className="h-5 w-5" />,
+      });
+      setIsExporting(false);
+      return;
+    }
+    
+    try {
+      const headers = ["Group Name", "Auth Method", "Role", "MFA Required", "Access Control Rules", "Member Count", "Status (System)", "Status (VPN)"];
+      const csvContent = [
+        headers.join(","),
+        ...groups.map((group) => {
+          return [
+            group.groupName || "",
+            group.authMethod || "N/A",
+            group.role || "N/A",
+            group.mfa ? "Yes" : "No",
+            group.accessControl?.join(";") || "",
+            group.memberCount ?? "N/A",
+            group.isEnabled !== false ? "Enabled" : "Disabled",
+            group.denyAccess === true ? "Disabled" : "Enabled",
+          ].join(",");
+        }),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0,10);
+      a.download = `groups_export_${timestamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Successful",
+        description: "Displayed group data has been downloaded.",
+        variant: "success",
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: getCoreApiErrorMessage(error.message) || "Could not export group data.",
+        variant: "destructive",
+        icon: <AlertTriangle className="h-5 w-5" />,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [groups, toast]);
 
   const totalPages = Math.ceil(total / limit)
   const isAllSelected = groups.length > 0 && selectedGroups.length === groups.length;
@@ -568,15 +628,15 @@ export default function GroupsPage() {
             <p className="text-muted-foreground mt-1">Manage OpenVPN user groups and their access settings.</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} disabled={isExporting}>
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
+          <Button variant="outline" onClick={handleExport} disabled={isExporting || groups.length === 0}>
+            {isExporting ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            {isExporting ? "Exporting..." : "Export Displayed"}
           </Button>
-          <Button onClick={() => setIsAddGroupDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={() => setIsAddGroupDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={isExporting}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Group
           </Button>
@@ -617,13 +677,13 @@ export default function GroupsPage() {
                     <span className="text-sm font-medium text-primary">{selectedGroups.length} group(s) selected</span>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" size="sm" onClick={confirmBulkSystemEnableAction} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
-                          <Power className="mr-2 h-4 w-4" /> Enable Groups
+                          <Power className="mr-2 h-4 w-4" /> Enable Groups (System)
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkDenyAccessAction("enable")} disabled={bulkActionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
-                          <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Groups (VPN)
+                          <UnlockKeyhole className="mr-2 h-4 w-4" /> Enable Groups
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => confirmBulkDenyAccessAction("disable")} disabled={bulkActionLoading} className="border-red-500 text-red-700 hover:bg-red-500/10">
-                          <LockKeyhole className="mr-2 h-4 w-4" /> Disable Groups (VPN)
+                          <LockKeyhole className="mr-2 h-4 w-4" /> Disable Groups
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => setSelectedGroups([])} disabled={bulkActionLoading}>
                           Clear
@@ -723,9 +783,9 @@ export default function GroupsPage() {
       <AlertDialog open={isConfirmSingleDenyAccessDialogOpen} onOpenChange={setIsConfirmSingleDenyAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Group VPN Access Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Group Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {groupToUpdateDenyAccess?.deny ? "disable" : "enable"} VPN access for group "{groupToUpdateDenyAccess?.groupName}"?
+              Are you sure you want to {groupToUpdateDenyAccess?.deny ? "disable" : "enable"} group "{groupToUpdateDenyAccess?.groupName}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -734,7 +794,7 @@ export default function GroupsPage() {
               onClick={executeUpdateGroupDenyAccess}
               className={groupToUpdateDenyAccess?.deny ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
             >
-              Confirm {groupToUpdateDenyAccess?.deny ? "Disable Group (VPN)" : "Enable Group (VPN)"}
+              Confirm {groupToUpdateDenyAccess?.deny ? "Disable Group" : "Enable Group"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -743,7 +803,7 @@ export default function GroupsPage() {
       <AlertDialog open={isConfirmSingleEnableSystemDialogOpen} onOpenChange={setIsConfirmSingleEnableSystemDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Enable Group</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Enable Group (System)</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to enable group "{groupToEnableSystem}" (system-wide)? This will allow users in this group to connect if not individually denied access.
             </AlertDialogDescription>
@@ -754,7 +814,7 @@ export default function GroupsPage() {
               onClick={executeEnableGroupSystem}
               className={"bg-primary hover:bg-primary/90"}
             >
-              Confirm Enable Group
+              Confirm Enable Group (System)
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -763,11 +823,11 @@ export default function GroupsPage() {
       <AlertDialog open={isConfirmBulkDenyAccessDialogOpen} onOpenChange={setIsConfirmBulkDenyAccessDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Group VPN Access Change</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Bulk Group Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {bulkDenyAccessActionToConfirm === "disable" ? "disable" : "enable"} VPN access for {selectedGroups.length} selected group(s)?
+              Are you sure you want to {bulkDenyAccessActionToConfirm === "disable" ? "disable" : "enable"} {selectedGroups.length} selected group(s)?
               {bulkDenyAccessActionToConfirm === "disable" && selectedGroups.some(sg => groups.find(g => g.groupName === sg && g.isEnabled === false)) && (
-                 <p className="text-yellow-600 text-sm mt-2">Warning: Some selected groups are system disabled. Disabling their VPN access might be redundant until they are enabled system-wide.</p>
+                 <p className="text-yellow-600 text-sm mt-2">Warning: Some selected groups are system disabled. Disabling them might be redundant until they are enabled system-wide.</p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -778,7 +838,7 @@ export default function GroupsPage() {
               disabled={bulkActionLoading}
               className={bulkDenyAccessActionToConfirm === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}
             >
-              {bulkActionLoading ? "Processing..." : `Confirm ${bulkDenyAccessActionToConfirm === "disable" ? "Disable Groups (VPN)" : "Enable Groups (VPN)"}`}
+              {bulkActionLoading ? "Processing..." : `Confirm ${bulkDenyAccessActionToConfirm === "disable" ? "Disable Groups" : "Enable Groups"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -787,7 +847,7 @@ export default function GroupsPage() {
       <AlertDialog open={isConfirmBulkSystemEnableDialogOpen} onOpenChange={setIsConfirmBulkSystemEnableDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Bulk Group Enable</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Bulk Group Enable (System)</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to enable the {selectedGroups.length} selected group(s) (system-wide)? This will apply system-wide.
             </AlertDialogDescription>
@@ -799,7 +859,7 @@ export default function GroupsPage() {
               disabled={bulkActionLoading}
               className={"bg-primary hover:bg-primary/90"}
             >
-              {bulkActionLoading ? "Processing..." : `Confirm Enable Groups`}
+              {bulkActionLoading ? "Processing..." : `Confirm Enable Groups (System)`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -816,3 +876,5 @@ export default function GroupsPage() {
     </div>
   )
 }
+
+
