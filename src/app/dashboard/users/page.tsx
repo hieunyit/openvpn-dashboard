@@ -47,7 +47,7 @@ import {
   MoreHorizontal,
   Trash2,
   RefreshCcw,
-  KeyRound as Key, 
+  KeyRound as Key,
   CalendarDays,
   UserCog,
   Upload,
@@ -58,12 +58,13 @@ import {
   ListFilter,
   FileText,
   Eye,
-  UserX, 
+  UserX,
   UserCheck,
   UserMinus,
   X as XIcon,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Activity
 } from "lucide-react"
 import Link from "next/link"
 import { formatDateForDisplay, getExpirationStatus, formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils"
@@ -98,21 +99,22 @@ interface UserTableRowProps {
 }
 
 const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, onUpdateUserDenyAccess, onUpdateUserAccountStatus, onDeleteUser, onChangePassword, onResetOtp }: UserTableRowProps) => {
-  
+
   const getStatusBadge = () => {
     if (user.isEnabled === false) {
       return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="h-3 w-3" />Disabled</Badge>;
     }
-    if (user.denyAccess) {
+    if (user.denyAccess) { // isEnabled is true, but VPN access is denied
       return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled</Badge>;
     }
+    // isEnabled is true and denyAccess is false
     return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" />Enabled</Badge>;
   };
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
   const displayedExpirationDate = formatDateForDisplay(user.userExpiration);
   const isExpirationUnknown = expirationStatus === "unknown";
-  
+
   return (
     <TableRow key={user.username} className={selectedUsers.includes(user.username) ? "bg-muted hover:bg-muted/80" : "hover:bg-muted/50 transition-colors"}>
       <TableCell className="w-12 px-4">
@@ -182,16 +184,13 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            
+
             {user.isEnabled === false ? (
               <DropdownMenuItem onClick={() => onUpdateUserAccountStatus(user.username, true)} disabled={isCurrentUser}>
                 <UserCheck className="mr-2 h-4 w-4 text-green-600" /> Enable Account
               </DropdownMenuItem>
             ) : (
               <>
-                <DropdownMenuItem onClick={() => onUpdateUserAccountStatus(user.username, false)} disabled={isCurrentUser}>
-                  <UserMinus className="mr-2 h-4 w-4 text-orange-600" /> Disable Account
-                </DropdownMenuItem>
                 {user.denyAccess ? (
                   <DropdownMenuItem onClick={() => onUpdateUserDenyAccess(user.username, false)}>
                     <UnlockKeyhole className="mr-2 h-4 w-4 text-green-600" />
@@ -205,7 +204,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
                 )}
               </>
             )}
-            
+
             <DropdownMenuItem onClick={() => onResetOtp(user.username)} disabled={user.isEnabled === false}>
               <RefreshCcw className="mr-2 h-4 w-4" />
               Reset OTP
@@ -246,32 +245,32 @@ export default function UsersPage() {
 
   const [userToUpdateDenyAccess, setUserToUpdateDenyAccess] = useState<{ username: string; deny: boolean } | null>(null);
   const [isConfirmSingleDenyAccessDialogOpen, setIsConfirmSingleDenyAccessDialogOpen] = useState(false);
-  
+
   const [userToUpdateAccountStatus, setUserToUpdateAccountStatus] = useState<{ username: string; enable: boolean } | null>(null);
   const [isConfirmSingleAccountStatusDialogOpen, setIsConfirmSingleAccountStatusDialogOpen] = useState(false);
 
 
   const [bulkDenyAccessActionToConfirm, setBulkDenyAccessActionToConfirm] = useState<"enable" | "disable" | null>(null);
   const [isConfirmBulkDenyAccessDialogOpen, setIsConfirmBulkDenyAccessDialogOpen] = useState(false);
-  
+
   const [bulkAccountStatusActionToConfirm, setBulkAccountStatusActionToConfirm] = useState<"enable" | "disable" | null>(null);
   const [isConfirmBulkAccountStatusDialogOpen, setIsConfirmBulkAccountStatusDialogOpen] = useState(false);
-  
+
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
   const [isExtendExpirationDialogOpen, setIsExtendExpirationDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false)
-  
+
   const [expirationDateFrom, setExpirationDateFrom] = useState<Date | undefined>()
   const [expirationDateTo, setExpirationDateTo] = useState<Date | undefined>()
 
-  const [currentFilters, setCurrentFilters] = useState<any>({ 
-    sortBy: "username", 
+  const [currentFilters, setCurrentFilters] = useState<any>({
+    sortBy: "username",
     sortOrder: "asc",
     userExpirationAfter: undefined,
     userExpirationBefore: undefined,
     mfaEnabled: "any",
-    includeExpired: "true", 
+    includeExpired: "true",
     hasAccessControl: "any",
     macAddress: "",
     exactMatch: "false",
@@ -295,16 +294,16 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => {
-    let initialFiltersVal = { 
-        ...currentFilters, 
+    let initialFiltersVal = {
+        ...currentFilters,
         userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
         userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
     };
     if (groupNameQueryParam) {
         initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
-        if (!showFilters) setShowFilters(true); 
+        if (!showFilters) setShowFilters(true);
     }
-    setCurrentFilters(prev => ({...prev, ...initialFiltersVal})); 
+    setCurrentFilters(prev => ({...prev, ...initialFiltersVal}));
     fetchGroupsCallback();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupNameQueryParam]);
@@ -314,7 +313,7 @@ export default function UsersPage() {
     try {
       setLoading(true)
       const finalAPIFilters: Record<string, any> = {
-        ...filtersToApply, 
+        ...filtersToApply,
       };
 
       if (searchTerm.trim()) {
@@ -322,9 +321,9 @@ export default function UsersPage() {
       } else if (filtersToApply.searchText && filtersToApply.searchText.trim()) {
         finalAPIFilters.searchText = filtersToApply.searchText.trim();
       } else {
-        delete finalAPIFilters.searchText; 
+        delete finalAPIFilters.searchText;
       }
-      
+
       if (expirationDateFrom) {
         finalAPIFilters.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
       } else {
@@ -335,7 +334,7 @@ export default function UsersPage() {
       } else {
         delete finalAPIFilters.userExpirationBefore;
       }
-      
+
       const data = await getUsers(page, limit, finalAPIFilters)
       setUsers(data.users.map(u => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
       setTotal(data.total || 0)
@@ -375,7 +374,7 @@ export default function UsersPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionQueryParam, isAddUserDialogOpen]);
-  
+
   useEffect(() => {
     const handler = setTimeout(() => {
       const filtersWithDates = {
@@ -383,17 +382,17 @@ export default function UsersPage() {
         userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
         userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
       };
-      if (page !== 1) setPage(1); 
+      if (page !== 1) setPage(1);
       else fetchUsersCallback(filtersWithDates);
-    }, 500); 
+    }, 500);
 
     return () => {
       clearTimeout(handler);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, currentFilters, expirationDateFrom, expirationDateTo]); 
+  }, [searchTerm, currentFilters, expirationDateFrom, expirationDateTo]);
 
-  useEffect(() => { 
+  useEffect(() => {
     const filtersWithDates = {
         ...currentFilters,
         userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
@@ -401,20 +400,20 @@ export default function UsersPage() {
       };
     fetchUsersCallback(filtersWithDates)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit]); 
+  }, [page, limit]);
 
 
   const handleFiltersChangeCallback = useCallback((newFilters: any) => {
     const filtersWithDates = {
-      ...newFilters, 
+      ...newFilters,
       userExpirationAfter: expirationDateFrom ? formatDateForInput(expirationDateFrom.toISOString()) : undefined,
       userExpirationBefore: expirationDateTo ? formatDateForInput(expirationDateTo.toISOString()) : undefined,
     };
     setCurrentFilters(filtersWithDates);
     if (page !== 1) setPage(1);
-    else fetchUsersCallback(filtersWithDates); 
+    else fetchUsersCallback(filtersWithDates);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]); 
+  }, [page, fetchUsersCallback, expirationDateFrom, expirationDateTo]);
 
   const handleDateFilterChange = (date: Date | undefined, type: "from" | "to") => {
     if (type === "from") {
@@ -468,9 +467,6 @@ export default function UsersPage() {
 
   const confirmUpdateUserDenyAccess = useCallback((username: string, deny: boolean) => {
     if (deny && username === currentAuthUser?.username) {
-      // Check if the user being disabled (VPN access) is the current user.
-      // This might still be allowed if their account (isEnabled) is also true.
-      // The page.tsx for user details has more nuanced logic, this is for list view.
       const user = users.find(u => u.username === username);
       if (user && user.isEnabled) {
          toast({ title: "Action Prevented", description: "You cannot disable your own VPN access while your account is enabled.", variant: "warning", icon: <AlertTriangle className="h-5 w-5" /> });
@@ -514,7 +510,7 @@ export default function UsersPage() {
     setUserToUpdateAccountStatus({ username, enable });
     setIsConfirmSingleAccountStatusDialogOpen(true);
   }, [currentAuthUser, toast]);
-  
+
   const executeUpdateUserAccountStatus = useCallback(async () => {
     if (!userToUpdateAccountStatus) return;
     const { username, enable } = userToUpdateAccountStatus;
@@ -618,7 +614,7 @@ export default function UsersPage() {
     fetchUsersCallback(currentFilters);
     setSelectedUsers([]);
   }, [bulkDenyAccessActionToConfirm, selectedUsers, fetchUsersCallback, toast, currentFilters, users]);
-  
+
   const confirmBulkAccountStatusAction = useCallback((action: "enable" | "disable") => {
     if (selectedUsers.length === 0) {
       toast({ title: "No Users Selected", description: "Please select users for this bulk action.", variant: "info", icon: <AlertTriangle className="h-5 w-5" /> });
@@ -765,7 +761,7 @@ export default function UsersPage() {
               <AdvancedFilters type="users" onFiltersChange={handleFiltersChangeCallback} availableGroups={availableGroups} initialFilters={currentFilters} />
             </div>
           )}
-          
+
           {selectedUsers.length > 0 && (
             <div className="p-3 sm:p-4 border-b bg-primary/5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -841,7 +837,7 @@ export default function UsersPage() {
                           isCurrentUser={user.username === currentAuthUser?.username}
                           onSelectUser={handleSelectUserCallback}
                           onUpdateUserDenyAccess={confirmUpdateUserDenyAccess}
-                          onUpdateUserAccountStatus={confirmUpdateUserAccountStatus} 
+                          onUpdateUserAccountStatus={confirmUpdateUserAccountStatus}
                           onDeleteUser={confirmDeleteUser}
                           onChangePassword={openChangePasswordDialog}
                           onResetOtp={handleResetOtp}
@@ -904,7 +900,7 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       <AlertDialog open={isConfirmSingleAccountStatusDialogOpen} onOpenChange={setIsConfirmSingleAccountStatusDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -949,7 +945,7 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       <AlertDialog open={isConfirmBulkAccountStatusDialogOpen} onOpenChange={setIsConfirmBulkAccountStatusDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -973,7 +969,7 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
 
       <ImportDialog
         open={isImportDialogOpen}
