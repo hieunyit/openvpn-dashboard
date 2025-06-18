@@ -17,6 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
 import { getUser, logout } from "@/lib/auth"
@@ -32,24 +37,66 @@ import {
   Server,
   UserCircle2,
   LifeBuoy,
+  LayoutGrid, // New icon for main dashboard
+  ChevronDown,
 } from "lucide-react"
 
-interface NavItem {
-  title: string
-  href: string
-  icon: React.ElementType
+interface NavSubItem {
+  title: string;
+  href: string;
+  icon: React.ElementType;
 }
 
-const navItems: NavItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Users", href: "/dashboard/users", icon: Users },
-  { title: "Groups", href: "/dashboard/groups", icon: FolderKanban },
-  { title: "VPN Status", href: "/dashboard/status", icon: Server },
-]
+interface NavItemConfig {
+  title: string;
+  href?: string;
+  icon: React.ElementType;
+  subItems?: NavSubItem[];
+  isInitiallyOpen?: boolean;
+}
 
-const bottomNavItems: NavItem[] = [
+const navConfig: NavItemConfig[] = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutGrid,
+  },
+  {
+    title: "OpenVPN",
+    icon: ShieldCheck,
+    isInitiallyOpen: true,
+    subItems: [
+      { title: "Overview", href: "/dashboard/openvpn/overview", icon: LayoutDashboard },
+      { title: "Users", href: "/dashboard/users", icon: Users },
+      { title: "Groups", href: "/dashboard/groups", icon: FolderKanban },
+      { title: "VPN Status", href: "/dashboard/status", icon: Server },
+    ],
+  },
+  // Placeholder for future LDAP Management
+  // {
+  //   title: "LDAP Management",
+  //   icon: UsersCog, // Example icon - ensure UsersCog is imported if used
+  //   isInitiallyOpen: false,
+  //   subItems: [
+  //     { title: "LDAP Users", href: "/dashboard/ldap/users", icon: Users },
+  //     { title: "LDAP Groups", href: "/dashboard/ldap/groups", icon: FolderKanban },
+  //   ],
+  // },
+];
+
+const bottomNavItems: NavItemConfig[] = [
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
+
+const isParentOrChildActive = (pathname: string, parentItem: NavItemConfig): boolean => {
+  if (parentItem.href && (pathname === parentItem.href || pathname.startsWith(parentItem.href + '/'))) {
+    return true;
+  }
+  if (parentItem.subItems) {
+    return parentItem.subItems.some(subItem => pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
+  }
+  return false;
+};
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -87,44 +134,83 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {isMobileNav ? (
         <SheetHeader className="p-0 border-b h-16 shrink-0">
            <div className="flex items-center gap-3 p-4 h-full">
-            <ShieldCheck className="h-8 w-8 text-primary" />
-            <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
+            <LayoutGrid className="h-7 w-7 text-primary" /> {/* Portal Icon */}
+            <span className="font-semibold text-xl text-foreground whitespace-nowrap">System Portal</span>
           </div>
           <SheetTitle className="sr-only">Main Navigation Menu</SheetTitle>
         </SheetHeader>
       ) : (
         <div className="flex items-center gap-3 p-4 h-16 border-b shrink-0">
-          <ShieldCheck className="h-8 w-8 text-primary" />
-          <span className="font-semibold text-xl text-foreground whitespace-nowrap">OpenVPN Admin</span>
+          <LayoutGrid className="h-7 w-7 text-primary" /> {/* Portal Icon */}
+          <span className="font-semibold text-xl text-foreground whitespace-nowrap">System Portal</span>
         </div>
       )}
       <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => isMobileNav && setMobileNavOpen(false)}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all",
-              pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard")
-                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            {item.title}
-          </Link>
+        {navConfig.map((item) => (
+          item.subItems && item.subItems.length > 0 ? (
+            <Collapsible 
+              key={item.title} 
+              defaultOpen={item.isInitiallyOpen || isParentOrChildActive(pathname, item)} 
+              className="space-y-1"
+            >
+              <CollapsibleTrigger className={cn(
+                "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all w-full group",
+                isParentOrChildActive(pathname, item)
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}>
+                <div className="flex items-center gap-3">
+                  <item.icon className="h-5 w-5" />
+                  {item.title}
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="ml-2 pl-5 border-l border-muted-foreground/20 space-y-1 py-1">
+                {item.subItems.map((subItem) => (
+                  <Link
+                    key={subItem.href}
+                    href={subItem.href}
+                    onClick={() => isMobileNav && setMobileNavOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-all",
+                      pathname === subItem.href || pathname.startsWith(subItem.href + '/') 
+                        ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <subItem.icon className="h-4 w-4" /> {/* Smaller icon for sub-items */}
+                    {subItem.title}
+                  </Link>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <Link
+              key={item.href || item.title}
+              href={item.href!} 
+              onClick={() => isMobileNav && setMobileNavOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all",
+                isParentOrChildActive(pathname, item)
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.title}
+            </Link>
+          )
         ))}
       </nav>
       <div className="mt-auto p-3 border-t space-y-1.5 shrink-0">
          {bottomNavItems.map((item) => (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href!}
             onClick={() => isMobileNav && setMobileNavOpen(false)}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-all",
-              pathname.startsWith(item.href)
+              isParentOrChildActive(pathname, item)
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
@@ -218,5 +304,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 }
-
-    
