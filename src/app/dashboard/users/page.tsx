@@ -67,7 +67,7 @@ import {
   Activity
 } from "lucide-react"
 import Link from "next/link"
-import { formatDateForDisplay, getExpirationStatus, formatDateForInput, getCoreApiErrorMessage } from "@/lib/utils"
+import { formatDateForDisplay, getExpirationStatus, formatDateForInput, getCoreApiErrorMessage, formatDateForAPI } from "@/lib/utils"
 import { getUser as getCurrentAuthUser } from "@/lib/auth"
 import { format as formatDateFns } from "date-fns"
 
@@ -106,7 +106,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
     if (user.denyAccess) { 
       return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled</Badge>;
     }
-    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UserCheck className="h-3 w-3" />Enabled</Badge>;
+    return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" />Enabled</Badge>;
   };
 
   const expirationStatus = getExpirationStatus(user.userExpiration);
@@ -606,13 +606,13 @@ export default function UsersPage() {
           return [
             user.username || "",
             user.email || "",
-            user.groupName || "N/A",
+            user.groupName && user.groupName !== "No Group" ? user.groupName : "N/A",
             user.authMethod || "N/A",
-            formatDateForDisplay(user.userExpiration || "N/A"),
+            user.userExpiration ? formatDateForAPI(user.userExpiration) : "N/A",
             user.isEnabled !== false ? "Enabled" : "Disabled",
-            user.denyAccess === true ? "Disabled" : "Enabled",
+            user.isEnabled === false ? "Disabled" : (user.denyAccess === true ? "Disabled" : "Enabled"),
             user.mfa ? "Yes" : "No",
-          ].join(",");
+          ].map(value => `"${String(value).replace(/"/g, '""')}"`).join(","); // Quote and escape values
         }),
       ].join("\n");
 
@@ -636,7 +636,7 @@ export default function UsersPage() {
     } catch (error: any) {
       toast({
         title: "Export Failed",
-        description: getCoreApiErrorMessage(error.message) || "Could not export user data.",
+        description: getCoreApiErrorMessage(error),
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -929,3 +929,4 @@ export default function UsersPage() {
     </div>
   )
 }
+
