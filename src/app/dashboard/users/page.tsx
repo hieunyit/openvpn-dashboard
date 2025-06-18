@@ -599,20 +599,26 @@ export default function UsersPage() {
     }
 
     try {
-      const headers = ["Username", "Email", "Group", "Auth Method", "Expiration", "Status (System)", "Status (VPN)", "MFA"];
+      const headers = ["Username", "Email", "Group", "Auth Method", "Expiration", "Status (VPN)", "MFA"];
       const csvContent = [
         headers.join(","),
         ...users.map((user) => {
+          let vpnStatus = "Enabled";
+          if (user.isEnabled === false) {
+            vpnStatus = "Disabled"; // System disabled implies VPN disabled
+          } else if (user.denyAccess === true) {
+            vpnStatus = "Disabled"; // System enabled, but VPN specifically denied
+          }
+
           return [
             user.username || "",
             user.email || "",
             user.groupName && user.groupName !== "No Group" ? user.groupName : "N/A",
             user.authMethod || "N/A",
             user.userExpiration ? formatDateForAPI(user.userExpiration) : "N/A",
-            user.isEnabled !== false ? "Enabled" : "Disabled",
-            user.isEnabled === false ? "Disabled" : (user.denyAccess === true ? "Disabled" : "Enabled"),
+            vpnStatus,
             user.mfa ? "Yes" : "No",
-          ].map(value => `"${String(value).replace(/"/g, '""')}"`).join(","); // Quote and escape values
+          ].map(value => `"${String(value).replace(/"/g, '""')}"`).join(",");
         }),
       ].join("\n");
 
