@@ -155,21 +155,36 @@ export function getExpirationStatus(dateString?: string): "expired" | "expiring_
   return "active";
 }
 
-export function getCoreApiErrorMessage(fullErrorMessage: string | undefined): string {
+export function getCoreApiErrorMessage(errorInput: any): string {
   const defaultEnglishMessage = "An unexpected error occurred. Please try again.";
-  if (!fullErrorMessage) return defaultEnglishMessage;
-  
-  if (fullErrorMessage === "SESSION_EXPIRED") {
+  let messageToParse: string | undefined;
+
+  if (typeof errorInput === 'string') {
+    messageToParse = errorInput;
+  } else if (errorInput instanceof Error && typeof errorInput.message === 'string') {
+    messageToParse = errorInput.message;
+  } else if (errorInput && typeof errorInput.toString === 'function') {
+    const strError = errorInput.toString();
+    if (strError !== '[object Object]' && strError.trim() !== '') {
+        messageToParse = strError;
+    }
+  }
+
+  if (!messageToParse) {
+    return defaultEnglishMessage;
+  }
+
+  if (messageToParse === "SESSION_EXPIRED") {
     return "Your session has expired. Please log in again.";
   }
 
   const prefix = "Server error: ";
-  const index = fullErrorMessage.indexOf(prefix);
+  const index = messageToParse.indexOf(prefix);
   if (index !== -1) {
-    return fullErrorMessage.substring(index + prefix.length);
+    return messageToParse.substring(index + prefix.length);
   }
   
-  return fullErrorMessage;
+  return messageToParse;
 }
 
     
