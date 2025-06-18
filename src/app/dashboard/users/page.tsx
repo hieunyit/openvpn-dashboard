@@ -34,7 +34,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { getUsers, deleteUser, updateUser, getGroups, performUserAction, bulkUserActions, exportSearchResults } from "@/lib/api"
+import { getUsers, deleteUser, updateUser, getGroups, performUserAction } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
@@ -104,7 +104,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
       return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="h-3 w-3" />Disabled</Badge>;
     }
     if (user.denyAccess) { 
-      return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled (VPN)</Badge>;
+      return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled</Badge>;
     }
     return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UserCheck className="h-3 w-3" />Enabled</Badge>;
   };
@@ -325,7 +325,7 @@ export default function UsersPage() {
       }
 
       const data = await getUsers(page, limit, finalAPIFilters)
-      setUsers(data.users.map(u => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
+      setUsers(data.users.map((u: User) => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
       setTotal(data.total || 0)
     } catch (error: any) {
       toast({
@@ -578,7 +578,7 @@ export default function UsersPage() {
   }, [users]);
 
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(() => {
     setIsExporting(true);
     toast({
       title: "Exporting Users...",
@@ -587,33 +587,36 @@ export default function UsersPage() {
       icon: <Download className="h-5 w-5 animate-pulse" />,
     });
 
-    const exportCriteria: any = {
-      ...currentFilters,
-      type: 'users',
-    };
-    if (searchTerm.trim()) {
-      exportCriteria.searchText = searchTerm.trim();
+    if (!users || users.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "There are no users currently displayed to export.",
+        variant: "warning",
+        icon: <AlertTriangle className="h-5 w-5" />,
+      });
+      setIsExporting(false);
+      return;
     }
-    if (expirationDateFrom) {
-      exportCriteria.userExpirationAfter = formatDateForInput(expirationDateFrom.toISOString());
-    }
-    if (expirationDateTo) {
-      exportCriteria.userExpirationBefore = formatDateForInput(expirationDateTo.toISOString());
-    }
-    delete exportCriteria.page;
-    delete exportCriteria.limit;
 
     try {
-      const blob = await exportSearchResults(exportCriteria, 'csv');
-      if (blob.size === 0) {
-        toast({
-            title: "No Data to Export",
-            description: "There are no users matching the current filters to export.",
-            variant: "warning",
-            icon: <AlertTriangle className="h-5 w-5" />,
-        });
-        return;
-      }
+      const headers = ["Username", "Email", "Group", "Auth Method", "Expiration", "Status (System)", "Status (VPN)", "MFA"];
+      const csvContent = [
+        headers.join(","),
+        ...users.map((user) => {
+          return [
+            user.username || "",
+            user.email || "",
+            user.groupName || "N/A",
+            user.authMethod || "N/A",
+            formatDateForDisplay(user.userExpiration || "N/A"),
+            user.isEnabled !== false ? "Enabled" : "Disabled",
+            user.denyAccess === true ? "Disabled" : "Enabled",
+            user.mfa ? "Yes" : "No",
+          ].join(",");
+        }),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -623,23 +626,24 @@ export default function UsersPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
       toast({
         title: "Export Successful",
-        description: "User data has been downloaded.",
+        description: "Displayed user data has been downloaded.",
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
     } catch (error: any) {
       toast({
         title: "Export Failed",
-        description: getCoreApiErrorMessage(error) || "Could not export user data.",
+        description: getCoreApiErrorMessage(error.message) || "Could not export user data.",
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
     } finally {
       setIsExporting(false);
     }
-  }, [currentFilters, searchTerm, expirationDateFrom, expirationDateTo, toast]);
+  }, [users, toast]);
 
 
   const openChangePasswordDialog = useCallback((username: string) => {
@@ -662,9 +666,9 @@ export default function UsersPage() {
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
-          <Button variant="outline" onClick={handleExport} className="h-10" disabled={isExporting}>
+          <Button variant="outline" onClick={handleExport} className="h-10" disabled={isExporting || users.length === 0}>
             {isExporting ? <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            {isExporting ? "Exporting..." : "Export"}
+            {isExporting ? "Exporting..." : "Export Displayed"}
           </Button>
           <Button onClick={() => setIsAddUserDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 h-10" disabled={isExporting}>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -925,4 +929,3 @@ export default function UsersPage() {
     </div>
   )
 }
-
