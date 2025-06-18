@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutGrid, ShieldCheck, UsersCog, Settings } from "lucide-react" // Assuming UsersCog for LDAP
+import { LayoutGrid, ShieldCheck, UserCog, Settings } from "lucide-react" // Changed UsersCog to UserCog
 import Link from "next/link"
 
 export default function PortalDashboardPage() {
@@ -34,7 +34,7 @@ export default function PortalDashboardPage() {
         <Card className="shadow-sm hover:shadow-md transition-shadow opacity-50 cursor-not-allowed">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-semibold">LDAP Management</CardTitle>
-            <UsersCog className="h-6 w-6 text-muted-foreground" />
+            <UserCog className="h-6 w-6 text-muted-foreground" /> {/* Changed UsersCog to UserCog */}
           </CardHeader>
           <CardContent>
             <CardDescription className="mb-4">
