@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { ShieldCheck, LogIn } from "lucide-react"
+import { ShieldCheck, LogIn, LayoutGrid } from "lucide-react" // Added LayoutGrid
 import { login } from "@/lib/auth"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
@@ -84,13 +84,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl border-0 rounded-xl">
         <CardHeader className="space-y-2 text-center pt-8 pb-4">
           <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-full mx-auto mb-3">
-            <ShieldCheck className="h-10 w-10 text-primary" />
+            <LayoutGrid className="h-10 w-10 text-primary" /> 
           </div>
           <CardTitle className="text-3xl font-bold text-foreground">
-            OpenVPN Access Server
+            System Portal
           </CardTitle>
           <CardDescription className="text-muted-foreground text-base">
-            Sign in to manage your VPN
+            Sign in to access the System Portal
           </CardDescription>
         </CardHeader>
         
@@ -144,7 +144,7 @@ export default function LoginPage() {
         </form>
       </Card>
       <p className="text-center text-xs text-muted-foreground mt-8">
-        &copy; {new Date().getFullYear()} OpenVPN Access Manager. All rights reserved.
+        &copy; {new Date().getFullYear()} System Portal. All rights reserved.
       </p>
     </div>
   )
