@@ -53,9 +53,9 @@ import { formatDateForDisplay, formatDateForInput, getCoreApiErrorMessage } from
 
 interface UserDetail {
   username: string
-  email: string
+  email?: string // Made optional
   authMethod: string
-  role: string
+  role?: string  // Made optional
   groupName?: string
   userExpiration: string
   mfa: boolean
@@ -391,7 +391,7 @@ export default function UserDetailPage() {
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-muted-foreground">Email</Label>
                     <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
-                      <span className="text-foreground">{user.email}</span>
+                      <span className="text-foreground">{user.email || "N/A"}</span>
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -403,7 +403,11 @@ export default function UserDetailPage() {
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-muted-foreground">Role</Label>
                      <div className="p-2.5 border rounded-md bg-muted/70 text-sm">
-                      <Badge variant={user.role === "Admin" ? "default" : "secondary"}>{user.role}</Badge>
+                      {user.role ? (
+                        <Badge variant={user.role === "Admin" ? "default" : "secondary"}>{user.role}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1.5">
