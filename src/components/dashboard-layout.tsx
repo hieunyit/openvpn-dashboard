@@ -25,7 +25,6 @@ import {
   LayoutDashboard,
   Users,
   FolderKanban,
-  Search as SearchIcon,
   Settings,
   Menu,
   LogOut,
@@ -46,7 +45,6 @@ const navItems: NavItem[] = [
   { title: "Users", href: "/dashboard/users", icon: Users },
   { title: "Groups", href: "/dashboard/groups", icon: FolderKanban },
   { title: "VPN Status", href: "/dashboard/status", icon: Server },
-  { title: "Advanced Search", href: "/dashboard/search", icon: SearchIcon },
 ]
 
 const bottomNavItems: NavItem[] = [
