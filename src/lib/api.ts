@@ -188,7 +188,8 @@ export async function createUser(userData: any) {
 }
 
 export async function updateUser(username: string, userData: any) {
-  const allowedFields:any = {
+  // Only include fields that are intended to be updated from the UserDetailPage form
+  const updatableFieldsFromForm:any = {
     accessControl: userData.accessControl,
     denyAccess: userData.denyAccess,
     groupName: userData.groupName === "none" || userData.groupName === "" ? undefined : userData.groupName,
@@ -196,7 +197,10 @@ export async function updateUser(username: string, userData: any) {
     userExpiration: userData.userExpiration ? formatDateForAPI(userData.userExpiration) : undefined,
   };
 
-  const cleanData = Object.fromEntries(Object.entries(allowedFields).filter(([_, value]) => value !== undefined));
+  // Filter out undefined values from the updatableFieldsFromForm
+  const cleanData = Object.fromEntries(
+    Object.entries(updatableFieldsFromForm).filter(([_, value]) => value !== undefined)
+  );
 
   const response = await fetchWithAuth(`api/users/${username}`, {
     method: "PUT",
