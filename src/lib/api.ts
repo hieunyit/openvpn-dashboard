@@ -12,8 +12,8 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
   const isTemplatePath = backendRelativePath.includes('/template');
 
   if (!token && !isAuthPath && !isTemplatePath) {
-    await logout(); 
-    throw new Error("SESSION_EXPIRED"); 
+    await logout();
+    throw new Error("SESSION_EXPIRED");
   }
 
   const headers: HeadersInit = {
@@ -41,9 +41,9 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
     });
 
     if (response.status === 401 && !isAuthPath) {
-      const refreshed = await refreshToken(); 
+      const refreshed = await refreshToken();
       if (refreshed) {
-        token = getAccessToken(); 
+        token = getAccessToken();
         const newHeadersRefresh: HeadersInit = { ...headers };
         if (token) {
           newHeadersRefresh['Authorization'] = `Bearer ${token}`;
@@ -53,15 +53,15 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
           headers: newHeadersRefresh,
         });
       } else {
-        throw new Error("SESSION_EXPIRED"); 
+        throw new Error("SESSION_EXPIRED");
       }
     }
     return response;
   } catch (error) {
     if (error instanceof Error && error.message === "SESSION_EXPIRED") {
-        throw error; 
+        throw error;
     }
-    throw error; 
+    throw error;
   }
 }
 
@@ -69,7 +69,7 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
 function parseApiResponse(data: any, fallbackKey?: string) {
   if (data && data.success && data.success.data !== undefined) {
     return data.success.data;
-  } else if (data && data.data !== undefined) { 
+  } else if (data && data.data !== undefined) {
     return data.data;
   } else if (data && fallbackKey && (data[fallbackKey] !== undefined || data.total !== undefined || (typeof data === 'object' && data !== null && Object.keys(data).length > 0 && !Array.isArray(data)))) {
     return data;
@@ -86,10 +86,10 @@ function parseApiResponse(data: any, fallbackKey?: string) {
 async function handleApiError(response: Response, operation: string): Promise<Error> {
   let errorDetails = `Server responded with ${response.status} ${response.statusText}`;
   try {
-    const textBody = await response.text(); 
+    const textBody = await response.text();
     if (textBody) {
       try {
-        const errorBody = JSON.parse(textBody); 
+        const errorBody = JSON.parse(textBody);
         if (errorBody.error && errorBody.error.message) {
           errorDetails = errorBody.error.message;
         } else if (errorBody.message) {
@@ -99,10 +99,10 @@ async function handleApiError(response: Response, operation: string): Promise<Er
         } else if (errorBody.error && typeof errorBody.error === 'string') {
           errorDetails = errorBody.error;
         } else {
-          errorDetails = textBody.substring(0, 500); 
+          errorDetails = textBody.substring(0, 500);
         }
       } catch (jsonParseError) {
-        errorDetails = textBody.substring(0, 500); 
+        errorDetails = textBody.substring(0, 500);
       }
     }
   } catch (e) {
@@ -121,11 +121,12 @@ export async function getUsers(page = 1, limit = 10, filters: Record<string, any
   });
 
   const allowedFilterKeys = [
-    "username", "email", "authMethod", "role", "groupName", 
-    "isEnabled", "denyAccess", "mfaEnabled", 
+    "username", "email", "authMethod", "role", "groupName",
+    "isEnabled", "denyAccess", "mfaEnabled",
     "userExpirationAfter", "userExpirationBefore", "includeExpired", "expiringInDays",
     "hasAccessControl", "macAddress", "searchText",
-    "sortBy", "sortOrder", "exactMatch", "caseSensitive"
+    "sortBy", "sortOrder", "exactMatch", "caseSensitive",
+    "ipAddress", "ipAssignMode" // Added new filter keys
   ];
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -169,6 +170,8 @@ export async function createUser(userData: any) {
     userExpiration: formatDateForAPI(userData.userExpiration),
     macAddresses: userData.macAddresses,
     accessControl: userData.accessControl,
+    ipAddress: userData.ipAddress,
+    ipAssignMode: userData.ipAssignMode === "none" ? undefined : userData.ipAssignMode,
   };
   if (userData.authMethod === "local" && userData.password) {
     allowedFields.password = userData.password;
@@ -188,16 +191,16 @@ export async function createUser(userData: any) {
 }
 
 export async function updateUser(username: string, userData: any) {
-  // Only include fields that are intended to be updated from the UserDetailPage form
   const updatableFieldsFromForm:any = {
     accessControl: userData.accessControl,
     denyAccess: userData.denyAccess,
     groupName: userData.groupName === "none" || userData.groupName === "" ? undefined : userData.groupName,
     macAddresses: userData.macAddresses,
     userExpiration: userData.userExpiration ? formatDateForAPI(userData.userExpiration) : undefined,
+    ipAddress: userData.ipAddress,
+    ipAssignMode: userData.ipAssignMode === "none" ? undefined : userData.ipAssignMode,
   };
 
-  // Filter out undefined values from the updatableFieldsFromForm
   const cleanData = Object.fromEntries(
     Object.entries(updatableFieldsFromForm).filter(([_, value]) => value !== undefined)
   );
@@ -234,8 +237,6 @@ export async function performUserAction(username: string, action: "enable" | "di
   let bodyData: any = undefined;
   if (action === "change-password" && data && data.newPassword) {
     bodyData = { password: data.newPassword };
-  } else if (data && Object.keys(data).length > 0 && action !== "enable" && action !== "disable" && action !== "reset-otp") {
-    bodyData = data;
   }
 
 
@@ -385,7 +386,7 @@ export async function deleteGroup(groupName: string) {
 
 export async function performGroupAction(groupName: string, action: "enable" ) {
   const response = await fetchWithAuth(`api/groups/${groupName}/${action}`, {
-    method: "PUT", 
+    method: "PUT",
   });
 
   if (!response.ok) {
@@ -458,14 +459,14 @@ export async function downloadGroupTemplate(format: "csv" | "xlsx" = "csv") {
 // Advanced Search API functions
 export async function searchUsers(searchCriteria: any) {
   const queryParams = new URLSearchParams();
-  
+
   const allowedFilterKeys = [
-    "username", "email", "authMethod", "role", "groupName", 
-    "isEnabled", "denyAccess", "mfaEnabled", 
+    "username", "email", "authMethod", "role", "groupName",
+    "isEnabled", "denyAccess", "mfaEnabled",
     "userExpirationAfter", "userExpirationBefore", "includeExpired", "expiringInDays",
     "hasAccessControl", "macAddress", "searchText",
     "sortBy", "sortOrder", "exactMatch", "caseSensitive",
-    "page", "limit" 
+    "page", "limit", "ipAddress", "ipAssignMode" // Added new filter keys
   ];
 
   Object.entries(searchCriteria).forEach(([key, value]) => {
@@ -473,12 +474,12 @@ export async function searchUsers(searchCriteria: any) {
       queryParams.append(key, String(value));
     }
   });
-  
+
   if (!queryParams.has("page")) queryParams.set("page", "1");
   if (!queryParams.has("limit")) queryParams.set("limit", "20");
 
 
-  const response = await fetchWithAuth(`api/users?${queryParams.toString()}`, { 
+  const response = await fetchWithAuth(`api/users?${queryParams.toString()}`, {
     method: "GET",
   });
 
@@ -535,11 +536,11 @@ export async function importUsers(file: File, format?: string, dryRun = false, o
 export async function importGroups(file: File, format?: string, dryRun = false, override = false) {
   const formData = new FormData();
   formData.append("file", file);
-  if (format) { 
+  if (format) {
     formData.append("format", format);
   }
-  formData.append("dryRun", String(dryRun)); 
-  formData.append("override", String(override)); 
+  formData.append("dryRun", String(dryRun));
+  formData.append("override", String(override));
 
   const response = await fetchWithAuth(`api/bulk/groups/import`, {
     method: "POST",
@@ -582,7 +583,7 @@ export async function bulkExtendUserExpiration(usernames: string[], newExpiratio
 
 export async function bulkGroupActions(groupNames: string[], action: "enable" | "disable") {
   const response = await fetchWithAuth(`api/bulk/groups/actions`, {
-    method: "POST", 
+    method: "POST",
     body: JSON.stringify({ groupNames, action }),
   });
 
@@ -731,4 +732,3 @@ export async function getServerInfo(): Promise<ServerInfo> {
   const data = await response.json();
   return parseApiResponse(data) as ServerInfo;
 }
-

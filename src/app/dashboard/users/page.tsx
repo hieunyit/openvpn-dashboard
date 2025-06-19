@@ -84,6 +84,8 @@ interface User {
   isEnabled?: boolean;
   lastLogin?: string
   createdAt?: string
+  ipAddress?: string;
+  ipAssignMode?: string;
 }
 
 interface UserTableRowProps {
@@ -103,7 +105,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
     if (user.isEnabled === false) {
       return <Badge variant="outline" className="flex items-center gap-1 text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="h-3 w-3" />Disabled</Badge>;
     }
-    if (user.denyAccess) { 
+    if (user.denyAccess) {
       return <Badge variant="destructive" className="flex items-center gap-1 text-destructive-foreground"><LockKeyhole className="h-3 w-3" />Disabled</Badge>;
     }
     return <Badge variant="default" className="flex items-center gap-1 bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="h-3 w-3" />Enabled</Badge>;
@@ -182,7 +184,7 @@ const UserTableRow = memo(({ user, selectedUsers, isCurrentUser, onSelectUser, o
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            
+
             {user.isEnabled === true && (
               <>
                 {user.denyAccess ? (
@@ -290,7 +292,7 @@ export default function UsersPage() {
     };
     if (groupNameQueryParam) {
         initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
-        if (!showFilters) setShowFilters(true); 
+        if (!showFilters) setShowFilters(true);
     }
     setCurrentFilters(prev => ({...prev, ...initialFiltersVal}));
     fetchGroupsCallback();
@@ -540,7 +542,7 @@ export default function UsersPage() {
     for (const username of selectedUsers) {
       try {
         const user = users.find(u => u.username === username);
-        if (deny && user && !user.isEnabled) { 
+        if (deny && user && !user.isEnabled) {
             continue;
         }
         await updateUser(username, { denyAccess: deny });
@@ -599,15 +601,15 @@ export default function UsersPage() {
     }
 
     try {
-      const headers = ["Username", "Email", "Group", "Auth Method", "Expiration", "Status (VPN)", "MFA"];
+      const headers = ["Username", "Email", "Group", "Auth Method", "Expiration", "Status (VPN)", "MFA", "IP Address", "IP Assign Mode"];
       const csvContent = [
         headers.join(","),
         ...users.map((user) => {
           let vpnStatus = "Enabled";
           if (user.isEnabled === false) {
-            vpnStatus = "Disabled"; // System disabled implies VPN disabled
+            vpnStatus = "Disabled";
           } else if (user.denyAccess === true) {
-            vpnStatus = "Disabled"; // System enabled, but VPN specifically denied
+            vpnStatus = "Disabled";
           }
 
           return [
@@ -618,6 +620,8 @@ export default function UsersPage() {
             user.userExpiration ? formatDateForAPI(user.userExpiration) : "N/A",
             vpnStatus,
             user.mfa ? "Yes" : "No",
+            user.ipAddress || "N/A",
+            user.ipAssignMode || "N/A",
           ].map(value => `"${String(value).replace(/"/g, '""')}"`).join(",");
         }),
       ].join("\n");
@@ -935,4 +939,3 @@ export default function UsersPage() {
     </div>
   )
 }
-

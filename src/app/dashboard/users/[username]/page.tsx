@@ -2,10 +2,10 @@
 "use client"
 
 import type React from "react"
-import { UserCircle2, Settings, CheckCircle, AlertTriangle, UserCheck, UserMinus, UserX } from "lucide-react" 
+import { UserCircle2, Settings, CheckCircle, AlertTriangle, UserCheck, UserMinus, UserX, Globe, SlidersHorizontal } from "lucide-react"
 
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation" 
+import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,14 +36,14 @@ import {
   X,
   XCircle,
   RefreshCcw,
-  KeyRound, 
-  CalendarDays, 
+  KeyRound,
+  CalendarDays,
   Mail,
   Shield,
   Clock,
   Network,
   Users,
-  Link as LinkIcon, 
+  Link as LinkIcon,
   LockKeyhole,
   UnlockKeyhole,
   Info,
@@ -53,9 +53,9 @@ import { formatDateForDisplay, formatDateForInput, getCoreApiErrorMessage } from
 
 interface UserDetail {
   username: string
-  email?: string // Made optional
+  email?: string
   authMethod: string
-  role?: string  // Made optional
+  role?: string
   groupName?: string
   userExpiration: string
   mfa: boolean
@@ -65,6 +65,8 @@ interface UserDetail {
   denyAccess?: boolean
   lastLogin?: string
   createdAt?: string
+  ipAddress?: string;
+  ipAssignMode?: string;
 }
 
 interface Group {
@@ -89,10 +91,12 @@ export default function UserDetailPage() {
     macAddresses: "",
     accessControl: "",
     denyAccess: false,
+    ipAddress: "",
+    ipAssignMode: "none",
   })
   const [currentAuthUser, setCurrentAuthUser] = useState<any>(null)
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false)
-  
+
   const [isConfirmDenyAccessActionDialogOpen, setIsConfirmDenyAccessActionDialogOpen] = useState(false);
   const [confirmDenyAccessActionDetails, setConfirmDenyAccessActionDetails] = useState<{ action: "enable" | "disable"; username: string } | null>(null);
 
@@ -128,6 +132,8 @@ export default function UserDetailPage() {
           macAddresses: processedUserData.macAddresses?.join(", ") || "",
           accessControl: processedUserData.accessControl?.join(", ") || "",
           denyAccess: processedUserData.denyAccess || false,
+          ipAddress: processedUserData.ipAddress || "",
+          ipAssignMode: processedUserData.ipAssignMode || "none",
         })
       } else {
         toast({
@@ -190,6 +196,8 @@ export default function UserDetailPage() {
         macAddresses: formData.macAddresses.split(",").map((mac) => mac.trim()).filter((mac) => mac),
         accessControl: formData.accessControl.split(",").map((ac) => ac.trim()).filter((ac) => ac),
         denyAccess: formData.denyAccess,
+        ipAddress: formData.ipAddress || undefined, // Send undefined if empty to clear
+        ipAssignMode: formData.ipAssignMode === "none" ? undefined : formData.ipAssignMode,
       }
       await updateUser(user.username, userDataToUpdate)
       toast({
@@ -199,7 +207,7 @@ export default function UserDetailPage() {
         icon: <CheckCircle className="h-5 w-5" />,
       })
       setEditing(false)
-      fetchUser() 
+      fetchUser()
     } catch (error: any) {
       toast({
         title: "Error Updating User",
@@ -212,7 +220,7 @@ export default function UserDetailPage() {
     }
   }
 
-  const initiateDenyAccessAction = (action: "enable" | "disable") => { 
+  const initiateDenyAccessAction = (action: "enable" | "disable") => {
     if (!user) return;
     if (action === "disable" && user.username === currentAuthUser?.username && user.isEnabled) {
       toast({
@@ -227,12 +235,12 @@ export default function UserDetailPage() {
     setIsConfirmDenyAccessActionDialogOpen(true);
   };
 
-  const executeDenyAccessAction = async () => { 
+  const executeDenyAccessAction = async () => {
     if (!confirmDenyAccessActionDetails || !user) return;
     const { action, username: targetUsername } = confirmDenyAccessActionDetails;
     setSaving(true);
     try {
-      const newDenyAccessState = action === "disable"; 
+      const newDenyAccessState = action === "disable";
       await updateUser(targetUsername, { denyAccess: newDenyAccessState });
       toast({
         title: "Success",
@@ -240,7 +248,7 @@ export default function UserDetailPage() {
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       });
-      fetchUser(); 
+      fetchUser();
     } catch (error: any) {
       toast({
         title: `Error ${action.charAt(0).toUpperCase() + action.slice(1)}ing User VPN Access`,
@@ -254,7 +262,7 @@ export default function UserDetailPage() {
       setConfirmDenyAccessActionDetails(null);
     }
   };
-  
+
   const handleOtpReset = async () => {
     if (!user) return;
     setSaving(true);
@@ -326,7 +334,7 @@ export default function UserDetailPage() {
     // System-enabled and VPN access allowed
     return <Badge variant="default" className="bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="mr-1.5 h-3 w-3" />Enabled</Badge>;
   };
-  
+
   const getMainStatusBadge = () => {
      if (!user.isEnabled) {
       return <Badge variant="outline" className="text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="mr-1.5 h-3 w-3" />Disabled</Badge>;
@@ -441,7 +449,36 @@ export default function UserDetailPage() {
 
               <section>
                 <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center"><Network className="mr-2 h-5 w-5 text-muted-foreground"/>Network Configuration</h3>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                   <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><SlidersHorizontal className="h-4 w-4"/>IP Assign Mode</Label>
+                    {editing ? (
+                      <Select value={formData.ipAssignMode} onValueChange={(value) => handleSelectChange("ipAssignMode", value)}>
+                        <SelectTrigger><SelectValue placeholder="Select IP assign mode" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="dhcp">DHCP</SelectItem>
+                          <SelectItem value="static">Static</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                         <Badge variant="outline">{user.ipAssignMode || "None"}</Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><Globe className="h-4 w-4"/>IP Address</Label>
+                    {editing ? (
+                      <Input name="ipAddress" value={formData.ipAddress} onChange={handleChange} placeholder="Enter static IP address" disabled={formData.ipAssignMode !== "static"} />
+                    ) : (
+                       <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                        <span className="text-foreground">{user.ipAddress || "N/A"}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-4 mt-4">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-muted-foreground">MAC Addresses</Label>
                     {editing ? (
@@ -556,7 +593,7 @@ export default function UserDetailPage() {
           </Card>
         </div>
       </div>
-      
+
       {user && (
         <ChangePasswordDialog
           open={isChangePasswordDialogOpen}
@@ -585,5 +622,3 @@ export default function UserDetailPage() {
     </div>
   )
 }
-
-    

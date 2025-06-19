@@ -19,13 +19,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { createUser, getGroups } from "@/lib/api"
-import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
+import { User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle, Globe, SlidersHorizontal } from "lucide-react"
 import { generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
 
 interface Group {
   groupName: string
-  authMethod: string 
-  role: string 
+  authMethod: string
+  role: string
   isEnabled?: boolean
   denyAccess?: boolean
 }
@@ -46,6 +46,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     userExpiration: "",
     macAddresses: "",
     accessControl: "",
+    ipAddress: "",
+    ipAssignMode: "none",
   })
   const [groups, setGroups] = useState<Group[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,6 +67,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
         userExpiration: "",
         macAddresses: "",
         accessControl: "",
+        ipAddress: "",
+        ipAssignMode: "none",
       })
     }
   }, [open])
@@ -97,7 +101,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
-  
+
   const handleGeneratePassword = () => {
     const newPassword = generateRandomPassword();
     setFormData((prev) => ({ ...prev, password: newPassword }));
@@ -128,6 +132,8 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
           .split(",")
           .map((ac) => ac.trim())
           .filter((ac) => ac),
+        ipAddress: formData.ipAddress || undefined,
+        ipAssignMode: formData.ipAssignMode === "none" ? undefined : formData.ipAssignMode,
       }
       if (formData.authMethod === "local") {
         userData.password = formData.password
@@ -149,9 +155,9 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
       const apiErrorMessage = getCoreApiErrorMessage(error.message);
       toast({
         title: "Error Creating User",
-        description: apiErrorMessage, 
+        description: apiErrorMessage,
         variant: "destructive",
-        duration: 7000, 
+        duration: 7000,
         icon: <AlertTriangle className="h-5 w-5" />
       })
     } finally {
@@ -216,7 +222,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                   />
                 </div>
               </div>
-              
+
               {formData.authMethod === 'local' && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -232,7 +238,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                     <Input
                       id="password-dialog"
                       name="password"
-                      type="text" 
+                      type="text"
                       placeholder="Enter or generate password"
                       value={formData.password}
                       onChange={handleChange}
@@ -242,7 +248,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
                   </div>
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="userExpiration-dialog" className="text-sm font-medium">
                   Expiration Date *
@@ -325,7 +331,39 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
               <Network className="mr-2 h-5 w-5 text-primary" />
               Network Configuration
             </h3>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="ipAssignMode-dialog" className="text-sm font-medium flex items-center gap-1.5">
+                       <SlidersHorizontal className="h-4 w-4"/> IP Assignment Mode
+                    </Label>
+                    <Select value={formData.ipAssignMode} onValueChange={(value) => handleSelectChange("ipAssignMode", value)}>
+                        <SelectTrigger id="ipAssignMode-dialog"><SelectValue placeholder="Select IP assignment mode" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">None (Default)</SelectItem>
+                            <SelectItem value="dhcp">DHCP</SelectItem>
+                            <SelectItem value="static">Static</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="ipAddress-dialog" className="text-sm font-medium flex items-center gap-1.5">
+                        <Globe className="h-4 w-4"/> Static IP Address
+                    </Label>
+                    <div className="relative">
+                        <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            id="ipAddress-dialog"
+                            name="ipAddress"
+                            placeholder="Enter static IP"
+                            value={formData.ipAddress}
+                            onChange={handleChange}
+                            disabled={formData.ipAssignMode !== "static"}
+                            className="pl-10"
+                        />
+                    </div>
+                </div>
+            </div>
+            <div className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="macAddresses-dialog" className="text-sm font-medium">
                   MAC Addresses *
@@ -380,4 +418,3 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     </Dialog>
   )
 }
-    

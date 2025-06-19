@@ -14,13 +14,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { createUser, getGroups } from "@/lib/api"
 import { formatDateForInput, generateRandomPassword, getCoreApiErrorMessage } from "@/lib/utils"
-import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Upload, User, Mail, Lock, Calendar, Network, Shield, RefreshCw, CheckCircle, AlertTriangle, Globe, SlidersHorizontal } from "lucide-react"
 import Link from "next/link"
 
 interface Group {
   groupName: string
-  authMethod: string 
-  role: string 
+  authMethod: string
+  role: string
   isEnabled?: boolean
   denyAccess?: boolean
 }
@@ -35,6 +35,8 @@ export default function NewUserPage() {
     userExpiration: formatDateForInput(new Date().toISOString()),
     macAddresses: "",
     accessControl: "",
+    ipAddress: "",
+    ipAssignMode: "none",
   })
   const [groups, setGroups] = useState<Group[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -105,7 +107,7 @@ export default function NewUserPage() {
       setIsSubmitting(false);
       return;
     }
-    
+
 
     try {
       const userData: any = {
@@ -122,6 +124,8 @@ export default function NewUserPage() {
           .split(",")
           .map((ac) => ac.trim())
           .filter((ac) => ac),
+        ipAddress: formData.ipAddress || undefined,
+        ipAssignMode: formData.ipAssignMode === "none" ? undefined : formData.ipAssignMode,
       }
       if (formData.authMethod === "local") {
         userData.password = formData.password
@@ -238,7 +242,7 @@ export default function NewUserPage() {
                       />
                     </div>
                   </div>
-                  
+
                   {formData.authMethod === 'local' && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -254,7 +258,7 @@ export default function NewUserPage() {
                         <Input
                           id="password"
                           name="password"
-                          type="text" 
+                          type="text"
                           placeholder="Enter or generate password"
                           value={formData.password}
                           onChange={handleChange}
@@ -310,7 +314,7 @@ export default function NewUserPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="groupName" className="text-sm font-medium text-muted-foreground">
                       User Group
@@ -350,7 +354,45 @@ export default function NewUserPage() {
                   <Network className="mr-2 h-5 w-5 text-primary" />
                   Network Configuration
                 </h3>
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="ipAssignMode" className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <SlidersHorizontal className="h-4 w-4"/> IP Assignment Mode
+                    </Label>
+                    <Select
+                      value={formData.ipAssignMode}
+                      onValueChange={(value) => handleSelectChange("ipAssignMode", value)}
+                    >
+                      <SelectTrigger className="border-input focus:border-primary focus:ring-primary">
+                        <SelectValue placeholder="Select IP assignment mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None (Default)</SelectItem>
+                        <SelectItem value="dhcp">DHCP</SelectItem>
+                        <SelectItem value="static">Static</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ipAddress" className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                       <Globe className="h-4 w-4"/> Static IP Address
+                    </Label>
+                     <div className="relative">
+                       <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="ipAddress"
+                          name="ipAddress"
+                          placeholder="Enter static IP"
+                          value={formData.ipAddress}
+                          onChange={handleChange}
+                          disabled={formData.ipAssignMode !== "static"}
+                          className="pl-10 border-input focus:border-primary focus:ring-primary"
+                        />
+                     </div>
+                     <p className="text-xs text-muted-foreground">ⓘ Only applicable if IP Assignment Mode is 'Static'.</p>
+                  </div>
+                </div>
+                <div className="space-y-6 mt-6">
                   <div className="space-y-2">
                     <Label htmlFor="macAddresses" className="text-sm font-medium text-muted-foreground">
                       MAC Addresses *
@@ -413,4 +455,3 @@ export default function NewUserPage() {
     </div>
   )
 }
-    
