@@ -198,7 +198,7 @@ export default function UserDetailPage() {
         macAddresses: formData.macAddresses.split(",").map((mac) => mac.trim()).filter((mac) => mac),
         accessControl: formData.accessControl.split(",").map((ac) => ac.trim()).filter((ac) => ac),
         denyAccess: formData.denyAccess,
-        ipAddress: formData.ipAddress || undefined, 
+        ipAddress: formData.ipAddress || undefined,
         ipAssignMode: formData.ipAssignMode === "none" ? undefined : formData.ipAssignMode,
       }
       await updateUser(user.username, userDataToUpdate)
@@ -326,10 +326,10 @@ export default function UserDetailPage() {
   const isSelf = user.username === currentAuthUser?.username;
 
   const getUserStatusBadge = () => {
-    if (!user.isEnabled) { 
+    if (!user.isEnabled) {
       return <Badge variant="outline" className="text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="mr-1.5 h-3 w-3" />Disabled</Badge>;
     }
-    if (user.denyAccess) { 
+    if (user.denyAccess) {
       return <Badge variant="destructive"><LockKeyhole className="mr-1.5 h-3 w-3" />Disabled</Badge>;
     }
     return <Badge variant="default" className="bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="mr-1.5 h-3 w-3" />Enabled</Badge>;
@@ -448,26 +448,45 @@ export default function UserDetailPage() {
               </section>
 
               <section>
-                <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center"><Network className="mr-2 h-5 w-5 text-muted-foreground"/>Network Configuration</h3>
-                {editing && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-4">
+                <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center">
+                    <Network className="mr-2 h-5 w-5 text-muted-foreground"/>Network Configuration
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {editing && (
                         <div className="space-y-1.5">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><SlidersHorizontal className="h-4 w-4"/>IP Assign Mode</Label>
+                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                                <SlidersHorizontal className="h-4 w-4"/>IP Assign Mode
+                            </Label>
                             <Select value={formData.ipAssignMode} onValueChange={(value) => handleSelectChange("ipAssignMode", value)}>
                                 <SelectTrigger><SelectValue placeholder="Select IP assign mode" /></SelectTrigger>
                                 <SelectContent>
-                                <SelectItem value="none">None</SelectItem>
-                                <SelectItem value="dhcp">DHCP</SelectItem>
-                                <SelectItem value="static">Static</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="dhcp">DHCP</SelectItem>
+                                    <SelectItem value="static">Static</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><Globe className="h-4 w-4"/>IP Address</Label>
-                            <Input name="ipAddress" value={formData.ipAddress} onChange={handleChange} placeholder="Enter static IP address" disabled={formData.ipAssignMode !== "static"} />
-                        </div>
+                    )}
+                    <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                            <Globe className="h-4 w-4"/>IP Address
+                        </Label>
+                        {editing ? (
+                            <Input
+                                name="ipAddress"
+                                value={formData.ipAddress}
+                                onChange={handleChange}
+                                placeholder="Enter static IP address"
+                                disabled={formData.ipAssignMode !== "static"}
+                            />
+                        ) : (
+                            <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
+                                <span className="text-foreground">{user.ipAddress || "N/A"}</span>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
+
                 <div className="space-y-4 mt-4">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-muted-foreground">MAC Addresses</Label>
