@@ -451,35 +451,25 @@ export default function UserDetailPage() {
 
               <section>
                 <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center"><Network className="mr-2 h-5 w-5 text-muted-foreground"/>Network Configuration</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                   <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><SlidersHorizontal className="h-4 w-4"/>IP Assign Mode</Label>
-                    {editing ? (
-                      <Select value={formData.ipAssignMode} onValueChange={(value) => handleSelectChange("ipAssignMode", value)}>
-                        <SelectTrigger><SelectValue placeholder="Select IP assign mode" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="dhcp">DHCP</SelectItem>
-                          <SelectItem value="static">Static</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
-                         <Badge variant="outline">{user.ipAssignMode && user.ipAssignMode !== "none" ? user.ipAssignMode : "None"}</Badge>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><Globe className="h-4 w-4"/>IP Address</Label>
-                    {editing ? (
-                      <Input name="ipAddress" value={formData.ipAddress} onChange={handleChange} placeholder="Enter static IP address" disabled={formData.ipAssignMode !== "static"} />
-                    ) : (
-                       <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
-                        <span className="text-foreground">{user.ipAddress || "N/A"}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {editing && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><SlidersHorizontal className="h-4 w-4"/>IP Assign Mode</Label>
+                            <Select value={formData.ipAssignMode} onValueChange={(value) => handleSelectChange("ipAssignMode", value)}>
+                                <SelectTrigger><SelectValue placeholder="Select IP assign mode" /></SelectTrigger>
+                                <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="dhcp">DHCP</SelectItem>
+                                <SelectItem value="static">Static</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><Globe className="h-4 w-4"/>IP Address</Label>
+                            <Input name="ipAddress" value={formData.ipAddress} onChange={handleChange} placeholder="Enter static IP address" disabled={formData.ipAssignMode !== "static"} />
+                        </div>
+                    </div>
+                )}
                 <div className="space-y-4 mt-4">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-muted-foreground">MAC Addresses</Label>
