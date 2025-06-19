@@ -198,7 +198,7 @@ export default function UserDetailPage() {
         macAddresses: formData.macAddresses.split(",").map((mac) => mac.trim()).filter((mac) => mac),
         accessControl: formData.accessControl.split(",").map((ac) => ac.trim()).filter((ac) => ac),
         denyAccess: formData.denyAccess,
-        ipAddress: formData.ipAddress || undefined, // Send undefined if empty to clear
+        ipAddress: formData.ipAddress || undefined, 
         ipAssignMode: formData.ipAssignMode === "none" ? undefined : formData.ipAssignMode,
       }
       await updateUser(user.username, userDataToUpdate)
@@ -326,14 +326,12 @@ export default function UserDetailPage() {
   const isSelf = user.username === currentAuthUser?.username;
 
   const getUserStatusBadge = () => {
-    if (!user.isEnabled) { // System-level disabled
+    if (!user.isEnabled) { 
       return <Badge variant="outline" className="text-orange-600 border-orange-500 dark:text-orange-400 dark:border-orange-600"><UserMinus className="mr-1.5 h-3 w-3" />Disabled</Badge>;
     }
-    // If system-enabled, check denyAccess for VPN status
-    if (user.denyAccess) { // System-enabled, but VPN access denied
+    if (user.denyAccess) { 
       return <Badge variant="destructive"><LockKeyhole className="mr-1.5 h-3 w-3" />Disabled</Badge>;
     }
-    // System-enabled and VPN access allowed
     return <Badge variant="default" className="bg-green-600/10 text-green-700 dark:text-green-400 border border-green-600/30"><UnlockKeyhole className="mr-1.5 h-3 w-3" />Enabled</Badge>;
   };
 
