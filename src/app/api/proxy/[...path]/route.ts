@@ -2,7 +2,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 // Cập nhật URL API mới
-const API_URL = "https://rnebs-118-71-153-13.a.free.pinggy.link"
+const API_URL = "https://rncdz-58-186-163-23.a.free.pinggy.link"
 
 async function proxyRequest(request: NextRequest, { params }: { params: { path: string[] } }, method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH") {
   const path = params.path.join("/")

@@ -124,6 +124,8 @@ export default function UserDetailPage() {
           ...userData,
           isEnabled: typeof userData.isEnabled === 'boolean' ? userData.isEnabled : true,
           denyAccess: typeof userData.denyAccess === 'boolean' ? userData.denyAccess : false,
+          ipAddress: userData.ipAddress || "",
+          ipAssignMode: userData.ipAssignMode || "none",
         };
         setUser(processedUserData);
         setFormData({
@@ -463,7 +465,7 @@ export default function UserDetailPage() {
                       </Select>
                     ) : (
                       <div className="flex items-center gap-2 p-2.5 border rounded-md bg-muted/70 text-sm">
-                         <Badge variant="outline">{user.ipAssignMode || "None"}</Badge>
+                         <Badge variant="outline">{user.ipAssignMode && user.ipAssignMode !== "none" ? user.ipAssignMode : "None"}</Badge>
                       </div>
                     )}
                   </div>
