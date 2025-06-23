@@ -18,17 +18,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface PortalGroup {
-  id: string
-  name: string
-  displayName: string
-  isActive: boolean
+  ID: string
+  Name: string
+  DisplayName: string
+  IsActive: boolean
 }
 
 interface Permission {
-  id: string
-  action: string
-  resource: string
-  description: string
+  ID: string
+  Action: string
+  Resource: string
+  Description: string
 }
 
 function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { group: PortalGroup, open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
@@ -41,17 +41,17 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   useEffect(() => {
     if (open) {
       setLoading(true)
-      Promise.all([getPermissions(), getGroupPermissions(group.id)])
+      Promise.all([getPermissions(), getGroupPermissions(group.ID)])
         .then(([allPerms, groupPerms]) => {
           setAllPermissions(allPerms || [])
-          setGroupPermissions((groupPerms || []).map((p: Permission) => p.id))
+          setGroupPermissions((groupPerms || []).map((p: Permission) => p.ID))
         })
         .catch(err => {
           toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
         })
         .finally(() => setLoading(false))
     }
-  }, [group.id, open, toast])
+  }, [group.ID, open, toast])
 
   const handlePermissionChange = (permId: string, checked: boolean) => {
     setGroupPermissions(prev => checked ? [...prev, permId] : prev.filter(id => id !== permId))
@@ -60,7 +60,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateGroupPermissions(group.id, groupPermissions)
+      await updateGroupPermissions(group.ID, groupPermissions)
       toast({ title: "Success", description: "Permissions updated successfully.", variant: "success" })
       onSuccess()
       onOpenChange(false)
@@ -72,7 +72,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   }
   
   const groupedPermissions = allPermissions.reduce((acc, perm) => {
-    const resource = perm.resource.charAt(0).toUpperCase() + perm.resource.slice(1);
+    const resource = perm.Resource.charAt(0).toUpperCase() + perm.Resource.slice(1);
     acc[resource] = acc[resource] || [];
     acc[resource].push(perm);
     return acc;
@@ -82,7 +82,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Manage Permissions for {group.displayName}</DialogTitle>
+          <DialogTitle>Manage Permissions for {group.DisplayName}</DialogTitle>
           <DialogDescription>Select the permissions this group should have.</DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -94,13 +94,13 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
                         <h4 className="font-semibold text-base mb-2 capitalize border-b pb-1">{resource}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {perms.map(perm => (
-                            <div key={perm.id} className="flex items-center space-x-2">
+                            <div key={perm.ID} className="flex items-center space-x-2">
                             <Checkbox
-                                id={`perm-${perm.id}`}
-                                checked={groupPermissions.includes(perm.id)}
-                                onCheckedChange={(checked) => handlePermissionChange(perm.id, Boolean(checked))}
+                                id={`perm-${perm.ID}`}
+                                checked={groupPermissions.includes(perm.ID)}
+                                onCheckedChange={(checked) => handlePermissionChange(perm.ID, Boolean(checked))}
                             />
-                            <Label htmlFor={`perm-${perm.id}`} className="capitalize font-normal">{perm.action}</Label>
+                            <Label htmlFor={`perm-${perm.ID}`} className="capitalize font-normal">{perm.Action}</Label>
                             </div>
                         ))}
                         </div>
@@ -128,7 +128,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
 
   useEffect(() => {
     if (group && open) {
-      setFormData({ name: group.name, displayName: group.displayName })
+      setFormData({ name: group.Name, displayName: group.DisplayName })
     } else if (!group && open) {
       setFormData({ name: "", displayName: "" })
     }
@@ -139,7 +139,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
     setSaving(true)
     try {
       if (isEditing && group) {
-        await updatePortalGroup(group.id, formData)
+        await updatePortalGroup(group.ID, formData)
       } else {
         await createPortalGroup(formData)
       }
@@ -157,7 +157,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? `Edit Group: ${group?.displayName}` : "Create New Portal Group"}</DialogTitle>
+          <DialogTitle>{isEditing ? `Edit Group: ${group?.DisplayName}` : "Create New Portal Group"}</DialogTitle>
           <DialogDescription>
             {isEditing ? "Update the details for this portal group." : "Create a new group to assign permissions to portal users."}
           </DialogDescription>
@@ -215,8 +215,8 @@ export default function PortalGroupsPage() {
   const filteredGroups = useMemo(() => {
     if (!searchTerm) return groups;
     return groups.filter(group => 
-      group.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.name.toLowerCase().includes(searchTerm.toLowerCase())
+      group.DisplayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      group.Name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [groups, searchTerm]);
 
@@ -242,7 +242,7 @@ export default function PortalGroupsPage() {
   const executeDelete = async () => {
     if (!groupToDelete) return
     try {
-      await deletePortalGroup(groupToDelete.id)
+      await deletePortalGroup(groupToDelete.ID)
       toast({ title: "Success", description: "Group deleted successfully.", variant: "success" })
       fetchGroups()
     } catch (err: any) {
@@ -313,12 +313,12 @@ export default function PortalGroupsPage() {
                   </TableRow>
                 ) : (
                   filteredGroups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell className="font-medium">{group.displayName}</TableCell>
-                      <TableCell>{group.name}</TableCell>
+                    <TableRow key={group.ID}>
+                      <TableCell className="font-medium">{group.DisplayName}</TableCell>
+                      <TableCell>{group.Name}</TableCell>
                       <TableCell>
-                        <Badge variant={group.isActive ? "default" : "secondary"} className={group.isActive ? "bg-green-100 text-green-800" : ""}>
-                          {group.isActive ? "Active" : "Inactive"}
+                        <Badge variant={group.IsActive ? "default" : "secondary"} className={group.IsActive ? "bg-green-100 text-green-800" : ""}>
+                          {group.IsActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -352,7 +352,7 @@ export default function PortalGroupsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the group "{groupToDelete?.displayName}".
+              This action cannot be undone. This will permanently delete the group "{groupToDelete?.DisplayName}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -14,7 +14,7 @@ import {
   testOpenVPNConnection, testLdapConnection
 } from "@/lib/api"
 import { getCoreApiErrorMessage } from "@/lib/utils"
-import { Network, Save, AlertTriangle, CheckCircle, Shield, Building, Trash2, Badge, Activity, Power } from "lucide-react"
+import { Network, Save, AlertTriangle, CheckCircle, Shield, Building, Trash2, Activity, Power } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 interface ConnectionFormProps {
@@ -27,17 +27,38 @@ interface ConnectionFormProps {
 }
 
 function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigChange }: ConnectionFormProps) {
-  const [formData, setFormData] = useState(initialData || {})
+  const [formData, setFormData] = useState<any>({})
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const { toast } = useToast()
 
-  const connectionExists = initialData && initialData.id;
+  const connectionExists = initialData && initialData.ID;
 
   useEffect(() => {
-    setFormData(initialData || {})
-  }, [initialData])
+    if (initialData) {
+      if (type === 'openvpn') {
+        setFormData({
+          id: initialData.ID,
+          host: initialData.Host,
+          port: initialData.Port,
+          username: initialData.Username,
+          password: initialData.Password || '',
+        });
+      } else { // ldap
+        setFormData({
+          id: initialData.ID,
+          host: initialData.Host,
+          port: initialData.Port,
+          bindDN: initialData.BindDN,
+          bindPassword: initialData.BindPassword || '',
+          baseDN: initialData.BaseDN,
+        });
+      }
+    } else {
+        setFormData({})
+    }
+  }, [initialData, type]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -50,7 +71,8 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
   const handleTest = async () => {
     setTesting(true);
     try {
-      await onTest();
+      const testFunction = type === 'openvpn' ? testOpenVPNConnection : testLdapConnection;
+      await testFunction();
       toast({
         title: "Connection Successful",
         description: `Successfully connected to the ${type.toUpperCase()} server.`,

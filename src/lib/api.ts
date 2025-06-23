@@ -734,7 +734,7 @@ export async function getPortalGroups() {
 export async function createPortalGroup(groupData: { name: string, displayName: string }) {
   const response = await fetchWithAuth(`api/portal/groups`, {
     method: "POST",
-    body: JSON.stringify(groupData),
+    body: JSON.stringify({ Name: groupData.name, DisplayName: groupData.displayName }),
   });
   if (!response.ok) throw await handleApiError(response, "create portal group");
   return await response.json();
@@ -743,7 +743,7 @@ export async function createPortalGroup(groupData: { name: string, displayName: 
 export async function updatePortalGroup(id: string, groupData: { name: string, displayName: string }) {
   const response = await fetchWithAuth(`api/portal/groups/${id}`, {
     method: "PUT",
-    body: JSON.stringify(groupData),
+    body: JSON.stringify({ Name: groupData.name, DisplayName: groupData.displayName }),
   });
   if (!response.ok) throw await handleApiError(response, "update portal group");
   return await response.json();
@@ -758,13 +758,16 @@ export async function deletePortalGroup(id: string) {
 export async function getPermissions() {
     const response = await fetchWithAuth(`api/portal/permissions`);
     if (!response.ok) throw await handleApiError(response, "fetch permissions");
-    return parseApiResponse(await response.json());
+    const data = await response.json();
+    // Permissions API might have a different structure
+    return (data.success ? data.success.data : data) || [];
 }
 
 export async function getGroupPermissions(groupId: string) {
     const response = await fetchWithAuth(`api/portal/groups/${groupId}/permissions`);
     if (!response.ok) throw await handleApiError(response, "fetch group permissions");
-    return parseApiResponse(await response.json());
+    const data = await response.json();
+     return (data.success ? data.success.data : data) || [];
 }
 
 export async function updateGroupPermissions(groupId: string, permissionIds: string[]) {
@@ -785,8 +788,8 @@ export async function getAuditLogs(filters: any) {
     const data = await response.json()
     const responseData = parseApiResponse(data)
     return {
-        logs: responseData.data || [],
-        total: responseData.total || 0,
+        logs: responseData || [], // The API returns an array directly in the data field
+        total: responseData ? responseData.length : 0, // Manual total if not provided
     }
 }
 
