@@ -95,10 +95,11 @@ export default function PortalUserDetailPage() {
     if (!user) return;
     setSaving(true);
     try {
-      const payload = {
-        ...formData,
+      const payload: { fullName: string; groupId: string; email?: string } = {
+        fullName: formData.fullName,
         groupId: formData.groupId === "none" ? "" : formData.groupId,
       };
+      
       await updatePortalUser(user.id, payload);
       toast({ title: "Success", description: "User updated successfully.", variant: "success", icon: <CheckCircle /> });
       setEditing(false);
@@ -206,7 +207,7 @@ export default function PortalUserDetailPage() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" value={editing ? formData.email : user.email} onChange={(e) => setFormData(p => ({...p, email: e.target.value}))} disabled={!editing || saving} />
+                        <Input id="email" value={user.email} disabled />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="fullName">Full Name</Label>
