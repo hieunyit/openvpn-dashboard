@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { searchUsers, searchGroups, getGroups } from "@/lib/api"
+import { getUsers, getGroups } from "@/lib/api"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
 import { Search, Download, FileText, AlertTriangle } from "lucide-react"
@@ -44,51 +44,13 @@ export default function SearchPage() {
     setIsSearching(true)
     setCurrentFilters(filters); 
     try {
-      const searchParamsForApi: Record<string, any> = {
-        ...filters, // filters from AdvancedFilters
-        page: currentPage,
-        limit: itemsPerPage,
-      };
-
-      // Clean up "any" or empty string values before sending to API,
-      // though the API client (getUsers/searchUsers) should also handle this.
-      Object.keys(searchParamsForApi).forEach((key) => {
-        if (searchParamsForApi[key] === "" || searchParamsForApi[key] === undefined || searchParamsForApi[key] === "any") {
-          delete searchParamsForApi[key];
-        }
-      });
-      
-      // Ensure specific conversions if needed (e.g., string to number for counts, string "true"/"false" to boolean if API expects that)
-      // The API spec now shows booleans for most flags.
-      const booleanFields = ['isEnabled', 'denyAccess', 'mfaEnabled', 'includeExpired', 'hasAccessControl', 'exactMatch', 'caseSensitive', 'isExpired'];
-      booleanFields.forEach(field => {
-        if (searchParamsForApi[field] !== undefined && searchParamsForApi[field] !== "any") {
-          searchParamsForApi[field] = searchParamsForApi[field] === 'true';
-        } else if (searchParamsForApi[field] === "any") {
-            delete searchParamsForApi[field];
-        }
-      });
-
-      if (searchParamsForApi.expiringInDays && typeof searchParamsForApi.expiringInDays === 'string') {
-        searchParamsForApi.expiringInDays = parseInt(searchParamsForApi.expiringInDays, 10);
-        if (isNaN(searchParamsForApi.expiringInDays)) delete searchParamsForApi.expiringInDays;
-      }
-
-
-      let results;
-      if (activeTab === "users") {
-        // The searchUsers function in api.ts now makes a GET request to /api/users with query params
-        results = await searchUsers(searchParamsForApi); 
-      } else { // groups
-        // searchGroups might also need similar adjustments if its API changes
-        results = await searchGroups(searchParamsForApi);
-      }
-
+      const apiFunction = activeTab === "users" ? getUsers : getGroups;
+      const results = await apiFunction(currentPage, itemsPerPage, filters);
       setSearchResults(results);
     } catch (error: any) {
       toast({
         title: "Search Failed",
-        description: getCoreApiErrorMessage(error.message) || "Failed to perform search. Please try again.",
+        description: getCoreApiErrorMessage(error) || "Failed to perform search. Please try again.",
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -395,5 +357,3 @@ export default function SearchPage() {
     </div>
   )
 }
-
-    

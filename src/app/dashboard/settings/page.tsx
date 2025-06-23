@@ -162,7 +162,7 @@ export default function SettingsPage() {
                 <div className="md:col-span-2 p-3 bg-muted/50 rounded-md">
                   <p className="font-medium text-muted-foreground">API Documentation</p>
                   <a
-                    href="https://rncfl-13-229-130-65.a.free.pinggy.link/swagger/index.html" // Example URL, update if needed
+                    href="https://rncdz-58-186-163-23.a.free.pinggy.link/swagger/index.html"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline font-semibold flex items-center gap-1"
@@ -190,5 +190,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-
-    

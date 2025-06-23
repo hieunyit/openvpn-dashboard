@@ -69,11 +69,14 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
 function parseApiResponse(data: any, fallbackKey?: string) {
   if (data && data.success && data.success.data !== undefined) {
     return data.success.data;
-  } else if (data && data.data !== undefined) {
+  }
+  if (data && data.data !== undefined) {
     return data.data;
-  } else if (data && fallbackKey && (data[fallbackKey] !== undefined || data.total !== undefined || (typeof data === 'object' && data !== null && Object.keys(data).length > 0 && !Array.isArray(data)))) {
+  }
+  if (data && fallbackKey && (data[fallbackKey] !== undefined || data.total !== undefined || (typeof data === 'object' && data !== null && Object.keys(data).length > 0 && !Array.isArray(data)))) {
     return data;
-  } else if (data && fallbackKey) {
+  }
+  if (data && fallbackKey) {
     const fallbackResult: Record<string, any> = {};
     fallbackResult[fallbackKey] = [];
     fallbackResult.total = 0;
@@ -126,7 +129,7 @@ export async function getUsers(page = 1, limit = 10, filters: Record<string, any
     "userExpirationAfter", "userExpirationBefore", "includeExpired", "expiringInDays",
     "hasAccessControl", "macAddress", "searchText",
     "sortBy", "sortOrder", "exactMatch", "caseSensitive",
-    "ipAddress", "ipAssignMode" // Added new filter keys
+    "ipAddress"
   ];
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -135,7 +138,7 @@ export async function getUsers(page = 1, limit = 10, filters: Record<string, any
     }
   });
 
-  const response = await fetchWithAuth(`api/users?${queryParams.toString()}`);
+  const response = await fetchWithAuth(`openvpn/users?${queryParams.toString()}`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch users");
   }
@@ -152,7 +155,7 @@ export async function getUsers(page = 1, limit = 10, filters: Record<string, any
 }
 
 export async function getUser(username: string) {
-  const response = await fetchWithAuth(`api/users/${username}`);
+  const response = await fetchWithAuth(`openvpn/users/${username}`);
   if (!response.ok) {
      throw await handleApiError(response, `fetch user ${username}`);
   }
@@ -177,8 +180,7 @@ export async function createUser(userData: any) {
     allowedFields.password = userData.password;
   }
 
-
-  const response = await fetchWithAuth(`api/users`, {
+  const response = await fetchWithAuth(`openvpn/users`, {
     method: "POST",
     body: JSON.stringify(allowedFields),
   });
@@ -205,7 +207,7 @@ export async function updateUser(username: string, userData: any) {
     Object.entries(updatableFieldsFromForm).filter(([_, value]) => value !== undefined)
   );
 
-  const response = await fetchWithAuth(`api/users/${username}`, {
+  const response = await fetchWithAuth(`openvpn/users/${username}`, {
     method: "PUT",
     body: JSON.stringify(cleanData),
   });
@@ -218,7 +220,7 @@ export async function updateUser(username: string, userData: any) {
 }
 
 export async function deleteUser(username: string) {
-  const response = await fetchWithAuth(`api/users/${username}`, {
+  const response = await fetchWithAuth(`openvpn/users/${username}`, {
     method: "DELETE",
   });
 
@@ -247,7 +249,7 @@ export async function performUserAction(username: string, action: "enable" | "di
   }
 
 
-  const response = await fetchWithAuth(`api/users/${username}/${action}`, options);
+  const response = await fetchWithAuth(`openvpn/users/${username}/${action}`, options);
 
   if (!response.ok) {
     throw await handleApiError(response, `perform action ${action} on user ${username}`);
@@ -262,7 +264,7 @@ export async function disconnectUser(username: string, message?: string) {
     body.message = message.trim();
   }
 
-  const response = await fetchWithAuth(`api/users/${username}/disconnect`, {
+  const response = await fetchWithAuth(`openvpn/users/${username}/disconnect`, {
     method: "POST",
     body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}),
   });
@@ -276,7 +278,7 @@ export async function disconnectUser(username: string, message?: string) {
 
 
 // Group API functions
-export async function getGroups(page = 1, limit = 10, filters = {}) {
+export async function getGroups(page = 1, limit = 10, filters: Record<string, any> = {}) {
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
@@ -288,7 +290,7 @@ export async function getGroups(page = 1, limit = 10, filters = {}) {
     }
   });
 
-  const response = await fetchWithAuth(`api/groups?${queryParams.toString()}`);
+  const response = await fetchWithAuth(`openvpn/groups?${queryParams.toString()}`);
   if (!response.ok) {
      throw await handleApiError(response, "fetch groups");
   }
@@ -305,7 +307,7 @@ export async function getGroups(page = 1, limit = 10, filters = {}) {
 }
 
 export async function getGroup(groupName: string) {
-  const response = await fetchWithAuth(`api/groups/${groupName}`);
+  const response = await fetchWithAuth(`openvpn/groups/${groupName}`);
   if (!response.ok) {
     throw await handleApiError(response, `fetch group ${groupName}`);
   }
@@ -332,7 +334,7 @@ export async function createGroup(groupData: {
     groupSubnet: groupData.groupSubnet && groupData.groupSubnet.length > 0 ? groupData.groupSubnet : undefined,
   };
 
-  const response = await fetchWithAuth(`api/groups`, {
+  const response = await fetchWithAuth(`openvpn/groups`, {
     method: "POST",
     body: JSON.stringify(apiGroupData),
   });
@@ -360,7 +362,7 @@ export async function updateGroup(groupName: string, groupData: {
   if (groupData.groupRange !== undefined) payload.groupRange = groupData.groupRange;
   if (groupData.groupSubnet !== undefined) payload.groupSubnet = groupData.groupSubnet;
 
-  const response = await fetchWithAuth(`api/groups/${groupName}`, {
+  const response = await fetchWithAuth(`openvpn/groups/${groupName}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -373,7 +375,7 @@ export async function updateGroup(groupName: string, groupData: {
 }
 
 export async function deleteGroup(groupName: string) {
-  const response = await fetchWithAuth(`api/groups/${groupName}`, {
+  const response = await fetchWithAuth(`openvpn/groups/${groupName}`, {
     method: "DELETE",
   });
 
@@ -384,8 +386,8 @@ export async function deleteGroup(groupName: string) {
   return responseData;
 }
 
-export async function performGroupAction(groupName: string, action: "enable" ) {
-  const response = await fetchWithAuth(`api/groups/${groupName}/${action}`, {
+export async function performGroupAction(groupName: string, action: "enable" | "disable" ) {
+  const response = await fetchWithAuth(`openvpn/groups/${groupName}/${action}`, {
     method: "PUT",
   });
 
@@ -398,7 +400,7 @@ export async function performGroupAction(groupName: string, action: "enable" ) {
 
 // Dashboard statistics
 export async function getUserExpirations(days = 7) {
-  const response = await fetchWithAuth(`api/users/expirations?days=${days}`);
+  const response = await fetchWithAuth(`openvpn/users/expirations?days=${days}`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch user expirations");
   }
@@ -414,7 +416,7 @@ export async function getUserExpirations(days = 7) {
 
 // Template Download API functions
 export async function downloadUserTemplate(format: "csv" | "xlsx" = "csv") {
-  const response = await fetchWithAuth(`api/bulk/users/template?format=${format}`);
+  const response = await fetchWithAuth(`openvpn/bulk/users/template?format=${format}`);
 
   if (!response.ok) {
     throw await handleApiError(response, "download user template");
@@ -436,7 +438,7 @@ export async function downloadUserTemplate(format: "csv" | "xlsx" = "csv") {
 }
 
 export async function downloadGroupTemplate(format: "csv" | "xlsx" = "csv") {
-  const response = await fetchWithAuth(`api/bulk/groups/template?format=${format}`);
+  const response = await fetchWithAuth(`openvpn/bulk/groups/template?format=${format}`);
 
   if (!response.ok) {
     throw await handleApiError(response, "download group template");
@@ -456,61 +458,6 @@ export async function downloadGroupTemplate(format: "csv" | "xlsx" = "csv") {
   return blob;
 }
 
-// Advanced Search API functions
-export async function searchUsers(searchCriteria: any) {
-  const queryParams = new URLSearchParams();
-
-  const allowedFilterKeys = [
-    "username", "email", "authMethod", "role", "groupName",
-    "isEnabled", "denyAccess", "mfaEnabled",
-    "userExpirationAfter", "userExpirationBefore", "includeExpired", "expiringInDays",
-    "hasAccessControl", "macAddress", "searchText",
-    "sortBy", "sortOrder", "exactMatch", "caseSensitive",
-    "page", "limit", "ipAddress", "ipAssignMode" // Added new filter keys
-  ];
-
-  Object.entries(searchCriteria).forEach(([key, value]) => {
-    if (allowedFilterKeys.includes(key) && value !== undefined && value !== null && value !== "" && value !== "any") {
-      queryParams.append(key, String(value));
-    }
-  });
-
-  if (!queryParams.has("page")) queryParams.set("page", "1");
-  if (!queryParams.has("limit")) queryParams.set("limit", "20");
-
-
-  const response = await fetchWithAuth(`api/users?${queryParams.toString()}`, {
-    method: "GET",
-  });
-
-  if (!response.ok) {
-     throw await handleApiError(response, "search users");
-  }
-  const data = await response.json();
-  const parsed = parseApiResponse(data);
-  return {
-    users: parsed.users || [],
-    total: parsed.total || 0,
-    page: parsed.page || searchCriteria.page || 1,
-    totalPages: Math.ceil((parsed.total || 0) / (searchCriteria.limit || 20)),
-  };
-}
-
-export async function searchGroups(searchCriteria: any) {
-  const response = await fetchWithAuth(`api/search/groups`, {
-    method: "POST",
-    body: JSON.stringify(searchCriteria),
-  });
-
-  if (!response.ok) {
-    throw await handleApiError(response, "search groups");
-  }
-  const data = await response.json();
-  const parsedData = parseApiResponse(data);
-  return parsedData;
-}
-
-
 // Import/Export API functions
 export async function importUsers(file: File, format?: string, dryRun = false, override = false) {
   const formData = new FormData();
@@ -521,7 +468,7 @@ export async function importUsers(file: File, format?: string, dryRun = false, o
   formData.append("dryRun", String(dryRun));
   formData.append("override", String(override));
 
-  const response = await fetchWithAuth(`api/bulk/users/import`, {
+  const response = await fetchWithAuth(`openvpn/bulk/users/import`, {
     method: "POST",
     body: formData,
   });
@@ -542,7 +489,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
   formData.append("dryRun", String(dryRun));
   formData.append("override", String(override));
 
-  const response = await fetchWithAuth(`api/bulk/groups/import`, {
+  const response = await fetchWithAuth(`openvpn/bulk/groups/import`, {
     method: "POST",
     body: formData,
   });
@@ -556,7 +503,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
 
 // Bulk Operations API functions
 export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") {
-  const response = await fetchWithAuth(`api/bulk/users/actions`, {
+  const response = await fetchWithAuth(`openvpn/bulk/users/actions`, {
     method: "POST",
     body: JSON.stringify({ usernames, action }),
   });
@@ -569,7 +516,7 @@ export async function bulkUserActions(usernames: string[], action: "enable" | "d
 }
 
 export async function bulkExtendUserExpiration(usernames: string[], newExpiration: string) {
-  const response = await fetchWithAuth(`api/bulk/users/extend`, {
+  const response = await fetchWithAuth(`openvpn/bulk/users/extend`, {
       method: 'POST',
       body: JSON.stringify({ usernames, newExpiration: formatDateForAPI(newExpiration) }),
   });
@@ -582,7 +529,7 @@ export async function bulkExtendUserExpiration(usernames: string[], newExpiratio
 
 
 export async function bulkGroupActions(groupNames: string[], action: "enable" | "disable") {
-  const response = await fetchWithAuth(`api/bulk/groups/actions`, {
+  const response = await fetchWithAuth(`openvpn/bulk/groups/actions`, {
     method: "POST",
     body: JSON.stringify({ groupNames, action }),
   });
@@ -600,7 +547,7 @@ export async function bulkDisconnectUsers(usernames: string[], message?: string)
     body.message = message.trim();
   }
 
-  const response = await fetchWithAuth(`api/bulk/users/disconnect`, {
+  const response = await fetchWithAuth(`openvpn/bulk/users/disconnect`, {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -612,96 +559,9 @@ export async function bulkDisconnectUsers(usernames: string[], message?: string)
   return parseApiResponse(responseData);
 }
 
-
-export async function exportUsers(filters = {}) {
-  return exportSearchResults({ type: 'users', ...filters }, "csv");
-}
-
-export async function exportGroups(filters = {}) {
-  return exportSearchResults({ type: 'groups', ...filters }, "csv");
-}
-
-export async function exportSearchResults(searchCriteria: any, format: "csv" | "xlsx" | "json" = "csv") {
-  const queryParams = new URLSearchParams({ format });
-
-  const response = await fetchWithAuth(`api/search/export?${queryParams.toString()}`, {
-    method: "POST",
-    body: JSON.stringify(searchCriteria),
-  });
-
-  if (!response.ok) {
-    throw await handleApiError(response, "export search results");
-  }
-  return response.blob();
-}
-
-
-// Quick Search API
-export async function quickSearch(query: string, type: "users" | "groups" | "all" = "all", limit = 20) {
-  const queryParams = new URLSearchParams({
-    q: query,
-    type,
-    limit: limit.toString(),
-  });
-
-  const response = await fetchWithAuth(`api/search/quick?${queryParams.toString()}`);
-  if (!response.ok) {
-    throw await handleApiError(response, "perform quick search");
-  }
-  const responseData = await response.json();
-  return responseData;
-}
-
-// System health functions
-export async function getSystemHealth() {
-  const response = await fetchWithAuth(`api/system/health`);
-  if (!response.ok) {
-    throw await handleApiError(response, "fetch system health");
-  }
-  const responseData = await response.json();
-  return responseData;
-}
-
-export async function getSystemStats() {
-  const response = await fetchWithAuth(`api/system/stats`);
-  if (!response.ok) {
-     throw await handleApiError(response, "fetch system stats");
-  }
-  const responseData = await response.json();
-  return responseData;
-}
-
-// Activity logs
-export async function getActivityLogs(page = 1, limit = 50, filters = {}) {
-  const queryParams = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
-
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "" && value !== "any") {
-      queryParams.append(key, String(value));
-    }
-  });
-
-  const response = await fetchWithAuth(`api/logs/activity?${queryParams.toString()}`);
-  if (!response.ok) {
-     throw await handleApiError(response, "fetch activity logs");
-  }
-
-  const data = await response.json();
-  const responseData = parseApiResponse(data, "logs");
-  return {
-    logs: responseData.logs || [],
-    total: responseData.total || 0,
-    page: responseData.page || page,
-    totalPages: Math.ceil((responseData.total || 0) / limit),
-  };
-}
-
 // VPN Status API
 export async function getVPNStatus() {
-  const response = await fetchWithAuth(`api/vpn/status`);
+  const response = await fetchWithAuth(`openvpn/vpn/status`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch VPN status");
   }
@@ -725,7 +585,7 @@ export interface ServerInfo {
 }
 
 export async function getServerInfo(): Promise<ServerInfo> {
-  const response = await fetchWithAuth(`api/config/server/info`);
+  const response = await fetchWithAuth(`openvpn/config/server/info`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch server info");
   }

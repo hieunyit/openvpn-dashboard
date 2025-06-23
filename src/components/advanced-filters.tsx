@@ -42,21 +42,9 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   }), []);
 
   const defaultGroupFilters = useMemo(() => ({
-    searchText: "",
+    groupName: "",
     authMethod: "any",
     role: "any",
-    isEnabled: "any", 
-    mfaEnabled: "any", // API uses mfaEnabled
-    denyAccess: "any",
-    hasAccessControl: "any",
-    accessControlPattern: "",
-    minMemberCount: "",
-    maxMemberCount: "",
-    hasMembers: "any",
-    createdAfter: "",
-    createdBefore: "",
-    sortBy: "groupName",
-    sortOrder: "asc",
   }), []);
   
   const defaultFilters = type === "users" ? defaultUserFilters : defaultGroupFilters;
@@ -130,7 +118,7 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   const removeFilterBadge = useCallback((key: string) => {
     const newFilters = { ...internalFilters, [key]: defaultFilters[key] || "any" }
      // Reset specific input fields to empty string instead of "any"
-    const inputFields = ["searchText", "username", "email", "expiringInDays", "macAddress", "accessControlPattern", "minMemberCount", "maxMemberCount", "createdAfter", "createdBefore"];
+    const inputFields = ["searchText", "username", "email", "expiringInDays", "macAddress", "accessControlPattern", "minMemberCount", "maxMemberCount", "createdAfter", "createdBefore", "groupName"];
     if (inputFields.includes(key)) {
         newFilters[key] = "";
     }
@@ -173,18 +161,17 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor={`searchText-${type}`}>General Search Text</Label>
-            <Input
-              id={`searchText-${type}`}
-              placeholder={`Search across fields...`}
-              value={internalFilters.searchText || ""}
-              onChange={(e) => handleInputChange("searchText", e.target.value)}
-            />
-          </div>
-          
           {type === "users" && (
             <>
+              <div className="space-y-2">
+                <Label htmlFor={`searchText-${type}`}>General Search Text</Label>
+                <Input
+                  id={`searchText-${type}`}
+                  placeholder={`Search across fields...`}
+                  value={internalFilters.searchText || ""}
+                  onChange={(e) => handleInputChange("searchText", e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor={`username-filter-${type}`}>Specific Username</Label>
                 <Input
@@ -204,6 +191,18 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
                 />
               </div>
             </>
+          )}
+
+          {type === "groups" && (
+             <div className="space-y-2">
+              <Label htmlFor={`groupName-filter-${type}`}>Group Name</Label>
+              <Input
+                id={`groupName-filter-${type}`}
+                placeholder="Filter by group name..."
+                value={internalFilters.groupName || ""}
+                onChange={(e) => handleInputChange("groupName", e.target.value)}
+              />
+            </div>
           )}
 
 
@@ -255,47 +254,52 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor={`isEnabled-${type}`}>System Status</Label>
-            <Select value={internalFilters.isEnabled} onValueChange={(value) => handleInputChange("isEnabled", value)}>
-              <SelectTrigger id={`isEnabled-${type}`}>
-                <SelectValue placeholder="Any status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Any Status</SelectItem>
-                <SelectItem value="true">Enabled</SelectItem>
-                <SelectItem value="false">Disabled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor={`denyAccess-${type}`}>VPN Access</Label>
-            <Select value={internalFilters.denyAccess} onValueChange={(value) => handleInputChange("denyAccess", value)}>
-              <SelectTrigger id={`denyAccess-${type}`}>
-                <SelectValue placeholder="Any access state" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Any Access State</SelectItem>
-                <SelectItem value="true">Denied</SelectItem>
-                <SelectItem value="false">Allowed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {type === "users" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor={`isEnabled-${type}`}>System Status</Label>
+                <Select value={internalFilters.isEnabled} onValueChange={(value) => handleInputChange("isEnabled", value)}>
+                  <SelectTrigger id={`isEnabled-${type}`}>
+                    <SelectValue placeholder="Any status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Status</SelectItem>
+                    <SelectItem value="true">Enabled</SelectItem>
+                    <SelectItem value="false">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor={`denyAccess-${type}`}>VPN Access</Label>
+                <Select value={internalFilters.denyAccess} onValueChange={(value) => handleInputChange("denyAccess", value)}>
+                  <SelectTrigger id={`denyAccess-${type}`}>
+                    <SelectValue placeholder="Any access state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Access State</SelectItem>
+                    <SelectItem value="true">Denied</SelectItem>
+                    <SelectItem value="false">Allowed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor={`mfaEnabled-${type}`}>MFA Status</Label>
-            <Select value={internalFilters.mfaEnabled} onValueChange={(value) => handleInputChange("mfaEnabled", value)}>
-              <SelectTrigger id={`mfaEnabled-${type}`}>
-                <SelectValue placeholder="Any MFA status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Any MFA Status</SelectItem>
-                <SelectItem value="true">MFA Enabled</SelectItem>
-                <SelectItem value="false">MFA Disabled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor={`mfaEnabled-${type}`}>MFA Status</Label>
+                <Select value={internalFilters.mfaEnabled} onValueChange={(value) => handleInputChange("mfaEnabled", value)}>
+                  <SelectTrigger id={`mfaEnabled-${type}`}>
+                    <SelectValue placeholder="Any MFA status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any MFA Status</SelectItem>
+                    <SelectItem value="true">MFA Enabled</SelectItem>
+                    <SelectItem value="false">MFA Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
         </div>
 
         {type === "users" && (
@@ -385,71 +389,17 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
           </>
         )}
         
-        {type === "groups" && (
+        {type === "users" && (
           <>
             <Separator className="my-4" />
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hasAccessControl-groups">Has Access Control Rules</Label>
-                  <Select value={internalFilters.hasAccessControl} onValueChange={(value) => handleInputChange("hasAccessControl", value)}>
-                    <SelectTrigger id="hasAccessControl-groups"><SelectValue placeholder="Any" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="true">Yes</SelectItem>
-                      <SelectItem value="false">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accessControlPattern-groups">Access Control Pattern</Label>
-                  <Input id="accessControlPattern-groups" placeholder="e.g. 192.168.1.0/24" value={internalFilters.accessControlPattern || ""} onChange={(e) => handleInputChange("accessControlPattern", e.target.value)} />
-                </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="hasMembers-groups">Has Members</Label>
-                   <Select value={internalFilters.hasMembers} onValueChange={(value) => handleInputChange("hasMembers", value)}>
-                    <SelectTrigger id="hasMembers-groups"><SelectValue placeholder="Any" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="true">Yes</SelectItem>
-                      <SelectItem value="false">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="minMemberCount-groups">Min Members</Label>
-                  <Input id="minMemberCount-groups" type="number" placeholder="e.g. 1" value={internalFilters.minMemberCount || ""} onChange={(e) => handleInputChange("minMemberCount", e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxMemberCount-groups">Max Members</Label>
-                  <Input id="maxMemberCount-groups" type="number" placeholder="e.g. 100" value={internalFilters.maxMemberCount || ""} onChange={(e) => handleInputChange("maxMemberCount", e.target.value)} />
-                </div>
-             </div>
-             <Separator className="my-4" />
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="createdAfter-groups">Created After</Label>
-                  <Input id="createdAfter-groups" type="date" value={internalFilters.createdAfter || ""} onChange={(e) => handleInputChange("createdAfter", e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="createdBefore-groups">Created Before</Label>
-                  <Input id="createdBefore-groups" type="date" value={internalFilters.createdBefore || ""} onChange={(e) => handleInputChange("createdBefore", e.target.value)} />
-                </div>
-             </div>
-          </>
-        )}
-
-
-        <Separator className="my-4" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor={`sortBy-${type}`}>Sort By</Label>
-            <Select value={internalFilters.sortBy} onValueChange={(value) => handleInputChange("sortBy", value)}>
-              <SelectTrigger id={`sortBy-${type}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {type === "users" ? (
-                  <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor={`sortBy-${type}`}>Sort By</Label>
+                <Select value={internalFilters.sortBy} onValueChange={(value) => handleInputChange("sortBy", value)}>
+                  <SelectTrigger id={`sortBy-${type}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="username">Username</SelectItem>
                     <SelectItem value="email">Email</SelectItem>
                     <SelectItem value="authMethod">Auth Method</SelectItem>
@@ -457,33 +407,26 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
                     <SelectItem value="groupName">Group</SelectItem>
                     <SelectItem value="userExpiration">Expiration</SelectItem>
                     <SelectItem value="createdAt">Created Date</SelectItem>
-                  </>
-                ) : ( // groups
-                  <>
-                    <SelectItem value="groupName">Group Name</SelectItem>
-                    <SelectItem value="authMethod">Auth Method</SelectItem>
-                    <SelectItem value="role">Role</SelectItem>
-                    <SelectItem value="memberCount">Member Count</SelectItem>
-                    <SelectItem value="createdAt">Created Date</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor={`sortOrder-${type}`}>Sort Order</Label>
-            <Select value={internalFilters.sortOrder} onValueChange={(value) => handleInputChange("sortOrder", value)}>
-              <SelectTrigger id={`sortOrder-${type}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="asc">Ascending</SelectItem>
-                <SelectItem value="desc">Descending</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor={`sortOrder-${type}`}>Sort Order</Label>
+                <Select value={internalFilters.sortOrder} onValueChange={(value) => handleInputChange("sortOrder", value)}>
+                  <SelectTrigger id={`sortOrder-${type}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        )}
+
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
           <Button variant="ghost" onClick={handleClearFilters}>
@@ -494,5 +437,3 @@ export const AdvancedFilters = memo(({ onFiltersChange, type, availableGroups = 
   )
 });
 AdvancedFilters.displayName = "AdvancedFilters";
-
-

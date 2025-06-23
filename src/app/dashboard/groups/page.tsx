@@ -4,11 +4,10 @@
 import type React from "react"
 
 import { useState, useEffect, useCallback, memo } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   AlertDialog,
@@ -33,7 +32,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { deleteGroup, updateGroup, bulkGroupActions, searchGroups, performGroupAction } from "@/lib/api"
+import { deleteGroup, updateGroup, bulkGroupActions, getGroups, performGroupAction } from "@/lib/api"
 import { ImportDialog } from "@/components/import-dialog"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { Pagination } from "@/components/pagination"
@@ -259,40 +258,16 @@ export default function GroupsPage() {
     try {
       setLoading(true);
       const criteriaForSearch: any = {
+        ...filtersToApply,
         page,
         limit,
-        sortBy: filtersToApply.sortBy || "groupName",
-        sortOrder: filtersToApply.sortOrder || "asc",
-        includeMemberCount: true,
       };
 
       if (searchTerm.trim()) {
-        criteriaForSearch.searchText = searchTerm.trim();
-      }
-      
-      for (const key in filtersToApply) {
-        if (key !== 'sortBy' && key !== 'sortOrder' && key !== 'includeMemberCount' && filtersToApply[key] !== undefined && filtersToApply[key] !== "" && filtersToApply[key] !== "any") {
-          criteriaForSearch[key] = filtersToApply[key];
-        }
+        criteriaForSearch.groupName = searchTerm.trim();
       }
 
-      if (criteriaForSearch.isEnabled !== undefined && criteriaForSearch.isEnabled !== "any") {
-        criteriaForSearch.isEnabled = criteriaForSearch.isEnabled === 'true';
-      } else {
-        delete criteriaForSearch.isEnabled;
-      }
-      if (criteriaForSearch.hasMFA !== undefined && criteriaForSearch.hasMFA !== "any") {
-        criteriaForSearch.hasMFA = criteriaForSearch.hasMFA === 'true';
-      } else {
-        delete criteriaForSearch.hasMFA;
-      }
-      if (criteriaForSearch.denyAccess !== undefined && criteriaForSearch.denyAccess !== "any") {
-        criteriaForSearch.denyAccess = criteriaForSearch.denyAccess === 'true';
-      } else {
-        delete criteriaForSearch.denyAccess;
-      }
-
-      const data = await searchGroups(criteriaForSearch);
+      const data = await getGroups(page, limit, criteriaForSearch);
       setGroups(data.groups?.map((g: any) => ({ ...g, denyAccess: g.denyAccess ?? false, isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true })) || []);
       setTotal(data.total || 0);
     } catch (error: any) {
@@ -575,7 +550,7 @@ export default function GroupsPage() {
       const csvContent = [
         headers.join(","),
         ...groups.map((group) => {
-          return [
+          const sanitizedRow = [
             group.groupName || "",
             group.authMethod || "N/A",
             group.role || "N/A",
@@ -584,7 +559,8 @@ export default function GroupsPage() {
             group.memberCount ?? "N/A",
             group.isEnabled !== false ? "Enabled" : "Disabled",
             group.denyAccess === true ? "Disabled" : "Enabled",
-          ].join(",");
+          ].map(value => `"${String(value).replace(/"/g, '""')}"`);
+          return sanitizedRow.join(",");
         }),
       ].join("\n");
 
@@ -608,7 +584,7 @@ export default function GroupsPage() {
     } catch (error: any) {
       toast({
         title: "Export Failed",
-        description: getCoreApiErrorMessage(error.message) || "Could not export group data.",
+        description: getCoreApiErrorMessage(error) || "Could not export group data.",
         variant: "destructive",
         icon: <AlertTriangle className="h-5 w-5" />,
       });
@@ -876,5 +852,3 @@ export default function GroupsPage() {
     </div>
   )
 }
-
-
