@@ -1,4 +1,3 @@
-
 import { refreshToken, getAccessToken, logout } from "./auth"
 import { formatDateForAPI } from "./utils";
 
@@ -39,6 +38,15 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
       ...options,
       headers,
     });
+    
+    if (response.status === 403) {
+      // Don't redirect on auth paths like login
+      if (!isAuthPath) {
+        window.location.href = '/403';
+        // Throw an error to stop further processing in the calling function
+        throw new Error("ACCESS_DENIED");
+      }
+    }
 
     if (response.status === 401 && !isAuthPath) {
       const refreshed = await refreshToken();
@@ -58,7 +66,7 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
     }
     return response;
   } catch (error) {
-    if (error instanceof Error && error.message === "SESSION_EXPIRED") {
+    if (error instanceof Error && (error.message === "SESSION_EXPIRED" || error.message === "ACCESS_DENIED")) {
         throw error;
     }
     throw error;
@@ -87,6 +95,9 @@ function parseApiResponse(data: any, fallbackKey?: string) {
 
 
 async function handleApiError(response: Response, operation: string): Promise<Error> {
+  if (response.status === 403) {
+    return new Error("Access Denied: You do not have permission for this action.");
+  }
   let errorDetails = `Server responded with ${response.status} ${response.statusText}`;
   try {
     const textBody = await response.text();
