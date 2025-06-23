@@ -43,6 +43,7 @@ import {
   History,
   Network,
   Shield,
+  Search
 } from "lucide-react"
 
 interface NavSubItem {
@@ -74,6 +75,7 @@ const navConfig: NavItemConfig[] = [
       { title: "Users", href: "/dashboard/users", icon: Users },
       { title: "Groups", href: "/dashboard/groups", icon: FolderKanban },
       { title: "VPN Status", href: "/dashboard/status", icon: Server },
+      { title: "Advanced Search", href: "/dashboard/search", icon: Search },
     ],
   },
   {

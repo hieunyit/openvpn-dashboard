@@ -8,20 +8,29 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { getOpenVPNConnection, updateOpenVPNConnection, getLdapConnection, updateLdapConnection } from "@/lib/api"
+import { 
+  getOpenVPNConnection, updateOpenVPNConnection, deleteOpenVPNConnection,
+  getLdapConnection, updateLdapConnection, deleteLdapConnection
+} from "@/lib/api"
 import { getCoreApiErrorMessage } from "@/lib/utils"
-import { Network, Save, AlertTriangle, CheckCircle, Shield, Building } from "lucide-react"
+import { Network, Save, AlertTriangle, CheckCircle, Shield, Building, Trash2 } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 interface ConnectionFormProps {
   type: 'openvpn' | 'ldap'
   initialData: any
   onSave: (data: any) => Promise<any>
+  onDelete: () => Promise<any>
+  onConfigChange: () => void;
 }
 
-function ConnectionForm({ type, initialData, onSave }: ConnectionFormProps) {
+function ConnectionForm({ type, initialData, onSave, onDelete, onConfigChange }: ConnectionFormProps) {
   const [formData, setFormData] = useState(initialData || {})
   const [saving, setSaving] = useState(false)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const { toast } = useToast()
+
+  const connectionExists = initialData && initialData.id;
 
   useEffect(() => {
     setFormData(initialData || {})
@@ -38,7 +47,6 @@ function ConnectionForm({ type, initialData, onSave }: ConnectionFormProps) {
   const handleSave = async () => {
     setSaving(true)
     try {
-      // For LDAP, port should be a number
       const dataToSave = { ...formData }
       if (type === 'ldap' && dataToSave.port) {
         dataToSave.port = Number(dataToSave.port)
@@ -51,6 +59,7 @@ function ConnectionForm({ type, initialData, onSave }: ConnectionFormProps) {
         variant: "success",
         icon: <CheckCircle className="h-5 w-5" />,
       })
+      onConfigChange();
     } catch (error: any) {
       toast({
         title: "Error Saving Settings",
@@ -60,6 +69,30 @@ function ConnectionForm({ type, initialData, onSave }: ConnectionFormProps) {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setSaving(true)
+    try {
+        await onDelete()
+        toast({
+            title: "Success",
+            description: `${type.toUpperCase()} connection has been deleted.`,
+            variant: "success",
+            icon: <CheckCircle className="h-5 w-5" />,
+        })
+        onConfigChange();
+    } catch (error: any) {
+        toast({
+            title: `Error Deleting ${type.toUpperCase()} Connection`,
+            description: getCoreApiErrorMessage(error),
+            variant: "destructive",
+            icon: <AlertTriangle className="h-5 w-5" />,
+        })
+    } finally {
+        setSaving(false)
+        setIsDeleteConfirmOpen(false)
     }
   }
   
@@ -79,6 +112,7 @@ function ConnectionForm({ type, initialData, onSave }: ConnectionFormProps) {
     ]
 
   return (
+    <>
     <Card className="shadow-md border-0">
       <CardHeader>
         <CardTitle className="flex items-center text-xl">
@@ -105,14 +139,41 @@ function ConnectionForm({ type, initialData, onSave }: ConnectionFormProps) {
           </div>
         ))}
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" disabled>Test Connection</Button>
-        <Button onClick={handleSave} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? 'Saving...' : 'Save Settings'}
-        </Button>
+      <CardFooter className="flex justify-between items-center">
+         <div>
+          {connectionExists && (
+            <Button variant="destructive" onClick={() => setIsDeleteConfirmOpen(true)} disabled={saving}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-2">
+            <Button variant="outline" disabled>Test Connection</Button>
+            <Button onClick={handleSave} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? 'Saving...' : 'Save Settings'}
+            </Button>
+        </div>
       </CardFooter>
     </Card>
+     <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the {type.toUpperCase()} connection configuration. This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                    {saving ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }
 
@@ -122,39 +183,40 @@ export default function ConnectionsPage() {
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
-  useEffect(() => {
-    async function fetchConfigs() {
-      try {
-        setLoading(true)
-        const [ovpnRes, ldapRes] = await Promise.allSettled([
-          getOpenVPNConnection(),
-          getLdapConnection(),
-        ])
+  const fetchConfigs = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [ovpnRes, ldapRes] = await Promise.allSettled([
+        getOpenVPNConnection(),
+        getLdapConnection(),
+      ])
 
-        if (ovpnRes.status === 'fulfilled') setOpenvpnConfig(ovpnRes.value)
-        if (ldapRes.status === 'fulfilled') setLdapConfig(ldapRes.value)
-        
-        if (ovpnRes.status === 'rejected' || ldapRes.status === 'rejected') {
-            toast({
-                title: "Partial Load Error",
-                description: "Could not load all connection settings.",
-                variant: "warning",
-                icon: <AlertTriangle className="h-5 w-5" />
-            })
-        }
-      } catch (error: any) {
-         toast({
-            title: "Error",
-            description: getCoreApiErrorMessage(error),
-            variant: "destructive",
-            icon: <AlertTriangle className="h-5 w-5" />
-        })
-      } finally {
-        setLoading(false)
+      if (ovpnRes.status === 'fulfilled') setOpenvpnConfig(ovpnRes.value)
+      if (ldapRes.status === 'fulfilled') setLdapConfig(ldapRes.value)
+      
+      if (ovpnRes.status === 'rejected' || ldapRes.status === 'rejected') {
+          toast({
+              title: "Partial Load Error",
+              description: "Could not load all connection settings.",
+              variant: "warning",
+              icon: <AlertTriangle className="h-5 w-5" />
+          })
       }
+    } catch (error: any) {
+       toast({
+          title: "Error",
+          description: getCoreApiErrorMessage(error),
+          variant: "destructive",
+          icon: <AlertTriangle className="h-5 w-5" />
+      })
+    } finally {
+      setLoading(false)
     }
-    fetchConfigs()
   }, [toast])
+
+  useEffect(() => {
+    fetchConfigs()
+  }, [fetchConfigs])
 
   return (
     <div className="space-y-6">
@@ -172,10 +234,10 @@ export default function ConnectionsPage() {
           <TabsTrigger value="ldap">LDAP Server</TabsTrigger>
         </TabsList>
         <TabsContent value="openvpn" className="mt-6">
-            {loading ? <p>Loading...</p> : <ConnectionForm type="openvpn" initialData={openvpnConfig} onSave={updateOpenVPNConnection} />}
+            {loading ? <p>Loading...</p> : <ConnectionForm type="openvpn" initialData={openvpnConfig} onSave={updateOpenVPNConnection} onDelete={deleteOpenVPNConnection} onConfigChange={fetchConfigs} />}
         </TabsContent>
         <TabsContent value="ldap" className="mt-6">
-            {loading ? <p>Loading...</p> : <ConnectionForm type="ldap" initialData={ldapConfig} onSave={updateLdapConnection} />}
+            {loading ? <p>Loading...</p> : <ConnectionForm type="ldap" initialData={ldapConfig} onSave={updateLdapConnection} onDelete={deleteLdapConnection} onConfigChange={fetchConfigs} />}
         </TabsContent>
       </Tabs>
     </div>

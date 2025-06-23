@@ -1,6 +1,6 @@
 
 import { refreshToken, getAccessToken, logout } from "./auth"
-import { formatDateForAPI, formatDateForDisplay, formatDateForInput, formatBytes } from "./utils";
+import { formatDateForAPI } from "./utils";
 
 // This constant is the prefix for our Next.js API proxy route.
 const PROXY_ROUTE_PREFIX = "/api/proxy";
@@ -109,14 +109,13 @@ async function handleApiError(response: Response, operation: string): Promise<Er
       }
     }
   } catch (e) {
-    // console.warn to avoid Next.js error overlay for this specific scenario
     console.warn(`[API Error - ${operation}] Failed to read error response body:`, e);
   }
   return new Error(`Failed to ${operation}. Server error: ${errorDetails}`);
 }
 
 
-// User API functions
+// --- OpenVPN User API functions ---
 export async function getUsers(page = 1, limit = 10, filters: Record<string, any> = {}) {
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -194,12 +193,12 @@ export async function createUser(userData: any) {
 
 export async function updateUser(username: string, userData: any) {
   const updatableFieldsFromForm:any = {
+    groupName: userData.groupName === "none" || userData.groupName === "" ? undefined : userData.groupName,
+    userExpiration: userData.userExpiration ? formatDateForAPI(userData.userExpiration) : undefined,
+    macAddresses: userData.macAddresses,
     accessControl: userData.accessControl,
     denyAccess: userData.denyAccess,
-    groupName: userData.groupName === "none" || userData.groupName === "" ? undefined : userData.groupName,
-    macAddresses: userData.macAddresses,
-    userExpiration: userData.userExpiration ? formatDateForAPI(userData.userExpiration) : undefined,
-    ipAddress: userData.ipAddress,
+    ipAddress: userData.ipAddress || undefined,
     ipAssignMode: userData.ipAssignMode === "none" ? undefined : userData.ipAssignMode,
   };
 
@@ -277,7 +276,7 @@ export async function disconnectUser(username: string, message?: string) {
 }
 
 
-// Group API functions
+// --- OpenVPN Group API functions ---
 export async function getGroups(page = 1, limit = 10, filters: Record<string, any> = {}) {
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -398,7 +397,7 @@ export async function performGroupAction(groupName: string, action: "enable" | "
   return responseData;
 }
 
-// Dashboard statistics
+// --- OpenVPN Dashboard statistics ---
 export async function getUserExpirations(days = 7) {
   const response = await fetchWithAuth(`api/openvpn/users/expirations?days=${days}`);
   if (!response.ok) {
@@ -414,7 +413,7 @@ export async function getUserExpirations(days = 7) {
   };
 }
 
-// Template Download API functions
+// --- OpenVPN Template Download API functions ---
 export async function downloadUserTemplate(format: "csv" | "xlsx" = "csv") {
   const response = await fetchWithAuth(`api/openvpn/bulk/users/template?format=${format}`);
 
@@ -458,7 +457,7 @@ export async function downloadGroupTemplate(format: "csv" | "xlsx" = "csv") {
   return blob;
 }
 
-// Import/Export API functions
+// --- OpenVPN Import/Export API functions ---
 export async function importUsers(file: File, format?: string, dryRun = false, override = false) {
   const formData = new FormData();
   formData.append("file", file);
@@ -501,7 +500,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
   return responseData;
 }
 
-// Bulk Operations API functions
+// --- OpenVPN Bulk Operations API functions ---
 export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") {
   const response = await fetchWithAuth(`api/openvpn/bulk/users/actions`, {
     method: "POST",
@@ -559,7 +558,7 @@ export async function bulkDisconnectUsers(usernames: string[], message?: string)
   return parseApiResponse(responseData);
 }
 
-// VPN Status API
+// --- OpenVPN Status API ---
 export async function getVPNStatus() {
   const response = await fetchWithAuth(`api/openvpn/vpn/status`);
   if (!response.ok) {
@@ -569,7 +568,7 @@ export async function getVPNStatus() {
   return parseApiResponse(data);
 }
 
-// Server Info API
+// --- OpenVPN Server Info API ---
 export interface ServerInfo {
   admin_ip_address?: string;
   admin_port?: string;
@@ -596,7 +595,7 @@ export async function getServerInfo(): Promise<ServerInfo> {
 
 // --- Portal APIs ---
 
-// Connections
+// --- Portal Connections ---
 export async function getOpenVPNConnection() {
   const response = await fetchWithAuth(`api/portal/connections/openvpn`);
   if (!response.ok) {
@@ -607,14 +606,25 @@ export async function getOpenVPNConnection() {
 }
 
 export async function updateOpenVPNConnection(config: any) {
+  const method = config.id ? 'PUT' : 'POST';
   const response = await fetchWithAuth(`api/portal/connections/openvpn`, {
-    method: 'PUT',
+    method,
     body: JSON.stringify(config),
   });
   if (!response.ok) {
     throw await handleApiError(response, "update OpenVPN connection");
   }
   return await response.json();
+}
+
+export async function deleteOpenVPNConnection() {
+    const response = await fetchWithAuth(`api/portal/connections/openvpn`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw await handleApiError(response, "delete OpenVPN connection");
+    }
+    return await response.json();
 }
 
 export async function getLdapConnection() {
@@ -627,12 +637,151 @@ export async function getLdapConnection() {
 }
 
 export async function updateLdapConnection(config: any) {
+  const method = config.id ? 'PUT' : 'POST';
   const response = await fetchWithAuth(`api/portal/connections/ldap`, {
-    method: 'PUT',
+    method,
     body: JSON.stringify(config),
   });
   if (!response.ok) {
     throw await handleApiError(response, "update LDAP connection");
   }
   return await response.json();
+}
+
+export async function deleteLdapConnection() {
+    const response = await fetchWithAuth(`api/portal/connections/ldap`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw await handleApiError(response, "delete LDAP connection");
+    }
+    return await response.json();
+}
+
+// --- Portal Users ---
+export async function getPortalUsers() {
+  const response = await fetchWithAuth(`api/portal/users`);
+  if (!response.ok) throw await handleApiError(response, "fetch portal users");
+  return parseApiResponse(await response.json());
+}
+
+export async function createPortalUser(userData: any) {
+  const response = await fetchWithAuth(`api/portal/users`, {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw await handleApiError(response, "create portal user");
+  return await response.json();
+}
+
+export async function updatePortalUser(id: string, userData: any) {
+  const response = await fetchWithAuth(`api/portal/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw await handleApiError(response, "update portal user");
+  return await response.json();
+}
+
+export async function deletePortalUser(id: string) {
+  const response = await fetchWithAuth(`api/portal/users/${id}`, { method: "DELETE" });
+  if (!response.ok) throw await handleApiError(response, "delete portal user");
+  return await response.json();
+}
+
+export async function activatePortalUser(id: string) {
+  const response = await fetchWithAuth(`api/portal/users/${id}/activate`, { method: "PUT" });
+  if (!response.ok) throw await handleApiError(response, "activate portal user");
+  return await response.json();
+}
+
+export async function deactivatePortalUser(id: string) {
+  const response = await fetchWithAuth(`api/portal/users/${id}/deactivate`, { method: "PUT" });
+  if (!response.ok) throw await handleApiError(response, "deactivate portal user");
+  return await response.json();
+}
+
+export async function resetPortalUserPassword(id: string) {
+  const response = await fetchWithAuth(`api/portal/users/${id}/reset-password`, { method: "PUT" });
+  if (!response.ok) throw await handleApiError(response, "reset portal user password");
+  return await response.json();
+}
+
+// --- Portal Groups & Permissions ---
+export async function getPortalGroups() {
+  const response = await fetchWithAuth(`api/portal/groups`);
+  if (!response.ok) throw await handleApiError(response, "fetch portal groups");
+  return parseApiResponse(await response.json());
+}
+
+export async function createPortalGroup(groupData: { name: string, displayName: string }) {
+  const response = await fetchWithAuth(`api/portal/groups`, {
+    method: "POST",
+    body: JSON.stringify(groupData),
+  });
+  if (!response.ok) throw await handleApiError(response, "create portal group");
+  return await response.json();
+}
+
+export async function updatePortalGroup(id: string, groupData: { name: string, displayName: string }) {
+  const response = await fetchWithAuth(`api/portal/groups/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(groupData),
+  });
+  if (!response.ok) throw await handleApiError(response, "update portal group");
+  return await response.json();
+}
+
+export async function deletePortalGroup(id: string) {
+  const response = await fetchWithAuth(`api/portal/groups/${id}`, { method: "DELETE" });
+  if (!response.ok) throw await handleApiError(response, "delete portal group");
+  return await response.json();
+}
+
+export async function getPermissions() {
+    const response = await fetchWithAuth(`api/portal/permissions`);
+    if (!response.ok) throw await handleApiError(response, "fetch permissions");
+    return parseApiResponse(await response.json());
+}
+
+export async function getGroupPermissions(groupId: string) {
+    const response = await fetchWithAuth(`api/portal/groups/${groupId}/permissions`);
+    if (!response.ok) throw await handleApiError(response, "fetch group permissions");
+    return parseApiResponse(await response.json());
+}
+
+export async function updateGroupPermissions(groupId: string, permissionIds: string[]) {
+    const response = await fetchWithAuth(`api/portal/groups/${groupId}/permissions`, {
+        method: 'PUT',
+        body: JSON.stringify({ permission_ids: permissionIds })
+    });
+    if (!response.ok) throw await handleApiError(response, "update group permissions");
+    return await response.json();
+}
+
+
+// --- Audit Logs ---
+export async function getAuditLogs(filters: any) {
+    const queryParams = new URLSearchParams(filters);
+    const response = await fetchWithAuth(`api/portal/audit/logs?${queryParams.toString()}`);
+    if (!response.ok) throw await handleApiError(response, "fetch audit logs");
+    const data = await response.json()
+    return parseApiResponse(data);
+}
+
+export async function exportAuditLogs(filters: any) {
+    const queryParams = new URLSearchParams(filters);
+    const response = await fetchWithAuth(`api/portal/audit/logs/export?${queryParams.toString()}`);
+    if (!response.ok) throw await handleApiError(response, "export audit logs");
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().slice(0,10);
+    a.download = `audit_logs_${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
 }
