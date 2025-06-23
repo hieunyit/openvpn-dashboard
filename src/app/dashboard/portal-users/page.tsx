@@ -18,6 +18,14 @@ import { BookUser, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCirc
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 
 interface PortalUser {
@@ -273,24 +281,44 @@ export default function PortalUsersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </Button>
-                        {user.isActive ? (
-                             <Button variant="ghost" size="sm" onClick={() => handleAction(user, 'deactivate')}>
-                                <PowerOff className="mr-2 h-4 w-4" /> Deactivate
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu for {user.username}</span>
                             </Button>
-                        ) : (
-                             <Button variant="ghost" size="sm" onClick={() => handleAction(user, 'activate')}>
-                                <Power className="mr-2 h-4 w-4" /> Activate
-                            </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleAction(user, 'reset-password')}>
-                          <KeyRound className="mr-2 h-4 w-4" /> Reset Password
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleAction(user, 'delete')}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(user)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            {user.isActive ? (
+                              <DropdownMenuItem onClick={() => handleAction(user, 'deactivate')}>
+                                <PowerOff className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleAction(user, 'activate')}>
+                                <Power className="mr-2 h-4 w-4" />
+                                Activate
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleAction(user, 'reset-password')}>
+                              <KeyRound className="mr-2 h-4 w-4" />
+                              Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleAction(user, 'delete')}
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
