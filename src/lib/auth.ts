@@ -5,25 +5,13 @@ const API_URL = "/api/proxy/auth"
 
 interface UserInfo {
   username: string
-  email: string
+  email?: string
   role: string
 }
 
 interface AuthTokens {
   accessToken: string
   refreshToken: string
-  user: UserInfo
-}
-
-interface ApiResponse {
-  success?: {
-    data: AuthTokens
-    status: number
-  }
-  error?: {
-    message: string
-    status: number
-  }
 }
 
 export async function login(username: string, password: string): Promise<UserInfo> {
@@ -50,23 +38,25 @@ export async function login(username: string, password: string): Promise<UserInf
       throw new Error("Invalid JSON response from server")
     }
 
-    let authData: AuthTokens
+    let tokenData: AuthTokens
 
     if (apiResponse.success && apiResponse.success.data) {
-      authData = apiResponse.success.data
-    } else if (apiResponse.accessToken) {
-      authData = apiResponse
-    } else if (apiResponse.data && apiResponse.data.accessToken) {
-      authData = apiResponse.data
+      tokenData = apiResponse.success.data
     } else {
       throw new Error("Invalid response format from server")
     }
 
-    if (!authData.accessToken || !authData.user) {
-      throw new Error("Invalid authentication data received")
+    if (!tokenData.accessToken) {
+      throw new Error("Invalid authentication data received: Missing accessToken")
     }
 
-    const { accessToken, refreshToken, user } = authData
+    const { accessToken, refreshToken } = tokenData
+
+    const decodedToken: any = jwtDecode(accessToken);
+    const user: UserInfo = {
+      username: decodedToken.username,
+      role: decodedToken.role,
+    };
 
     localStorage.setItem("accessToken", accessToken)
     if (refreshToken) {
@@ -140,19 +130,21 @@ export async function refreshToken(): Promise<boolean> {
       return false;
     }
 
-    let authData: AuthTokens
+    let tokenData: AuthTokens
     if (apiResponse.success && apiResponse.success.data) {
-      authData = apiResponse.success.data
-    } else if (apiResponse.accessToken) {
-      authData = apiResponse
-    } else if (apiResponse.data && apiResponse.data.accessToken) {
-      authData = apiResponse.data
+      tokenData = apiResponse.success.data
     } else {
       await logout(); 
       return false;
     }
 
-    const { accessToken, refreshToken: newRefreshToken, user } = authData
+    const { accessToken, refreshToken: newRefreshToken } = tokenData
+
+    const decodedToken: any = jwtDecode(accessToken);
+    const user: UserInfo = {
+      username: decodedToken.username,
+      role: decodedToken.role
+    };
 
     localStorage.setItem("accessToken", accessToken)
     if (newRefreshToken) {
@@ -204,4 +196,3 @@ export async function validateToken(): Promise<boolean> {
     return await refreshToken(); 
   }
 }
-

@@ -274,7 +274,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuLabel className="font-normal py-2">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-semibold leading-none">{user.username}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    {user.email && (
+                       <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    )}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
