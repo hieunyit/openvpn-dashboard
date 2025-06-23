@@ -129,7 +129,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
 }
 
 function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalGroup | null, open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
-  const [formData, setFormData] = useState({ name: "", displayName: "" })
+  const [formData, setFormData] = useState({ Name: "", DisplayName: "" })
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
@@ -137,9 +137,9 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
 
   useEffect(() => {
     if (group && open) {
-      setFormData({ name: group.Name, displayName: group.DisplayName })
+      setFormData({ Name: group.Name, DisplayName: group.DisplayName })
     } else if (!group && open) {
-      setFormData({ name: "", displayName: "" })
+      setFormData({ Name: "", DisplayName: "" })
     }
   }, [group, open])
 
@@ -148,11 +148,11 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
     setSaving(true)
     try {
       if (isEditing && group) {
-        await updatePortalGroup(group.ID, { Name: formData.name, DisplayName: formData.displayName })
+        await updatePortalGroup(group.ID, { Name: formData.Name, DisplayName: formData.DisplayName })
       } else {
         await createPortalGroup(formData)
       }
-      toast({ title: "Success", description: `Group ${formData.displayName} has been ${isEditing ? 'updated' : 'created'}.`, variant: "success", icon: <CheckCircle /> })
+      toast({ title: "Success", description: `Group ${formData.DisplayName} has been ${isEditing ? 'updated' : 'created'}.`, variant: "success", icon: <CheckCircle /> })
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
@@ -174,11 +174,11 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name *</Label>
-                <Input id="displayName" value={formData.displayName} onChange={e => setFormData(p => ({...p, displayName: e.target.value}))} required />
+                <Input id="displayName" value={formData.DisplayName} onChange={e => setFormData(p => ({...p, DisplayName: e.target.value}))} required />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="name">Unique Name *</Label>
-                <Input id="name" value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} required placeholder="e.g., vpn_admins (no spaces)" />
+                <Input id="name" value={formData.Name} onChange={e => setFormData(p => ({...p, Name: e.target.value}))} required placeholder="e.g., vpn_admins (no spaces)" />
             </div>
         </form>
         <DialogFooter>
@@ -191,7 +191,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
 }
 
 export default function PortalGroupsPage() {
-  const [groups, setGroups] = useState<PortalGroup[]>([])
+  const [allGroups, setAllGroups] = useState<PortalGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false)
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
@@ -210,7 +210,7 @@ export default function PortalGroupsPage() {
     setLoading(true)
     try {
       const data = await getPortalGroups()
-      setGroups(Array.isArray(data) ? data : [])
+      setAllGroups(Array.isArray(data) ? data : [])
     } catch (error: any) {
       toast({
         title: "Error Fetching Groups",
@@ -228,12 +228,12 @@ export default function PortalGroupsPage() {
   }, [fetchGroups])
 
   const filteredGroups = useMemo(() => {
-    if (!searchTerm) return groups;
-    return groups.filter(group => 
+    if (!searchTerm) return allGroups;
+    return allGroups.filter(group => 
       group.DisplayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       group.Name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [groups, searchTerm]);
+  }, [allGroups, searchTerm]);
 
   const paginatedGroups = useMemo(() => {
     const start = (page - 1) * limit;

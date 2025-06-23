@@ -1,3 +1,4 @@
+
 import { refreshToken, getAccessToken, logout } from "./auth"
 import { formatDateForAPI } from "./utils";
 
@@ -687,11 +688,26 @@ export async function deleteLdapConnection() {
 }
 
 // --- Portal Users ---
-export async function getPortalUsers() {
-  const response = await fetchWithAuth(`api/portal/users`);
+export async function getPortalUsers(page = 1, limit = 10, searchTerm = "") {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (searchTerm.trim()) {
+    queryParams.append("search", searchTerm.trim());
+  }
+
+  const response = await fetchWithAuth(`api/portal/users?${queryParams.toString()}`);
   if (!response.ok) throw await handleApiError(response, "fetch portal users");
-  return parseApiResponse(await response.json());
+  const data = await response.json();
+  const responseData = parseApiResponse(data, "users");
+
+  return {
+      users: responseData.users || [],
+      total: responseData.total || 0,
+  };
 }
+
 
 export async function createPortalUser(userData: any) {
   const response = await fetchWithAuth(`api/portal/users`, {
@@ -739,13 +755,16 @@ export async function resetPortalUserPassword(id: string) {
 export async function getPortalGroups() {
   const response = await fetchWithAuth(`api/portal/groups`);
   if (!response.ok) throw await handleApiError(response, "fetch portal groups");
-  return parseApiResponse(await response.json());
+  const data = await response.json();
+  const responseData = parseApiResponse(data);
+  return Array.isArray(responseData) ? responseData : [];
 }
 
-export async function createPortalGroup(groupData: { name: string, displayName: string }) {
+
+export async function createPortalGroup(groupData: { Name: string, DisplayName: string }) {
   const response = await fetchWithAuth(`api/portal/groups`, {
     method: "POST",
-    body: JSON.stringify({ Name: groupData.name, DisplayName: groupData.displayName }),
+    body: JSON.stringify({ Name: groupData.Name, DisplayName: groupData.DisplayName }),
   });
   if (!response.ok) throw await handleApiError(response, "create portal group");
   return await response.json();
@@ -807,7 +826,6 @@ export async function getAuditLogs(filters: any) {
     const data = await response.json()
     const responseData = parseApiResponse(data)
     
-    // The API is likely returning an object { logs: [...], total: X }
     return {
         logs: responseData.logs || [],
         total: responseData.total || 0,

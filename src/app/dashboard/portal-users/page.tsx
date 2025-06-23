@@ -161,13 +161,17 @@ export default function PortalUsersPage() {
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [usersData, groupsData] = await Promise.all([getPortalUsers(), getPortalGroups()])
-      setUsers(Array.isArray(usersData) ? usersData : [])
-      setGroups(Array.isArray(groupsData) ? groupsData : [])
+      const usersResponse = await getPortalUsers(page, limit, searchTerm);
+      setUsers(usersResponse.users || []);
+      setTotal(usersResponse.total || 0);
+
+      const groupsData = await getPortalGroups();
+      setGroups(groupsData || []);
     } catch (error: any) {
       toast({
         title: "Error Fetching Data",
@@ -178,36 +182,21 @@ export default function PortalUsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [page, limit, searchTerm, toast])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  const filteredUsers = useMemo(() => {
-    if (!searchTerm) return users;
-    return users.filter(user => 
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [users, searchTerm]);
-
-  const paginatedUsers = useMemo(() => {
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    return filteredUsers.slice(start, end);
-  }, [filteredUsers, page, limit]);
-
-  const totalPages = Math.ceil(filteredUsers.length / limit);
-  const isAllSelected = paginatedUsers.length > 0 && selectedUsers.length === paginatedUsers.length;
+  const totalPages = Math.ceil(total / limit);
+  const isAllSelected = users.length > 0 && selectedUsers.length === users.length;
 
   const handleSelectUser = (userId: string, checked: boolean) => {
     setSelectedUsers(prev => checked ? [...prev, userId] : prev.filter(id => id !== userId));
   };
   
   const handleSelectAll = (checked: boolean) => {
-    setSelectedUsers(checked ? paginatedUsers.map(u => u.id) : []);
+    setSelectedUsers(checked ? users.map(u => u.id) : []);
   };
   
   const handleAdd = () => {
@@ -345,7 +334,7 @@ export default function PortalUsersPage() {
                     <Checkbox
                       checked={isAllSelected}
                       onCheckedChange={handleSelectAll}
-                      disabled={paginatedUsers.length === 0}
+                      disabled={users.length === 0}
                       aria-label="Select all users"
                     />
                   </TableHead>
@@ -364,7 +353,7 @@ export default function PortalUsersPage() {
                       <TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell>
                     </TableRow>
                   ))
-                ) : paginatedUsers.length === 0 ? (
+                ) : users.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50"/>
@@ -372,7 +361,7 @@ export default function PortalUsersPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedUsers.map((user) => (
+                  users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="px-4">
                         <Checkbox
@@ -439,7 +428,7 @@ export default function PortalUsersPage() {
            <Pagination
             currentPage={page}
             totalPages={totalPages}
-            totalItems={filteredUsers.length}
+            totalItems={total}
             itemsPerPage={limit}
             onPageChange={setPage}
             onItemsPerPageChange={(newLimit) => {

@@ -268,7 +268,8 @@ export default function GroupsPage() {
       }
 
       const data = await getGroups(page, limit, criteriaForSearch);
-      setGroups(data.groups?.map((g: any) => ({ ...g, denyAccess: g.denyAccess ?? false, isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true })) || []);
+      const groupsData = data.groups || [];
+      setGroups(groupsData.map((g: any) => ({ ...g, denyAccess: g.denyAccess ?? false, isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true })));
       setTotal(data.total || 0);
     } catch (error: any) {
       toast({

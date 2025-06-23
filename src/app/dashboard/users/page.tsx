@@ -292,7 +292,7 @@ export default function UsersPage() {
     };
     if (groupNameQueryParam) {
         initialFiltersVal = { ...initialFiltersVal, groupName: groupNameQueryParam };
-        if (!showFilters) setShowFilters(true);
+        if (!showFilters) setShowFilters(true); 
     }
     setCurrentFilters(prev => ({...prev, ...initialFiltersVal}));
     fetchGroupsCallback();
@@ -326,9 +326,10 @@ export default function UsersPage() {
         delete finalAPIFilters.userExpirationBefore;
       }
 
-      const data = await getUsers(page, limit, finalAPIFilters)
-      setUsers(data.users.map((u: User) => ({...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })) || [])
-      setTotal(data.total || 0)
+      const data = await getUsers(page, limit, finalAPIFilters);
+      const usersData = data.users || [];
+      setUsers(usersData.map((u: User) => ({ ...u, denyAccess: u.denyAccess ?? false, isEnabled: typeof u.isEnabled === 'boolean' ? u.isEnabled : true })));
+      setTotal(data.total || 0);
     } catch (error: any) {
       toast({
         title: "Error Fetching Users",
