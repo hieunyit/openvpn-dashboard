@@ -782,14 +782,24 @@ export async function updateGroupPermissions(groupId: string, permissionIds: str
 
 // --- Audit Logs ---
 export async function getAuditLogs(filters: any) {
-    const queryParams = new URLSearchParams(filters);
+    const queryParams = new URLSearchParams();
+    if (filters && typeof filters === 'object') {
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                queryParams.append(key, String(value));
+            }
+        });
+    }
+
     const response = await fetchWithAuth(`api/portal/audit/logs?${queryParams.toString()}`);
     if (!response.ok) throw await handleApiError(response, "fetch audit logs");
     const data = await response.json()
     const responseData = parseApiResponse(data)
+    
+    // The API is likely returning an object { logs: [...], total: X }
     return {
-        logs: responseData || [], // The API returns an array directly in the data field
-        total: responseData ? responseData.length : 0, // Manual total if not provided
+        logs: responseData.logs || [],
+        total: responseData.total || 0,
     }
 }
 
