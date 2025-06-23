@@ -166,8 +166,8 @@ export default function PortalUsersPage() {
     setLoading(true)
     try {
       const [usersData, groupsData] = await Promise.all([getPortalUsers(), getPortalGroups()])
-      setUsers(usersData || [])
-      setGroups(groupsData || [])
+      setUsers(Array.isArray(usersData) ? usersData : [])
+      setGroups(Array.isArray(groupsData) ? groupsData : [])
     } catch (error: any) {
       toast({
         title: "Error Fetching Data",

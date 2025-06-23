@@ -210,7 +210,7 @@ export default function PortalGroupsPage() {
     setLoading(true)
     try {
       const data = await getPortalGroups()
-      setGroups(data || [])
+      setGroups(Array.isArray(data) ? data : [])
     } catch (error: any) {
       toast({
         title: "Error Fetching Groups",
