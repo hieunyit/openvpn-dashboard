@@ -38,8 +38,8 @@ interface PortalUser {
 }
 
 interface PortalGroup {
-  id: string;
-  displayName: string;
+  ID: string;
+  DisplayName: string;
 }
 
 function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: PortalUser | null, groups: PortalGroup[], open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
@@ -131,7 +131,7 @@ function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: Po
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="none">No Group</SelectItem>
-                        {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.displayName}</SelectItem>)}
+                        {groups.map(g => <SelectItem key={g.ID} value={g.ID}>{g.DisplayName}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -215,7 +215,7 @@ export default function PortalUsersPage() {
   }
 
   const getGroupName = (groupId: string) => {
-      return groups.find(g => g.id === groupId)?.displayName || "No Group";
+      return groups.find(g => g.ID === groupId)?.DisplayName || "No Group";
   }
 
   return (

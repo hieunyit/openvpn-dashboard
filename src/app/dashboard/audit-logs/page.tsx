@@ -18,16 +18,16 @@ import { format } from "date-fns"
 import { Pagination } from "@/components/pagination"
 
 interface AuditLog {
-  id: string
-  userID: string
-  username: string
-  userGroup: string
-  action: string
-  resourceType: string
-  resourceName: string
-  success: boolean
-  ipaddress: string
-  createdAt: string
+  ID: string
+  UserID: string
+  Username: string
+  UserGroup: string
+  Action: string
+  ResourceType: string
+  ResourceName: string
+  Success: boolean
+  IPAddress: string
+  CreatedAt: string
 }
 
 export default function AuditLogsPage() {
@@ -213,17 +213,17 @@ export default function AuditLogsPage() {
                     </TableRow>
                 ) : (
                     logs.map((log) => (
-                    <TableRow key={log.id}>
-                        <TableCell className="font-medium text-sm whitespace-nowrap">{formatDateForDisplay(log.createdAt)}</TableCell>
-                        <TableCell>{log.username || log.userID}</TableCell>
-                        <TableCell>{log.action}</TableCell>
-                        <TableCell>{log.resourceType}: {log.resourceName}</TableCell>
+                    <TableRow key={log.ID}>
+                        <TableCell className="font-medium text-sm whitespace-nowrap">{formatDateForDisplay(log.CreatedAt)}</TableCell>
+                        <TableCell>{log.Username || log.UserID}</TableCell>
+                        <TableCell>{log.Action}</TableCell>
+                        <TableCell>{log.ResourceType}: {log.ResourceName}</TableCell>
                         <TableCell>
-                        <Badge variant={log.success ? "default" : "destructive"} className={log.success ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
-                            {log.success ? "Success" : "Failed"}
+                        <Badge variant={log.Success ? "default" : "destructive"} className={log.Success ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
+                            {log.Success ? "Success" : "Failed"}
                         </Badge>
                         </TableCell>
-                        <TableCell>{log.ipaddress}</TableCell>
+                        <TableCell>{log.IPAddress}</TableCell>
                     </TableRow>
                     ))
                 )}
