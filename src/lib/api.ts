@@ -752,12 +752,23 @@ export async function resetPortalUserPassword(id: string) {
 }
 
 // --- Portal Groups & Permissions ---
-export async function getPortalGroups() {
-  const response = await fetchWithAuth(`api/portal/groups`);
+export async function getPortalGroups(page = 1, limit = 10, searchTerm = "") {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (searchTerm.trim()) {
+    queryParams.append("search", searchTerm.trim());
+  }
+  const response = await fetchWithAuth(`api/portal/groups?${queryParams.toString()}`);
   if (!response.ok) throw await handleApiError(response, "fetch portal groups");
   const data = await response.json();
-  const responseData = parseApiResponse(data);
-  return Array.isArray(responseData) ? responseData : [];
+  const responseData = parseApiResponse(data, "groups");
+
+  return {
+    groups: responseData.groups || [],
+    total: responseData.total || 0,
+  }
 }
 
 

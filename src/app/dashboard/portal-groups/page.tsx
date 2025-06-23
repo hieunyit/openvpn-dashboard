@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -191,7 +191,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
 }
 
 export default function PortalGroupsPage() {
-  const [allGroups, setAllGroups] = useState<PortalGroup[]>([])
+  const [groups, setGroups] = useState<PortalGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false)
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
@@ -203,14 +203,16 @@ export default function PortalGroupsPage() {
   
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const { toast } = useToast()
 
   const fetchGroups = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getPortalGroups()
-      setAllGroups(Array.isArray(data) ? data : [])
+      const data = await getPortalGroups(page, limit, searchTerm);
+      setGroups(data.groups || [])
+      setTotal(data.total || 0)
     } catch (error: any) {
       toast({
         title: "Error Fetching Groups",
@@ -221,35 +223,21 @@ export default function PortalGroupsPage() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [page, limit, searchTerm, toast]);
 
   useEffect(() => {
     fetchGroups()
   }, [fetchGroups])
-
-  const filteredGroups = useMemo(() => {
-    if (!searchTerm) return allGroups;
-    return allGroups.filter(group => 
-      group.DisplayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.Name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [allGroups, searchTerm]);
-
-  const paginatedGroups = useMemo(() => {
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    return filteredGroups.slice(start, end);
-  }, [filteredGroups, page, limit]);
-
-  const totalPages = Math.ceil(filteredGroups.length / limit);
-  const isAllSelected = paginatedGroups.length > 0 && selectedGroups.length === paginatedGroups.length;
+  
+  const totalPages = Math.ceil(total / limit);
+  const isAllSelected = groups.length > 0 && selectedGroups.length === groups.length;
 
   const handleSelectGroup = (groupId: string, checked: boolean) => {
     setSelectedGroups(prev => checked ? [...prev, groupId] : prev.filter(id => id !== groupId));
   };
   
   const handleSelectAll = (checked: boolean) => {
-    setSelectedGroups(checked ? paginatedGroups.map(g => g.ID) : []);
+    setSelectedGroups(checked ? groups.map(g => g.ID) : []);
   };
 
   const handleEdit = (group: PortalGroup) => {
@@ -359,7 +347,7 @@ export default function PortalGroupsPage() {
         </CardHeader>
         <CardContent>
           {selectedGroups.length > 0 && (
-            <div className="p-3 sm:p-4 border-b bg-primary/5 mb-4">
+            <div className="p-3 sm:p-4 border-b bg-primary/5 mb-4 rounded-md">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <span className="text-sm font-medium text-primary">{selectedGroups.length} group(s) selected</span>
                     <div className="flex flex-wrap items-center gap-2">
@@ -387,7 +375,7 @@ export default function PortalGroupsPage() {
                       <Checkbox
                           checked={isAllSelected}
                           onCheckedChange={handleSelectAll}
-                          disabled={paginatedGroups.length === 0}
+                          disabled={groups.length === 0}
                           aria-label="Select all groups"
                       />
                   </TableHead>
@@ -404,7 +392,7 @@ export default function PortalGroupsPage() {
                       <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
                     </TableRow>
                   ))
-                ) : paginatedGroups.length === 0 ? (
+                ) : groups.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50"/>
@@ -412,7 +400,7 @@ export default function PortalGroupsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedGroups.map((group) => (
+                  groups.map((group) => (
                     <TableRow key={group.ID}>
                        <TableCell className="px-4">
                         <Checkbox
@@ -424,7 +412,7 @@ export default function PortalGroupsPage() {
                       <TableCell className="font-medium">{group.DisplayName}</TableCell>
                       <TableCell>{group.Name}</TableCell>
                       <TableCell>
-                        <Badge variant={group.IsActive ? "default" : "secondary"} className={group.IsActive ? "bg-green-100 text-green-800" : ""}>
+                        <Badge variant={group.IsActive ? "default" : "secondary"} className={group.IsActive ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
                           {group.IsActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
@@ -475,7 +463,7 @@ export default function PortalGroupsPage() {
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            totalItems={filteredGroups.length}
+            totalItems={total}
             itemsPerPage={limit}
             onPageChange={setPage}
             onItemsPerPageChange={(newLimit) => {
