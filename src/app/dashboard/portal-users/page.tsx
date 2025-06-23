@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,10 +14,11 @@ import {
   getPortalUsers, createPortalUser, updatePortalUser, deletePortalUser, 
   activatePortalUser, deactivatePortalUser, resetPortalUserPassword, getPortalGroups 
 } from "@/lib/api"
-import { BookUser, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, UserCheck, UserX, FileText, Power, PowerOff } from "lucide-react"
+import { BookUser, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, UserCheck, UserX, FileText, Power, PowerOff, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getCoreApiErrorMessage } from "@/lib/utils"
+import { Pagination } from "@/components/pagination"
 
 interface PortalUser {
   id: string
@@ -152,7 +154,13 @@ export default function PortalUsersPage() {
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false)
   const [userToAction, setUserToAction] = useState<{user: PortalUser, action: 'delete'|'activate'|'deactivate'|'reset-password'} | null>(null)
   const [currentUser, setCurrentUser] = useState<PortalUser | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [actionLoading, setActionLoading] = useState(false)
   const { toast } = useToast()
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -175,6 +183,32 @@ export default function PortalUsersPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) return users;
+    return users.filter(user => 
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [users, searchTerm]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    return filteredUsers.slice(start, end);
+  }, [filteredUsers, page, limit]);
+
+  const totalPages = Math.ceil(filteredUsers.length / limit);
+  const isAllSelected = paginatedUsers.length > 0 && selectedUsers.length === paginatedUsers.length;
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    setSelectedUsers(prev => checked ? [...prev, userId] : prev.filter(id => id !== userId));
+  };
+  
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedUsers(checked ? paginatedUsers.map(u => u.id) : []);
+  };
   
   const handleAdd = () => {
     setCurrentUser(null)
@@ -214,6 +248,35 @@ export default function PortalUsersPage() {
     }
   }
 
+  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    setActionLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const userId of selectedUsers) {
+      try {
+        switch (action) {
+          case 'activate': await activatePortalUser(userId); break;
+          case 'deactivate': await deactivatePortalUser(userId); break;
+          case 'delete': await deletePortalUser(userId); break;
+        }
+        successCount++;
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    toast({
+      title: "Bulk Action Complete",
+      description: `${successCount} users updated, ${failCount} failed.`,
+      variant: failCount > 0 ? "warning" : "success"
+    });
+
+    setActionLoading(false);
+    setSelectedUsers([]);
+    fetchData();
+  };
+
   const getGroupName = (groupId: string) => {
       return groups.find(g => g.ID === groupId)?.DisplayName || "No Group";
   }
@@ -236,16 +299,56 @@ export default function PortalUsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Portal Users</CardTitle>
-          <CardDescription>
-            List of all configured portal users and their status.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle>All Portal Users</CardTitle>
+              <CardDescription>List of all configured portal users and their status.</CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
+          {selectedUsers.length > 0 && (
+            <div className="p-3 sm:p-4 border-b bg-primary/5 mb-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <span className="text-sm font-medium text-primary">{selectedUsers.length} user(s) selected</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleBulkAction("activate")} disabled={actionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
+                    <Power className="mr-2 h-4 w-4" /> Activate
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkAction("deactivate")} disabled={actionLoading} className="border-red-500 text-red-700 hover:bg-red-500/10">
+                    <PowerOff className="mr-2 h-4 w-4" /> Deactivate
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleBulkAction("delete")} disabled={actionLoading}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedUsers([])} disabled={actionLoading}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12 px-4">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      disabled={paginatedUsers.length === 0}
+                      aria-label="Select all users"
+                    />
+                  </TableHead>
                   <TableHead>Username</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead>Email</TableHead>
@@ -256,21 +359,28 @@ export default function PortalUsersPage() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
+                  Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={`skeleton-${i}`}>
-                      <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
+                      <TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell>
                     </TableRow>
                   ))
-                ) : users.length === 0 ? (
+                ) : paginatedUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50"/>
                       No portal users found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  users.map((user) => (
+                  paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
+                      <TableCell className="px-4">
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={(checked) => handleSelectUser(user.id, Boolean(checked))}
+                          aria-label={`Select user ${user.username}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{user.username}</TableCell>
                       <TableCell>{user.fullName || "N/A"}</TableCell>
                       <TableCell>{user.email}</TableCell>
@@ -326,6 +436,17 @@ export default function PortalUsersPage() {
               </TableBody>
             </Table>
           </div>
+           <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={filteredUsers.length}
+            itemsPerPage={limit}
+            onPageChange={setPage}
+            onItemsPerPageChange={(newLimit) => {
+              setLimit(newLimit)
+              setPage(1)
+            }}
+          />
         </CardContent>
       </Card>
       

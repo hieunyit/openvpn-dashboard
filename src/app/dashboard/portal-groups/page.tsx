@@ -11,11 +11,20 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { getPortalGroups, createPortalGroup, updatePortalGroup, deletePortalGroup, getPermissions, getGroupPermissions, updateGroupPermissions } from "@/lib/api"
-import { Users, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, FileText, Search } from "lucide-react"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Users, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, FileText, Search, Power, PowerOff } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getCoreApiErrorMessage } from "@/lib/utils"
+import { Pagination } from "@/components/pagination"
 
 interface PortalGroup {
   ID: string
@@ -139,7 +148,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
     setSaving(true)
     try {
       if (isEditing && group) {
-        await updatePortalGroup(group.ID, formData)
+        await updatePortalGroup(group.ID, { Name: formData.name, DisplayName: formData.displayName })
       } else {
         await createPortalGroup(formData)
       }
@@ -186,9 +195,15 @@ export default function PortalGroupsPage() {
   const [loading, setLoading] = useState(true)
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false)
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
-  const [groupToDelete, setGroupToDelete] = useState<PortalGroup | null>(null)
+  const [groupToAction, setGroupToAction] = useState<{group: PortalGroup, action: 'delete' | 'activate' | 'deactivate'} | null>(null)
   const [currentGroup, setCurrentGroup] = useState<PortalGroup | null>(null)
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+  const [actionLoading, setActionLoading] = useState(false)
+  
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
   const { toast } = useToast()
 
   const fetchGroups = useCallback(async () => {
@@ -220,6 +235,23 @@ export default function PortalGroupsPage() {
     );
   }, [groups, searchTerm]);
 
+  const paginatedGroups = useMemo(() => {
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    return filteredGroups.slice(start, end);
+  }, [filteredGroups, page, limit]);
+
+  const totalPages = Math.ceil(filteredGroups.length / limit);
+  const isAllSelected = paginatedGroups.length > 0 && selectedGroups.length === paginatedGroups.length;
+
+  const handleSelectGroup = (groupId: string, checked: boolean) => {
+    setSelectedGroups(prev => checked ? [...prev, groupId] : prev.filter(id => id !== groupId));
+  };
+  
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedGroups(checked ? paginatedGroups.map(g => g.ID) : []);
+  };
+
   const handleEdit = (group: PortalGroup) => {
     setCurrentGroup(group)
     setIsAddEditDialogOpen(true)
@@ -235,21 +267,60 @@ export default function PortalGroupsPage() {
       setIsPermissionsDialogOpen(true)
   }
 
-  const handleDelete = (group: PortalGroup) => {
-    setGroupToDelete(group)
+  const handleAction = (group: PortalGroup, action: 'delete'|'activate'|'deactivate') => {
+    setGroupToAction({group, action})
   }
 
-  const executeDelete = async () => {
-    if (!groupToDelete) return
+  const executeAction = async () => {
+    if (!groupToAction) return
+    const { group, action } = groupToAction
+    
+    let actionPromise: Promise<any>;
+    switch (action) {
+      case 'delete': actionPromise = deletePortalGroup(group.ID); break;
+      case 'activate': actionPromise = updatePortalGroup(group.ID, { IsActive: true }); break;
+      case 'deactivate': actionPromise = updatePortalGroup(group.ID, { IsActive: false }); break;
+      default: return;
+    }
+    
     try {
-      await deletePortalGroup(groupToDelete.ID)
-      toast({ title: "Success", description: "Group deleted successfully.", variant: "success" })
+      await actionPromise
+      toast({ title: "Success", description: `Action '${action}' completed for group ${group.DisplayName}.`, variant: "success" })
       fetchGroups()
     } catch (err: any) {
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
-      setGroupToDelete(null)
+      setGroupToAction(null)
     }
+  }
+
+  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    setActionLoading(true)
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const groupId of selectedGroups) {
+        try {
+            switch(action) {
+                case 'activate': await updatePortalGroup(groupId, {IsActive: true}); break;
+                case 'deactivate': await updatePortalGroup(groupId, {IsActive: false}); break;
+                case 'delete': await deletePortalGroup(groupId); break;
+            }
+            successCount++;
+        } catch (error) {
+            failCount++;
+        }
+    }
+    
+    toast({
+        title: "Bulk Action Complete",
+        description: `${successCount} groups updated, ${failCount} failed.`,
+        variant: failCount > 0 ? "warning" : "success"
+    });
+    
+    setActionLoading(false)
+    setSelectedGroups([])
+    fetchGroups()
   }
 
   return (
@@ -287,10 +358,39 @@ export default function PortalGroupsPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {selectedGroups.length > 0 && (
+            <div className="p-3 sm:p-4 border-b bg-primary/5 mb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-primary">{selectedGroups.length} group(s) selected</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleBulkAction("activate")} disabled={actionLoading} className="border-green-500 text-green-700 hover:bg-green-500/10">
+                          <Power className="mr-2 h-4 w-4" /> Activate
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleBulkAction("deactivate")} disabled={actionLoading} className="border-red-500 text-red-700 hover:bg-red-500/10">
+                          <PowerOff className="mr-2 h-4 w-4" /> Deactivate
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleBulkAction("delete")} disabled={actionLoading}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedGroups([])} disabled={actionLoading}>
+                          Clear
+                        </Button>
+                    </div>
+                </div>
+            </div>
+          )}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12 px-4">
+                      <Checkbox
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          disabled={paginatedGroups.length === 0}
+                          aria-label="Select all groups"
+                      />
+                  </TableHead>
                   <TableHead>Display Name</TableHead>
                   <TableHead>Unique Name</TableHead>
                   <TableHead>Status</TableHead>
@@ -301,19 +401,26 @@ export default function PortalGroupsPage() {
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={`skeleton-${i}`}>
-                      <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                      <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
                     </TableRow>
                   ))
-                ) : filteredGroups.length === 0 ? (
+                ) : paginatedGroups.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50"/>
                       {searchTerm ? "No groups found for your search." : "No groups found."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredGroups.map((group) => (
+                  paginatedGroups.map((group) => (
                     <TableRow key={group.ID}>
+                       <TableCell className="px-4">
+                        <Checkbox
+                          checked={selectedGroups.includes(group.ID)}
+                          onCheckedChange={(checked) => handleSelectGroup(group.ID, Boolean(checked))}
+                          aria-label={`Select group ${group.DisplayName}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{group.DisplayName}</TableCell>
                       <TableCell>{group.Name}</TableCell>
                       <TableCell>
@@ -322,15 +429,42 @@ export default function PortalGroupsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleManagePermissions(group)}>
-                          <KeyRound className="mr-2 h-4 w-4" /> Permissions
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(group)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(group)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </Button>
+                         <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu for {group.DisplayName}</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                             <DropdownMenuItem onClick={() => handleManagePermissions(group)}>
+                              <KeyRound className="mr-2 h-4 w-4" /> Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(group)}>
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            {group.IsActive ? (
+                              <DropdownMenuItem onClick={() => handleAction(group, 'deactivate')}>
+                                <PowerOff className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleAction(group, 'activate')}>
+                                <Power className="mr-2 h-4 w-4" />
+                                Activate
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleAction(group, 'delete')}
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -338,6 +472,17 @@ export default function PortalGroupsPage() {
               </TableBody>
             </Table>
           </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={filteredGroups.length}
+            itemsPerPage={limit}
+            onPageChange={setPage}
+            onItemsPerPageChange={(newLimit) => {
+              setLimit(newLimit)
+              setPage(1)
+            }}
+          />
         </CardContent>
       </Card>
       
@@ -347,18 +492,19 @@ export default function PortalGroupsPage() {
 
       <GroupDialog group={currentGroup} open={isAddEditDialogOpen} onOpenChange={setIsAddEditDialogOpen} onSuccess={fetchGroups} />
 
-      <AlertDialog open={!!groupToDelete} onOpenChange={(open) => !open && setGroupToDelete(null)}>
+      <AlertDialog open={!!groupToAction} onOpenChange={(open) => !open && setGroupToAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the group "{groupToDelete?.DisplayName}".
+              This action will '{groupToAction?.action}' the group "{groupToAction?.group.DisplayName}".
+               {groupToAction?.action === 'delete' && " This cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setGroupToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+            <AlertDialogCancel onClick={() => setGroupToAction(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeAction} className={groupToAction?.action === 'delete' ? "bg-destructive hover:bg-destructive/90" : ""}>
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

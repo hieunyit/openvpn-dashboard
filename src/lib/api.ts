@@ -740,10 +740,10 @@ export async function createPortalGroup(groupData: { name: string, displayName: 
   return await response.json();
 }
 
-export async function updatePortalGroup(id: string, groupData: { name: string, displayName: string }) {
+export async function updatePortalGroup(id: string, groupData: Partial<{ Name: string, DisplayName: string, IsActive: boolean }>) {
   const response = await fetchWithAuth(`api/portal/groups/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ Name: groupData.name, DisplayName: groupData.displayName }),
+    body: JSON.stringify(groupData),
   });
   if (!response.ok) throw await handleApiError(response, "update portal group");
   return await response.json();
