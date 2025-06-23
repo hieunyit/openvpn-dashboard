@@ -592,3 +592,47 @@ export async function getServerInfo(): Promise<ServerInfo> {
   const data = await response.json();
   return parseApiResponse(data) as ServerInfo;
 }
+
+
+// --- Portal APIs ---
+
+// Connections
+export async function getOpenVPNConnection() {
+  const response = await fetchWithAuth(`api/portal/connections/openvpn`);
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw await handleApiError(response, "fetch OpenVPN connection");
+  }
+  return parseApiResponse(await response.json());
+}
+
+export async function updateOpenVPNConnection(config: any) {
+  const response = await fetchWithAuth(`api/portal/connections/openvpn`, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  });
+  if (!response.ok) {
+    throw await handleApiError(response, "update OpenVPN connection");
+  }
+  return await response.json();
+}
+
+export async function getLdapConnection() {
+  const response = await fetchWithAuth(`api/portal/connections/ldap`);
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw await handleApiError(response, "fetch LDAP connection");
+  }
+  return parseApiResponse(await response.json());
+}
+
+export async function updateLdapConnection(config: any) {
+  const response = await fetchWithAuth(`api/portal/connections/ldap`, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  });
+  if (!response.ok) {
+    throw await handleApiError(response, "update LDAP connection");
+  }
+  return await response.json();
+}

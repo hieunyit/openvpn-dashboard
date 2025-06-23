@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutGrid, ShieldCheck, UserCog, Settings } from "lucide-react" // Changed UsersCog to UserCog
+import { ShieldCheck, UserCog, Settings, BookUser, Network, History } from "lucide-react"
 import Link from "next/link"
 
 export default function PortalDashboardPage() {
@@ -30,23 +30,54 @@ export default function PortalDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Placeholder for LDAP Management Card - Future Feature */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow opacity-50 cursor-not-allowed">
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold">LDAP Management</CardTitle>
-            <UserCog className="h-6 w-6 text-muted-foreground" /> {/* Changed UsersCog to UserCog */}
+            <CardTitle className="text-lg font-semibold">Portal Users</CardTitle>
+            <BookUser className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>
             <CardDescription className="mb-4">
-              Manage LDAP users and server access. (Coming Soon)
+              Administer portal accounts and their access permissions.
             </CardDescription>
-            <Button disabled>Go to LDAP</Button>
+            <Button asChild>
+              <Link href="/dashboard/portal-users">Manage Users</Link>
+            </Button>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold">System Settings</CardTitle>
+            <CardTitle className="text-lg font-semibold">Connections</CardTitle>
+            <Network className="h-6 w-6 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              Configure system connections like LDAP and OpenVPN.
+            </CardDescription>
+            <Button asChild>
+              <Link href="/dashboard/connections">Configure</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold">Audit Logs</CardTitle>
+            <History className="h-6 w-6 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              Review system activity and administrative actions.
+            </CardDescription>
+            <Button asChild>
+              <Link href="/dashboard/audit-logs">View Logs</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-semibold">Portal Settings</CardTitle>
             <Settings className="h-6 w-6 text-primary" />
           </CardHeader>
           <CardContent>

@@ -37,8 +37,12 @@ import {
   Server,
   UserCircle2,
   LifeBuoy,
-  LayoutGrid, // New icon for main dashboard
+  LayoutGrid,
   ChevronDown,
+  BookUser,
+  History,
+  Network,
+  Shield,
 } from "lucide-react"
 
 interface NavSubItem {
@@ -72,20 +76,21 @@ const navConfig: NavItemConfig[] = [
       { title: "VPN Status", href: "/dashboard/status", icon: Server },
     ],
   },
-  // Placeholder for future LDAP Management
-  // {
-  //   title: "LDAP Management",
-  //   icon: UsersCog, // Example icon - ensure UsersCog is imported if used
-  //   isInitiallyOpen: false,
-  //   subItems: [
-  //     { title: "LDAP Users", href: "/dashboard/ldap/users", icon: Users },
-  //     { title: "LDAP Groups", href: "/dashboard/ldap/groups", icon: FolderKanban },
-  //   ],
-  // },
+  {
+    title: "System Management",
+    icon: Settings,
+    isInitiallyOpen: true,
+    subItems: [
+      { title: "Portal Users", href: "/dashboard/portal-users", icon: BookUser },
+      { title: "Portal Groups", href: "/dashboard/portal-groups", icon: Users },
+      { title: "Connections", href: "/dashboard/connections", icon: Network },
+      { title: "Audit Logs", href: "/dashboard/audit-logs", icon: History },
+    ]
+  }
 ];
 
 const bottomNavItems: NavItemConfig[] = [
-  { title: "Settings", href: "/dashboard/settings", icon: Settings },
+  { title: "Portal Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 const isParentOrChildActive = (pathname: string, parentItem: NavItemConfig): boolean => {
