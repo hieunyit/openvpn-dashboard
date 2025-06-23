@@ -35,7 +35,7 @@ interface PortalGroup {
 }
 
 function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: PortalUser | null, groups: PortalGroup[], open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
-  const [formData, setFormData] = useState({ username: "", fullName: "", email: "", password: "", groupId: "" })
+  const [formData, setFormData] = useState({ username: "", fullName: "", email: "", password: "", groupId: "none" })
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
@@ -48,10 +48,10 @@ function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: Po
           fullName: user.fullName || "", 
           email: user.email, 
           password: "", 
-          groupId: user.groupId || ""
+          groupId: user.groupId || "none"
         })
     } else if (!user && open) {
-      setFormData({ username: "", fullName: "", email: "", password: "", groupId: "" })
+      setFormData({ username: "", fullName: "", email: "", password: "", groupId: "none" })
     }
   }, [user, open])
 
@@ -63,7 +63,7 @@ function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: Po
           username: formData.username,
           fullName: formData.fullName,
           email: formData.email,
-          groupId: formData.groupId || undefined,
+          groupId: formData.groupId === "none" ? undefined : formData.groupId,
       }
       if (formData.password) {
         payload.password = formData.password;
@@ -122,7 +122,7 @@ function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: Po
                         <SelectValue placeholder="Select a group" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">No Group</SelectItem>
+                        <SelectItem value="none">No Group</SelectItem>
                         {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.displayName}</SelectItem>)}
                     </SelectContent>
                 </Select>
