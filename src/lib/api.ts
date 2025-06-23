@@ -708,6 +708,15 @@ export async function getPortalUsers(page = 1, limit = 10, searchTerm = "") {
   };
 }
 
+export async function getPortalUser(id: string) {
+  const response = await fetchWithAuth(`api/portal/users/${id}`);
+  if (!response.ok) {
+    throw await handleApiError(response, `fetch portal user ${id}`);
+  }
+  const data = await response.json();
+  return parseApiResponse(data);
+}
+
 
 export async function createPortalUser(userData: any) {
   const response = await fetchWithAuth(`api/portal/users`, {
@@ -769,6 +778,15 @@ export async function getPortalGroups(page = 1, limit = 10, searchTerm = "") {
     groups: responseData.groups || [],
     total: responseData.total || 0,
   }
+}
+
+export async function getPortalGroup(id: string) {
+  const response = await fetchWithAuth(`api/portal/groups/${id}`);
+  if (!response.ok) {
+    throw await handleApiError(response, `fetch portal group ${id}`);
+  }
+  const data = await response.json();
+  return parseApiResponse(data);
 }
 
 

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 import { Pagination } from "@/components/pagination"
+import Link from "next/link"
 
 interface PortalGroup {
   ID: string
@@ -409,7 +410,11 @@ export default function PortalGroupsPage() {
                           aria-label={`Select group ${group.DisplayName}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{group.DisplayName}</TableCell>
+                      <TableCell>
+                        <Link href={`/dashboard/portal-groups/${group.ID}`} className="font-medium text-primary hover:underline">
+                          {group.DisplayName}
+                        </Link>
+                      </TableCell>
                       <TableCell>{group.Name}</TableCell>
                       <TableCell>
                         <Badge variant={group.IsActive ? "default" : "secondary"} className={group.IsActive ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>

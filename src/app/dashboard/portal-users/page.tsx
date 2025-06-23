@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 import { Pagination } from "@/components/pagination"
+import Link from "next/link"
 
 interface PortalUser {
   id: string
@@ -167,11 +168,11 @@ export default function PortalUsersPage() {
     setLoading(true)
     try {
       const usersResponse = await getPortalUsers(page, limit, searchTerm);
-      setUsers(usersResponse.users || []);
+      setUsers(Array.isArray(usersResponse.users) ? usersResponse.users : []);
       setTotal(usersResponse.total || 0);
 
       const groupsData = await getPortalGroups();
-      setGroups(groupsData || []);
+      setGroups(groupsData.groups || []);
     } catch (error: any) {
       toast({
         title: "Error Fetching Data",
@@ -370,7 +371,11 @@ export default function PortalUsersPage() {
                           aria-label={`Select user ${user.username}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{user.username}</TableCell>
+                      <TableCell>
+                        <Link href={`/dashboard/portal-users/${user.id}`} className="font-medium text-primary hover:underline">
+                          {user.username}
+                        </Link>
+                      </TableCell>
                       <TableCell>{user.fullName || "N/A"}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getGroupName(user.groupId)}</TableCell>
