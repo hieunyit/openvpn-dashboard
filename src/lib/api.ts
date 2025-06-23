@@ -705,6 +705,7 @@ export async function getPortalUsers(page = 1, limit = 10, searchTerm = "") {
   return {
       users: responseData.users || [],
       total: responseData.total || 0,
+      page: responseData.page || 1,
   };
 }
 
@@ -777,6 +778,7 @@ export async function getPortalGroups(page = 1, limit = 10, searchTerm = "") {
   return {
     groups: responseData.groups || [],
     total: responseData.total || 0,
+    page: responseData.page || 1,
   }
 }
 
@@ -818,8 +820,31 @@ export async function getPermissions() {
     const response = await fetchWithAuth(`api/portal/permissions`);
     if (!response.ok) throw await handleApiError(response, "fetch permissions");
     const data = await response.json();
-    // Permissions API might have a different structure
     return (data.success ? data.success.data : data) || [];
+}
+
+export async function createPermission(permissionData: { Resource: string, Action: string, Description: string }) {
+  const response = await fetchWithAuth(`api/portal/permissions`, {
+    method: "POST",
+    body: JSON.stringify(permissionData),
+  });
+  if (!response.ok) throw await handleApiError(response, "create permission");
+  return await response.json();
+}
+
+export async function updatePermission(id: string, permissionData: { Resource: string, Action: string, Description: string }) {
+  const response = await fetchWithAuth(`api/portal/permissions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(permissionData),
+  });
+  if (!response.ok) throw await handleApiError(response, `update permission ${id}`);
+  return await response.json();
+}
+
+export async function deletePermission(id: string) {
+  const response = await fetchWithAuth(`api/portal/permissions/${id}`, { method: "DELETE" });
+  if (!response.ok) throw await handleApiError(response, `delete permission ${id}`);
+  return await response.json();
 }
 
 export async function getGroupPermissions(groupId: string) {

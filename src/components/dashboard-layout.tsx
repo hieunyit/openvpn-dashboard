@@ -43,7 +43,8 @@ import {
   History,
   Network,
   Shield,
-  Search
+  Search,
+  KeyRound,
 } from "lucide-react"
 
 interface NavSubItem {
@@ -85,6 +86,7 @@ const navConfig: NavItemConfig[] = [
     subItems: [
       { title: "Portal Users", href: "/dashboard/portal-users", icon: BookUser },
       { title: "Portal Groups", href: "/dashboard/portal-groups", icon: Users },
+      { title: "Portal Permissions", href: "/dashboard/portal-permissions", icon: KeyRound },
       { title: "Connections", href: "/dashboard/connections", icon: Network },
       { title: "Audit Logs", href: "/dashboard/audit-logs", icon: History },
     ]
