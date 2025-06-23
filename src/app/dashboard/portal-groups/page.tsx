@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { getPortalGroups, createPortalGroup, updatePortalGroup, deletePortalGroup, getPermissions, getGroupPermissions, updateGroupPermissions } from "@/lib/api"
-import { Users, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, FileText } from "lucide-react"
+import { Users, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, FileText, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -72,8 +72,9 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   }
   
   const groupedPermissions = allPermissions.reduce((acc, perm) => {
-    acc[perm.resource] = acc[perm.resource] || [];
-    acc[perm.resource].push(perm);
+    const resource = perm.resource.charAt(0).toUpperCase() + perm.resource.slice(1);
+    acc[resource] = acc[resource] || [];
+    acc[resource].push(perm);
     return acc;
   }, {} as Record<string, Permission[]>);
 
@@ -88,7 +89,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
             <div className="py-8 text-center">Loading permissions...</div>
         ) : (
             <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
-                {Object.entries(groupedPermissions).map(([resource, perms]) => (
+                {Object.entries(groupedPermissions).sort(([a], [b]) => a.localeCompare(b)).map(([resource, perms]) => (
                     <div key={resource}>
                         <h4 className="font-semibold text-base mb-2 capitalize border-b pb-1">{resource}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
@@ -187,6 +188,7 @@ export default function PortalGroupsPage() {
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
   const [groupToDelete, setGroupToDelete] = useState<PortalGroup | null>(null)
   const [currentGroup, setCurrentGroup] = useState<PortalGroup | null>(null)
+  const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast()
 
   const fetchGroups = useCallback(async () => {
@@ -209,6 +211,14 @@ export default function PortalGroupsPage() {
   useEffect(() => {
     fetchGroups()
   }, [fetchGroups])
+
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm) return groups;
+    return groups.filter(group => 
+      group.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      group.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [groups, searchTerm]);
 
   const handleEdit = (group: PortalGroup) => {
     setCurrentGroup(group)
@@ -260,10 +270,21 @@ export default function PortalGroupsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Portal Groups</CardTitle>
-          <CardDescription>
-            List of all configured portal groups.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle>All Portal Groups</CardTitle>
+              <CardDescription>List of all configured portal groups.</CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search groups..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -283,15 +304,15 @@ export default function PortalGroupsPage() {
                       <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
                     </TableRow>
                   ))
-                ) : groups.length === 0 ? (
+                ) : filteredGroups.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50"/>
-                      No groups found.
+                      {searchTerm ? "No groups found for your search." : "No groups found."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  groups.map((group) => (
+                  filteredGroups.map((group) => (
                     <TableRow key={group.id}>
                       <TableCell className="font-medium">{group.displayName}</TableCell>
                       <TableCell>{group.name}</TableCell>

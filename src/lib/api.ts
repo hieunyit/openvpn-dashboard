@@ -76,12 +76,12 @@ function parseApiResponse(data: any, fallbackKey?: string) {
   if (data && fallbackKey && (data[fallbackKey] !== undefined || data.total !== undefined || (typeof data === 'object' && data !== null && Object.keys(data).length > 0 && !Array.isArray(data)))) {
     return data;
   }
-  if (data && fallbackKey) {
-    const fallbackResult: Record<string, any> = {};
-    fallbackResult[fallbackKey] = [];
-    fallbackResult.total = 0;
-    return fallbackResult;
-  }
+   if (data && fallbackKey) {
+     const fallbackResult: Record<string, any> = {};
+     fallbackResult[fallbackKey] = [];
+     fallbackResult.total = 0;
+     return fallbackResult;
+   }
   return data;
 }
 
@@ -93,17 +93,22 @@ async function handleApiError(response: Response, operation: string): Promise<Er
     if (textBody) {
       try {
         const errorBody = JSON.parse(textBody);
+        let message = "An unknown error occurred";
         if (errorBody.error && errorBody.error.message) {
-          errorDetails = errorBody.error.message;
+            message = errorBody.error.message;
+        } else if (errorBody.success && errorBody.success.message) {
+            // Some error responses might be wrapped in a success envelope by mistake
+            message = errorBody.success.message;
         } else if (errorBody.message) {
-          errorDetails = errorBody.message;
+            message = errorBody.message;
         } else if (typeof errorBody === 'string') {
-          errorDetails = errorBody;
+            message = errorBody;
         } else if (errorBody.error && typeof errorBody.error === 'string') {
-          errorDetails = errorBody.error;
+            message = errorBody.error;
         } else {
-          errorDetails = textBody.substring(0, 500);
+            message = textBody.substring(0, 500);
         }
+        errorDetails = message;
       } catch (jsonParseError) {
         errorDetails = textBody.substring(0, 500);
       }
@@ -605,6 +610,12 @@ export async function getOpenVPNConnection() {
   return parseApiResponse(await response.json());
 }
 
+export async function testOpenVPNConnection() {
+  const response = await fetchWithAuth(`api/portal/connections/openvpn/test`, { method: "POST" });
+  if (!response.ok) throw await handleApiError(response, "test OpenVPN connection");
+  return await response.json();
+}
+
 export async function updateOpenVPNConnection(config: any) {
   const method = config.id ? 'PUT' : 'POST';
   const response = await fetchWithAuth(`api/portal/connections/openvpn`, {
@@ -634,6 +645,12 @@ export async function getLdapConnection() {
     throw await handleApiError(response, "fetch LDAP connection");
   }
   return parseApiResponse(await response.json());
+}
+
+export async function testLdapConnection() {
+  const response = await fetchWithAuth(`api/portal/connections/ldap/test`, { method: "POST" });
+  if (!response.ok) throw await handleApiError(response, "test LDAP connection");
+  return await response.json();
 }
 
 export async function updateLdapConnection(config: any) {
@@ -766,7 +783,11 @@ export async function getAuditLogs(filters: any) {
     const response = await fetchWithAuth(`api/portal/audit/logs?${queryParams.toString()}`);
     if (!response.ok) throw await handleApiError(response, "fetch audit logs");
     const data = await response.json()
-    return parseApiResponse(data);
+    const responseData = parseApiResponse(data)
+    return {
+        logs: responseData.data || [],
+        total: responseData.total || 0,
+    }
 }
 
 export async function exportAuditLogs(filters: any) {
