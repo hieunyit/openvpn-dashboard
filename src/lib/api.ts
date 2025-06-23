@@ -138,7 +138,7 @@ export async function getUsers(page = 1, limit = 10, filters: Record<string, any
     }
   });
 
-  const response = await fetchWithAuth(`openvpn/users?${queryParams.toString()}`);
+  const response = await fetchWithAuth(`api/openvpn/users?${queryParams.toString()}`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch users");
   }
@@ -155,7 +155,7 @@ export async function getUsers(page = 1, limit = 10, filters: Record<string, any
 }
 
 export async function getUser(username: string) {
-  const response = await fetchWithAuth(`openvpn/users/${username}`);
+  const response = await fetchWithAuth(`api/openvpn/users/${username}`);
   if (!response.ok) {
      throw await handleApiError(response, `fetch user ${username}`);
   }
@@ -180,7 +180,7 @@ export async function createUser(userData: any) {
     allowedFields.password = userData.password;
   }
 
-  const response = await fetchWithAuth(`openvpn/users`, {
+  const response = await fetchWithAuth(`api/openvpn/users`, {
     method: "POST",
     body: JSON.stringify(allowedFields),
   });
@@ -207,7 +207,7 @@ export async function updateUser(username: string, userData: any) {
     Object.entries(updatableFieldsFromForm).filter(([_, value]) => value !== undefined)
   );
 
-  const response = await fetchWithAuth(`openvpn/users/${username}`, {
+  const response = await fetchWithAuth(`api/openvpn/users/${username}`, {
     method: "PUT",
     body: JSON.stringify(cleanData),
   });
@@ -220,7 +220,7 @@ export async function updateUser(username: string, userData: any) {
 }
 
 export async function deleteUser(username: string) {
-  const response = await fetchWithAuth(`openvpn/users/${username}`, {
+  const response = await fetchWithAuth(`api/openvpn/users/${username}`, {
     method: "DELETE",
   });
 
@@ -249,7 +249,7 @@ export async function performUserAction(username: string, action: "enable" | "di
   }
 
 
-  const response = await fetchWithAuth(`openvpn/users/${username}/${action}`, options);
+  const response = await fetchWithAuth(`api/openvpn/users/${username}/${action}`, options);
 
   if (!response.ok) {
     throw await handleApiError(response, `perform action ${action} on user ${username}`);
@@ -264,7 +264,7 @@ export async function disconnectUser(username: string, message?: string) {
     body.message = message.trim();
   }
 
-  const response = await fetchWithAuth(`openvpn/users/${username}/disconnect`, {
+  const response = await fetchWithAuth(`api/openvpn/users/${username}/disconnect`, {
     method: "POST",
     body: Object.keys(body).length > 0 ? JSON.stringify(body) : JSON.stringify({}),
   });
@@ -290,7 +290,7 @@ export async function getGroups(page = 1, limit = 10, filters: Record<string, an
     }
   });
 
-  const response = await fetchWithAuth(`openvpn/groups?${queryParams.toString()}`);
+  const response = await fetchWithAuth(`api/openvpn/groups?${queryParams.toString()}`);
   if (!response.ok) {
      throw await handleApiError(response, "fetch groups");
   }
@@ -307,7 +307,7 @@ export async function getGroups(page = 1, limit = 10, filters: Record<string, an
 }
 
 export async function getGroup(groupName: string) {
-  const response = await fetchWithAuth(`openvpn/groups/${groupName}`);
+  const response = await fetchWithAuth(`api/openvpn/groups/${groupName}`);
   if (!response.ok) {
     throw await handleApiError(response, `fetch group ${groupName}`);
   }
@@ -334,7 +334,7 @@ export async function createGroup(groupData: {
     groupSubnet: groupData.groupSubnet && groupData.groupSubnet.length > 0 ? groupData.groupSubnet : undefined,
   };
 
-  const response = await fetchWithAuth(`openvpn/groups`, {
+  const response = await fetchWithAuth(`api/openvpn/groups`, {
     method: "POST",
     body: JSON.stringify(apiGroupData),
   });
@@ -362,7 +362,7 @@ export async function updateGroup(groupName: string, groupData: {
   if (groupData.groupRange !== undefined) payload.groupRange = groupData.groupRange;
   if (groupData.groupSubnet !== undefined) payload.groupSubnet = groupData.groupSubnet;
 
-  const response = await fetchWithAuth(`openvpn/groups/${groupName}`, {
+  const response = await fetchWithAuth(`api/openvpn/groups/${groupName}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -375,7 +375,7 @@ export async function updateGroup(groupName: string, groupData: {
 }
 
 export async function deleteGroup(groupName: string) {
-  const response = await fetchWithAuth(`openvpn/groups/${groupName}`, {
+  const response = await fetchWithAuth(`api/openvpn/groups/${groupName}`, {
     method: "DELETE",
   });
 
@@ -387,7 +387,7 @@ export async function deleteGroup(groupName: string) {
 }
 
 export async function performGroupAction(groupName: string, action: "enable" | "disable" ) {
-  const response = await fetchWithAuth(`openvpn/groups/${groupName}/${action}`, {
+  const response = await fetchWithAuth(`api/openvpn/groups/${groupName}/${action}`, {
     method: "PUT",
   });
 
@@ -400,7 +400,7 @@ export async function performGroupAction(groupName: string, action: "enable" | "
 
 // Dashboard statistics
 export async function getUserExpirations(days = 7) {
-  const response = await fetchWithAuth(`openvpn/users/expirations?days=${days}`);
+  const response = await fetchWithAuth(`api/openvpn/users/expirations?days=${days}`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch user expirations");
   }
@@ -416,7 +416,7 @@ export async function getUserExpirations(days = 7) {
 
 // Template Download API functions
 export async function downloadUserTemplate(format: "csv" | "xlsx" = "csv") {
-  const response = await fetchWithAuth(`openvpn/bulk/users/template?format=${format}`);
+  const response = await fetchWithAuth(`api/openvpn/bulk/users/template?format=${format}`);
 
   if (!response.ok) {
     throw await handleApiError(response, "download user template");
@@ -438,7 +438,7 @@ export async function downloadUserTemplate(format: "csv" | "xlsx" = "csv") {
 }
 
 export async function downloadGroupTemplate(format: "csv" | "xlsx" = "csv") {
-  const response = await fetchWithAuth(`openvpn/bulk/groups/template?format=${format}`);
+  const response = await fetchWithAuth(`api/openvpn/bulk/groups/template?format=${format}`);
 
   if (!response.ok) {
     throw await handleApiError(response, "download group template");
@@ -468,7 +468,7 @@ export async function importUsers(file: File, format?: string, dryRun = false, o
   formData.append("dryRun", String(dryRun));
   formData.append("override", String(override));
 
-  const response = await fetchWithAuth(`openvpn/bulk/users/import`, {
+  const response = await fetchWithAuth(`api/openvpn/bulk/users/import`, {
     method: "POST",
     body: formData,
   });
@@ -489,7 +489,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
   formData.append("dryRun", String(dryRun));
   formData.append("override", String(override));
 
-  const response = await fetchWithAuth(`openvpn/bulk/groups/import`, {
+  const response = await fetchWithAuth(`api/openvpn/bulk/groups/import`, {
     method: "POST",
     body: formData,
   });
@@ -503,7 +503,7 @@ export async function importGroups(file: File, format?: string, dryRun = false, 
 
 // Bulk Operations API functions
 export async function bulkUserActions(usernames: string[], action: "enable" | "disable" | "reset-otp") {
-  const response = await fetchWithAuth(`openvpn/bulk/users/actions`, {
+  const response = await fetchWithAuth(`api/openvpn/bulk/users/actions`, {
     method: "POST",
     body: JSON.stringify({ usernames, action }),
   });
@@ -516,7 +516,7 @@ export async function bulkUserActions(usernames: string[], action: "enable" | "d
 }
 
 export async function bulkExtendUserExpiration(usernames: string[], newExpiration: string) {
-  const response = await fetchWithAuth(`openvpn/bulk/users/extend`, {
+  const response = await fetchWithAuth(`api/openvpn/bulk/users/extend`, {
       method: 'POST',
       body: JSON.stringify({ usernames, newExpiration: formatDateForAPI(newExpiration) }),
   });
@@ -529,7 +529,7 @@ export async function bulkExtendUserExpiration(usernames: string[], newExpiratio
 
 
 export async function bulkGroupActions(groupNames: string[], action: "enable" | "disable") {
-  const response = await fetchWithAuth(`openvpn/bulk/groups/actions`, {
+  const response = await fetchWithAuth(`api/openvpn/bulk/groups/actions`, {
     method: "POST",
     body: JSON.stringify({ groupNames, action }),
   });
@@ -547,7 +547,7 @@ export async function bulkDisconnectUsers(usernames: string[], message?: string)
     body.message = message.trim();
   }
 
-  const response = await fetchWithAuth(`openvpn/bulk/users/disconnect`, {
+  const response = await fetchWithAuth(`api/openvpn/bulk/users/disconnect`, {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -561,7 +561,7 @@ export async function bulkDisconnectUsers(usernames: string[], message?: string)
 
 // VPN Status API
 export async function getVPNStatus() {
-  const response = await fetchWithAuth(`openvpn/vpn/status`);
+  const response = await fetchWithAuth(`api/openvpn/vpn/status`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch VPN status");
   }
@@ -585,7 +585,7 @@ export interface ServerInfo {
 }
 
 export async function getServerInfo(): Promise<ServerInfo> {
-  const response = await fetchWithAuth(`openvpn/config/server/info`);
+  const response = await fetchWithAuth(`api/openvpn/config/server/info`);
   if (!response.ok) {
     throw await handleApiError(response, "fetch server info");
   }
