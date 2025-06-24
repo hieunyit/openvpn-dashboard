@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { Skeleton } from './ui/skeleton';
@@ -34,13 +34,13 @@ const formats = [
   'link', 'image', 'video'
 ];
 
-export function RichTextEditor({ value, onChange, readOnly = false }: RichTextEditorProps) {
-  // Use useMemo to prevent re-importing on every render, which is a common fix for React 18 compatibility.
-  const ReactQuill = React.useMemo(() => dynamic(() => import('react-quill'), { 
-    ssr: false,
-    loading: () => <Skeleton className="h-[300px] w-full rounded-md" />,
-  }), []);
+const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false,
+  loading: () => <Skeleton className="h-[300px] w-full rounded-md" />,
+});
 
+
+export function RichTextEditor({ value, onChange, readOnly = false }: RichTextEditorProps) {
   return (
     <div className="bg-background rounded-md border">
       <ReactQuill
