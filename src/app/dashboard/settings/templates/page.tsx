@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react'
@@ -15,9 +16,13 @@ import { Mail, Save, AlertTriangle, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const TEMPLATE_TYPES = [
-  { key: 'password_reset', name: 'Password Reset' },
-  { key: 'user_welcome', name: 'User Welcome' },
-  { key: 'account_activation', name: 'Account Activation' },
+  { key: 'enable_user', name: 'Enable User' },
+  { key: 'disable_user', name: 'Disable User' },
+  { key: 'expiration', name: 'User Expiration' },
+  { key: 'reset_otp', name: 'Reset OTP' },
+  { key: 'change_password', name: 'Change Password' },
+  { key: 'create_user_local', name: 'Create Local User' },
+  { key: 'create_user_ldap', name: 'Create LDAP User' },
 ]
 
 interface TemplateData {
@@ -140,28 +145,25 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
 }
 
 export default function EmailTemplatesPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Mail className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Email Templates</h1>
-          <p className="text-muted-foreground mt-1">Customize system-generated emails.</p>
-        </div>
-      </div>
-
-      <Tabs defaultValue={TEMPLATE_TYPES[0].key} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          {TEMPLATE_TYPES.map(t => (
-            <TabsTrigger key={t.key} value={t.key}>{t.name}</TabsTrigger>
-          ))}
-        </TabsList>
-        {TEMPLATE_TYPES.map(t => (
-          <TabsContent key={t.key} value={t.key} className="mt-6">
-            <TemplateEditor templateType={t} />
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
+  return React.createElement('div', { className: 'space-y-6' },
+    React.createElement('div', { className: 'flex items-center gap-3' },
+      React.createElement(Mail, { className: "h-8 w-8 text-primary" }),
+      React.createElement('div', null,
+        React.createElement('h1', { className: "text-3xl font-bold tracking-tight" }, 'Email Templates'),
+        React.createElement('p', { className: "text-muted-foreground mt-1" }, 'Customize system-generated emails.')
+      )
+    ),
+    React.createElement(Tabs, { defaultValue: TEMPLATE_TYPES[0].key, className: "w-full" },
+      React.createElement(TabsList, { className: "grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-4" },
+        TEMPLATE_TYPES.map(t => (
+          React.createElement(TabsTrigger, { key: t.key, value: t.key }, t.name)
+        ))
+      ),
+      TEMPLATE_TYPES.map(t => (
+        React.createElement(TabsContent, { key: t.key, value: t.key, className: "mt-6" },
+          React.createElement(TemplateEditor, { templateType: t })
+        )
+      ))
+    )
   )
 }
