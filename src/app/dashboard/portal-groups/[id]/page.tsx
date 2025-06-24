@@ -4,7 +4,7 @@
 import type React from "react"
 import { useState, useEffect, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -263,4 +263,3 @@ export default function PortalGroupDetailPage() {
     </div>
   )
 }
-
