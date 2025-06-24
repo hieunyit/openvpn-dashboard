@@ -1,4 +1,6 @@
 
+"use client"
+
 import { refreshToken, getAccessToken, logout } from "./auth"
 import { formatDateForAPI } from "./utils";
 
