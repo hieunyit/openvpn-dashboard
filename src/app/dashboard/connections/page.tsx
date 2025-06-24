@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +33,7 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
   const [testing, setTesting] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const connectionExists = initialData && initialData.ID;
 
@@ -80,6 +82,10 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
         icon: <CheckCircle className="h-5 w-5" />,
       });
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Connection Failed",
         description: getCoreApiErrorMessage(error),
@@ -108,6 +114,10 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
       })
       onConfigChange();
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Saving Settings",
         description: getCoreApiErrorMessage(error),
@@ -131,6 +141,10 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
         })
         onConfigChange();
     } catch (error: any) {
+        if (error.message === "ACCESS_DENIED") {
+          router.push('/403');
+          return;
+        }
         toast({
             title: `Error Deleting ${type.toUpperCase()} Connection`,
             description: getCoreApiErrorMessage(error),
@@ -243,6 +257,7 @@ export default function ConnectionsPage() {
   const [ldapConfig, setLdapConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const router = useRouter()
 
   const fetchConfigs = useCallback(async () => {
     try {
@@ -255,12 +270,17 @@ export default function ConnectionsPage() {
       if (ovpnRes.status === 'fulfilled') setOpenvpnConfig(ovpnRes.value)
       if (ldapRes.status === 'fulfilled') setLdapConfig(ldapRes.value)
       
-      if (ovpnRes.status === 'rejected' || ldapRes.status === 'rejected') {
-          // This toast might be too noisy if one is configured and the other is not (which returns a 404 rejected promise).
-          // Only show toast for non-404 errors. This requires more complex error handling in api.ts
-          // For now, let's keep it simple.
+      const rejectedPromise = [ovpnRes, ldapRes].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      if (rejectedPromise && rejectedPromise.reason.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
       }
+
     } catch (error: any) {
+       if (error.message === "ACCESS_DENIED") {
+          router.push('/403');
+          return;
+       }
        toast({
           title: "Error",
           description: getCoreApiErrorMessage(error),
@@ -270,7 +290,7 @@ export default function ConnectionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, router])
 
   useEffect(() => {
     fetchConfigs()

@@ -147,6 +147,10 @@ export default function UserDetailPage() {
         router.push("/dashboard/users")
       }
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Loading User",
         description: getCoreApiErrorMessage(error),
@@ -164,6 +168,10 @@ export default function UserDetailPage() {
       const data = await getGroups(1, 100) // Fetch up to 100 groups
       setGroups(data.groups || [])
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error),
@@ -211,6 +219,10 @@ export default function UserDetailPage() {
       setEditing(false)
       fetchUser()
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Updating User",
         description: getCoreApiErrorMessage(error),
@@ -252,6 +264,10 @@ export default function UserDetailPage() {
       });
       fetchUser();
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: `Error ${action.charAt(0).toUpperCase() + action.slice(1)}ing User VPN Access`,
         description: getCoreApiErrorMessage(error),
@@ -277,6 +293,10 @@ export default function UserDetailPage() {
         icon: <CheckCircle className="h-5 w-5" />,
       });
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Resetting OTP",
         description: getCoreApiErrorMessage(error),

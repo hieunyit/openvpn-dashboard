@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +28,7 @@ function PermissionDialog({ permission, open, onOpenChange, onSuccess }: { permi
   const [formData, setFormData] = useState({ Resource: "", Action: "", Description: "" })
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const isEditing = !!permission
 
@@ -51,6 +53,10 @@ function PermissionDialog({ permission, open, onOpenChange, onSuccess }: { permi
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setSaving(false)
@@ -96,6 +102,7 @@ export default function PortalPermissionsPage() {
   const [permissionToAction, setPermissionToAction] = useState<{permission: Permission, action: 'delete'} | null>(null)
   const [currentPermission, setCurrentPermission] = useState<Permission | null>(null)
   const { toast } = useToast()
+  const router = useRouter()
 
   const fetchPermissions = useCallback(async () => {
     setLoading(true)
@@ -103,6 +110,10 @@ export default function PortalPermissionsPage() {
       const data = await getPermissions()
       setPermissions(data || [])
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Permissions",
         description: getCoreApiErrorMessage(error),
@@ -112,7 +123,7 @@ export default function PortalPermissionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, router])
 
   useEffect(() => {
     fetchPermissions()
@@ -141,6 +152,10 @@ export default function PortalPermissionsPage() {
       toast({ title: "Success", description: `Permission '${permission.Action}' on '${permission.Resource}' has been deleted.`, variant: "success" })
       fetchPermissions()
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setPermissionToAction(null)

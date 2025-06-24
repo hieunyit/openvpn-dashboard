@@ -4,7 +4,7 @@
 import type React from "react"
 
 import { useState, useEffect, useCallback, memo } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -249,6 +249,7 @@ export default function GroupsPage() {
 
 
   const { toast } = useToast()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const actionQueryParam = searchParams.get("action")
   const groupNameQueryParam = searchParams.get("groupName")
@@ -272,6 +273,10 @@ export default function GroupsPage() {
       setGroups(groupsData.map((g: any) => ({ ...g, denyAccess: g.denyAccess ?? false, isEnabled: typeof g.isEnabled === 'boolean' ? g.isEnabled : true })));
       setTotal(data.total || 0);
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error),
@@ -284,7 +289,7 @@ export default function GroupsPage() {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, searchTerm, toast]);
+  }, [page, limit, searchTerm, toast, router]);
 
   useEffect(() => {
     if (actionQueryParam === "new" && !isAddGroupDialogOpen) {
@@ -351,6 +356,10 @@ export default function GroupsPage() {
       fetchGroupsCallback(currentFilters)
       setSelectedGroups(prev => prev.filter(g => g !== groupToDelete));
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Deleting Group",
         description: getCoreApiErrorMessage(error),
@@ -361,7 +370,7 @@ export default function GroupsPage() {
       setGroupToDelete(null)
       setIsDeleteGroupDialogOpen(false)
     }
-  }, [groupToDelete, fetchGroupsCallback, toast, currentFilters]);
+  }, [groupToDelete, fetchGroupsCallback, toast, currentFilters, router]);
 
   const confirmDeleteGroup = useCallback((groupName: string) => {
     setGroupToDelete(groupName);
@@ -386,6 +395,10 @@ export default function GroupsPage() {
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: `Error ${deny ? "Disabling" : "Enabling"} Group`,
         description: getCoreApiErrorMessage(error),
@@ -396,7 +409,7 @@ export default function GroupsPage() {
       setIsConfirmSingleDenyAccessDialogOpen(false);
       setGroupToUpdateDenyAccess(null);
     }
-  }, [groupToUpdateDenyAccess, fetchGroupsCallback, toast, currentFilters]);
+  }, [groupToUpdateDenyAccess, fetchGroupsCallback, toast, currentFilters, router]);
 
   const confirmEnableGroupSystem = useCallback((groupName: string) => {
     setGroupToEnableSystem(groupName);
@@ -415,6 +428,10 @@ export default function GroupsPage() {
       });
       fetchGroupsCallback(currentFilters);
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Enabling Group",
         description: getCoreApiErrorMessage(error),
@@ -425,7 +442,7 @@ export default function GroupsPage() {
       setIsConfirmSingleEnableSystemDialogOpen(false);
       setGroupToEnableSystem(null);
     }
-  }, [groupToEnableSystem, fetchGroupsCallback, toast, currentFilters]);
+  }, [groupToEnableSystem, fetchGroupsCallback, toast, currentFilters, router]);
 
 
   const confirmBulkDenyAccessAction = useCallback((action: "enable" | "disable") => {
@@ -503,6 +520,10 @@ export default function GroupsPage() {
       fetchGroupsCallback(currentFilters);
       setSelectedGroups([]);
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: `Error Bulk Enabling Groups`,
         description: getCoreApiErrorMessage(error),
@@ -514,7 +535,7 @@ export default function GroupsPage() {
       setIsConfirmBulkSystemEnableDialogOpen(false);
       setBulkSystemEnableActionToConfirm(null);
     }
-  }, [bulkSystemEnableActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters]);
+  }, [bulkSystemEnableActionToConfirm, selectedGroups, fetchGroupsCallback, toast, currentFilters, router]);
 
 
   const handleSelectGroupCallback = useCallback((groupName: string, checked: boolean) => {

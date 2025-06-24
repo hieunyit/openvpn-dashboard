@@ -117,6 +117,10 @@ export default function GroupDetailPage() {
         router.push("/dashboard/groups")
       }
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Loading Group",
         description: getCoreApiErrorMessage(error),
@@ -133,6 +137,10 @@ export default function GroupDetailPage() {
       const usersData = await getUsers(1, 100, { groupName }) // Fetch up to 100 members for preview
       setMembers(usersData.users || [])
     } catch (error: any) {
+       if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
        toast({
         title: "Error Fetching Members",
         description: getCoreApiErrorMessage(error),
@@ -187,6 +195,10 @@ export default function GroupDetailPage() {
       setEditing(false)
       fetchGroup() 
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error",
         description: getCoreApiErrorMessage(error),
@@ -220,6 +232,10 @@ export default function GroupDetailPage() {
       });
       fetchGroup(); 
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: `Error`,
         description: getCoreApiErrorMessage(error),
@@ -254,6 +270,10 @@ export default function GroupDetailPage() {
       });
       fetchGroup(); 
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error",
         description: getCoreApiErrorMessage(error),
@@ -539,13 +559,13 @@ export default function GroupDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Group VPN Access Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {confirmDenyAccessDetails?.action} VPN access for group "{confirmDenyAccessDetails?.groupName}"?
+              Are you sure you want to {confirmDenyAccessActionDetails?.action} VPN access for group "{confirmDenyAccessActionDetails?.groupName}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setIsConfirmDenyAccessActionDialogOpen(false)} disabled={saving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeDenyAccessAction} disabled={saving} className={confirmDenyAccessDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
-              {saving ? "Processing..." : `Confirm ${confirmDenyAccessDetails?.action === "enable" ? "Enable Group (VPN)" : "Disable Group (VPN)"}`}
+            <AlertDialogAction onClick={executeDenyAccessAction} disabled={saving} className={confirmDenyAccessActionDetails?.action === "disable" ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-600/90 text-white"}>
+              {saving ? "Processing..." : `Confirm ${confirmDenyAccessActionDetails?.action === "enable" ? "Enable Group (VPN)" : "Disable Group (VPN)"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

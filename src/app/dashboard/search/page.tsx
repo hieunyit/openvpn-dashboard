@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useCallback, memo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -23,15 +24,20 @@ export default function SearchPage() {
   const [currentFilters, setCurrentFilters] = useState<any>({});
   const [availableGroups, setAvailableGroups] = useState<string[]>([])
   const { toast } = useToast()
+  const router = useRouter()
 
   const fetchAvailableGroups = useCallback(async () => {
     try {
       const data = await getGroups(1, 100); // Fetch up to 100 groups for filtering
       setAvailableGroups(data.groups?.map((g: any) => g.groupName) || []);
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       // console.error("Failed to fetch groups for filter:", error);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (activeTab === 'users') { 
@@ -48,6 +54,10 @@ export default function SearchPage() {
       const results = await apiFunction(currentPage, itemsPerPage, filters);
       setSearchResults(results);
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Search Failed",
         description: getCoreApiErrorMessage(error) || "Failed to perform search. Please try again.",
@@ -58,7 +68,7 @@ export default function SearchPage() {
     } finally {
       setIsSearching(false);
     }
-  }, [activeTab, currentPage, itemsPerPage, toast]);
+  }, [activeTab, currentPage, itemsPerPage, toast, router]);
 
   useEffect(() => {
     if (Object.keys(currentFilters).length > 0 || (searchResults && searchResults.total > 0) ) {

@@ -61,6 +61,10 @@ export default function PortalGroupDetailPage() {
       setInitialGroupPermissions(permIds)
       setSelectedPermissions(permIds)
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" })
       router.push("/dashboard/portal-groups")
     } finally {
@@ -73,6 +77,10 @@ export default function PortalGroupDetailPage() {
       const allPermsData = await getPermissions()
       setAllPermissions(allPermsData || [])
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: "Could not load available permissions.", variant: "destructive" })
     }
   }
@@ -94,6 +102,10 @@ export default function PortalGroupDetailPage() {
       setEditing(false)
       fetchGroupData()
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" })
     } finally {
       setSaving(false)
@@ -108,6 +120,10 @@ export default function PortalGroupDetailPage() {
       toast({ title: "Success", description: "Group permissions updated.", variant: "success", icon: <CheckCircle /> })
       setInitialGroupPermissions(selectedPermissions)
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" })
     } finally {
       setSaving(false)
@@ -122,6 +138,10 @@ export default function PortalGroupDetailPage() {
         toast({ title: "Success", description: `Group has been ${activate ? 'activated' : 'deactivated'}.`, variant: "success" });
         fetchGroupData();
     } catch (error) {
+        if (error.message === "ACCESS_DENIED") {
+          router.push('/403');
+          return;
+        }
         toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" });
     } finally {
         setSaving(false)

@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +36,7 @@ export default function AuditLogsPage() {
   const [loading, setLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
   
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(25)
@@ -64,6 +66,10 @@ export default function AuditLogsPage() {
       setLogs(data.logs || [])
       setTotal(data.total || 0)
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Logs",
         description: getCoreApiErrorMessage(error),
@@ -73,7 +79,7 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, filters, toast])
+  }, [page, limit, filters, toast, router])
 
   useEffect(() => {
     fetchLogs()
@@ -97,6 +103,10 @@ export default function AuditLogsPage() {
         icon: <CheckCircle className="h-5 w-5" />,
       })
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Export Failed",
         description: getCoreApiErrorMessage(error),

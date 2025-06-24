@@ -71,6 +71,10 @@ export default function NewGroupPage() {
 
       router.push("/dashboard/groups")
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Creating Group",
         description: getCoreApiErrorMessage(error.message),
@@ -265,5 +269,3 @@ export default function NewGroupPage() {
     </div>
   )
 }
-
-    

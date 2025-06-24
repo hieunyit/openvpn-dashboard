@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,6 +50,7 @@ function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: Po
   const [formData, setFormData] = useState({ username: "", fullName: "", email: "", password: "", groupId: "none" })
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const isEditing = !!user
 
@@ -94,6 +96,10 @@ function UserDialog({ user, groups, open, onOpenChange, onSuccess }: { user?: Po
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setSaving(false)
@@ -159,6 +165,7 @@ export default function PortalUsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [actionLoading, setActionLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -174,6 +181,10 @@ export default function PortalUsersPage() {
       const groupsData = await getPortalGroups();
       setGroups(groupsData.groups || []);
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Data",
         description: getCoreApiErrorMessage(error),
@@ -183,7 +194,7 @@ export default function PortalUsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, searchTerm, toast])
+  }, [page, limit, searchTerm, toast, router])
 
   useEffect(() => {
     fetchData()
@@ -232,6 +243,10 @@ export default function PortalUsersPage() {
       toast({ title: "Success", description: `Action '${action}' completed for user ${user.username}.`, variant: "success" })
       fetchData()
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setUserToAction(null)

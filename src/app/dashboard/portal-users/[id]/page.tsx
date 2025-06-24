@@ -61,6 +61,10 @@ export default function PortalUserDetailPage() {
         groupId: data.groupId || "none",
       });
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" });
       router.push("/dashboard/portal-users");
     } finally {
@@ -73,6 +77,10 @@ export default function PortalUserDetailPage() {
       const data = await getPortalGroups();
       setGroups(data.groups || []);
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: "Could not load groups for selection.", variant: "destructive" });
     }
   };
@@ -105,6 +113,10 @@ export default function PortalUserDetailPage() {
       setEditing(false);
       fetchUserData();
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);
@@ -123,6 +135,10 @@ export default function PortalUserDetailPage() {
       toast({ title: "Success", description: `User has been ${activate ? 'activated' : 'deactivated'}.`, variant: "success" });
       fetchUserData();
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);
@@ -136,6 +152,10 @@ export default function PortalUserDetailPage() {
       await resetPortalUserPassword(user.id);
       toast({ title: "Success", description: "A password reset link has been sent to the user's email.", variant: "success" });
     } catch (error) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);

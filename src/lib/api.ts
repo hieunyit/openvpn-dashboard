@@ -45,8 +45,7 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
     if (response.status === 403) {
       // Don't redirect on auth paths like login
       if (!isAuthPath) {
-        window.location.href = '/403';
-        // Throw an error to stop further processing in the calling function
+        // Throw an error to stop further processing. The UI will catch this and redirect.
         throw new Error("ACCESS_DENIED");
       }
     }
@@ -705,7 +704,7 @@ export async function getPortalUsers(page = 1, limit = 10, searchTerm = "") {
   const responseData = parseApiResponse(data, "users");
 
   return {
-      users: responseData.users || [],
+      users: Array.isArray(responseData.users) ? responseData.users : [],
       total: responseData.total || 0,
       page: responseData.page || 1,
   };
@@ -847,13 +846,6 @@ export async function deletePermission(id: string) {
   const response = await fetchWithAuth(`api/portal/permissions/${id}`, { method: "DELETE" });
   if (!response.ok) throw await handleApiError(response, `delete permission ${id}`);
   return await response.json();
-}
-
-export async function getGroupPermissions(groupId: string) {
-    const response = await fetchWithAuth(`api/portal/groups/${groupId}/permissions`);
-    if (!response.ok) throw await handleApiError(response, "fetch group permissions");
-    const data = await response.json();
-     return (data.success ? data.success.data : data) || [];
 }
 
 export async function updateGroupPermissions(groupId: string, permissionIds: string[]) {

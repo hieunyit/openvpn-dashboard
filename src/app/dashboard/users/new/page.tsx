@@ -62,6 +62,10 @@ export default function NewUserPage() {
       )
       setGroups(enabledGroups)
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error.message) || "Could not load groups for selection.",
@@ -143,6 +147,10 @@ export default function NewUserPage() {
 
       router.push("/dashboard/users")
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Creating User",
         description: getCoreApiErrorMessage(error.message),

@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,24 +49,27 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     if (open) {
       setLoading(true)
-      // Set initial permissions from the group prop itself
       setGroupPermissions((group.Permissions || []).map((p: Permission) => p.ID))
 
-      // Fetch all available permissions to show in the dialog
       getPermissions()
         .then((allPerms) => {
           setAllPermissions(allPerms || [])
         })
         .catch(err => {
+          if (err.message === "ACCESS_DENIED") {
+            router.push('/403');
+            return;
+          }
           toast({ title: "Error", description: `Could not load available permissions: ${getCoreApiErrorMessage(err)}`, variant: "destructive" })
         })
         .finally(() => setLoading(false))
     }
-  }, [group, open, toast])
+  }, [group, open, toast, router])
 
   const handlePermissionChange = (permId: string, checked: boolean) => {
     setGroupPermissions(prev => checked ? [...prev, permId] : prev.filter(id => id !== permId))
@@ -79,6 +83,10 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setSaving(false)
@@ -137,6 +145,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
   const [formData, setFormData] = useState({ Name: "", DisplayName: "" })
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const isEditing = !!group
 
@@ -161,6 +170,10 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setSaving(false)
@@ -211,6 +224,7 @@ export default function PortalGroupsPage() {
   const [total, setTotal] = useState(0);
 
   const { toast } = useToast()
+  const router = useRouter()
 
   const fetchGroups = useCallback(async () => {
     setLoading(true)
@@ -219,6 +233,10 @@ export default function PortalGroupsPage() {
       setGroups(data.groups || [])
       setTotal(data.total || 0)
     } catch (error: any) {
+      if (error.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({
         title: "Error Fetching Groups",
         description: getCoreApiErrorMessage(error),
@@ -228,7 +246,7 @@ export default function PortalGroupsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, limit, searchTerm, toast]);
+  }, [page, limit, searchTerm, toast, router]);
 
   useEffect(() => {
     fetchGroups()
@@ -281,6 +299,10 @@ export default function PortalGroupsPage() {
       toast({ title: "Success", description: `Action '${action}' completed for group ${group.DisplayName}.`, variant: "success" })
       fetchGroups()
     } catch (err: any) {
+      if (err.message === "ACCESS_DENIED") {
+        router.push('/403');
+        return;
+      }
       toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
     } finally {
       setGroupToAction(null)
