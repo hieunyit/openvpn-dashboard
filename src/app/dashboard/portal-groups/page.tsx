@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
-import { getPortalGroups, createPortalGroup, updatePortalGroup, deletePortalGroup, getPermissions, getGroupPermissions, updateGroupPermissions } from "@/lib/api"
+import { getPortalGroups, createPortalGroup, updatePortalGroup, deletePortalGroup, getPermissions, updateGroupPermissions } from "@/lib/api"
 import { Users, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, FileText, Search, Power, PowerOff } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -27,18 +27,19 @@ import { getCoreApiErrorMessage } from "@/lib/utils"
 import { Pagination } from "@/components/pagination"
 import Link from "next/link"
 
-interface PortalGroup {
-  ID: string
-  Name: string
-  DisplayName: string
-  IsActive: boolean
-}
-
 interface Permission {
   ID: string
   Action: string
   Resource: string
   Description: string
+}
+
+interface PortalGroup {
+  ID: string
+  Name: string
+  DisplayName: string
+  IsActive: boolean
+  Permissions?: Permission[]
 }
 
 function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { group: PortalGroup, open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
@@ -51,17 +52,20 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   useEffect(() => {
     if (open) {
       setLoading(true)
-      Promise.all([getPermissions(), getGroupPermissions(group.ID)])
-        .then(([allPerms, groupPerms]) => {
+      // Set initial permissions from the group prop itself
+      setGroupPermissions((group.Permissions || []).map((p: Permission) => p.ID))
+
+      // Fetch all available permissions to show in the dialog
+      getPermissions()
+        .then((allPerms) => {
           setAllPermissions(allPerms || [])
-          setGroupPermissions((groupPerms || []).map((p: Permission) => p.ID))
         })
         .catch(err => {
-          toast({ title: "Error", description: getCoreApiErrorMessage(err), variant: "destructive" })
+          toast({ title: "Error", description: `Could not load available permissions: ${getCoreApiErrorMessage(err)}`, variant: "destructive" })
         })
         .finally(() => setLoading(false))
     }
-  }, [group.ID, open, toast])
+  }, [group, open, toast])
 
   const handlePermissionChange = (permId: string, checked: boolean) => {
     setGroupPermissions(prev => checked ? [...prev, permId] : prev.filter(id => id !== permId))

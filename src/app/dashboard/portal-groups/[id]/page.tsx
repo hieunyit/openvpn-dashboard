@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { getPortalGroup, getPermissions, updatePortalGroup, updateGroupPermissions, activatePortalUser, deactivatePortalUser } from "@/lib/api"
+import { getPortalGroup, getPermissions, updatePortalGroup, updateGroupPermissions } from "@/lib/api"
 import {
   ArrowLeft, Edit, Save, X, Users, KeyRound, CheckCircle, AlertTriangle, Settings, PowerOff, Power
 } from "lucide-react"
@@ -19,18 +19,19 @@ import { getCoreApiErrorMessage } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
-interface PortalGroup {
-  ID: string
-  Name: string
-  DisplayName: string
-  IsActive: boolean
-}
-
 interface Permission {
   ID: string
   Action: string
   Resource: string
   Description: string
+}
+
+interface PortalGroup {
+  ID: string
+  Name: string
+  DisplayName: string
+  IsActive: boolean
+  Permissions?: Permission[]
 }
 
 export default function PortalGroupDetailPage() {
@@ -52,12 +53,11 @@ export default function PortalGroupDetailPage() {
     try {
       setLoading(true)
       const groupData = await getPortalGroup(id)
-      const groupPermsData = await getGroupPermissions(id)
       
       setGroup(groupData)
       setFormData({ DisplayName: groupData.DisplayName, Name: groupData.Name })
       
-      const permIds = (groupPermsData || []).map((p: Permission) => p.ID)
+      const permIds = (groupData.Permissions || []).map((p: Permission) => p.ID)
       setInitialGroupPermissions(permIds)
       setSelectedPermissions(permIds)
     } catch (error) {
