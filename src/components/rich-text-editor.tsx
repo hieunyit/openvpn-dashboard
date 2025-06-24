@@ -1,19 +1,9 @@
-
 "use client"
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { Skeleton } from './ui/skeleton';
-
-// Dynamically import ReactQuill to prevent SSR issues
-const ReactQuill = dynamic(
-  () => import('react-quill'),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-[300px] w-full rounded-md" />,
-  }
-);
 
 interface RichTextEditorProps {
   value: string;
@@ -45,6 +35,12 @@ const formats = [
 ];
 
 export function RichTextEditor({ value, onChange, readOnly = false }: RichTextEditorProps) {
+  // Use useMemo to prevent re-importing on every render, which is a common fix for React 18 compatibility.
+  const ReactQuill = React.useMemo(() => dynamic(() => import('react-quill'), { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[300px] w-full rounded-md" />,
+  }), []);
+
   return (
     <div className="bg-background rounded-md border">
       <ReactQuill
