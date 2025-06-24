@@ -12,8 +12,9 @@ import { useToast } from "@/hooks/use-toast"
 import { getEmailTemplate, updateEmailTemplate } from "@/lib/api"
 import { getCoreApiErrorMessage } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Mail, Save, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Mail, Save, AlertTriangle, CheckCircle, Eye, Code } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { RichTextEditor } from '@/components/rich-text-editor'
 
 const TEMPLATE_TYPES = [
   { key: 'enable_user', name: 'Enable User' },
@@ -56,7 +57,7 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
         title: `Error fetching ${templateType.name} template`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
-        icon: React.createElement(AlertTriangle)
+        icon: <AlertTriangle />
       });
     } finally {
       setLoading(false);
@@ -75,7 +76,7 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
         title: "Template Saved",
         description: `The ${templateType.name} template has been updated.`,
         variant: "success",
-        icon: React.createElement(CheckCircle)
+        icon: <CheckCircle />
       });
       fetchTemplate(); // Re-fetch to confirm save
     } catch (error: any) {
@@ -87,7 +88,7 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
         title: `Error saving ${templateType.name} template`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
-        icon: React.createElement(AlertTriangle)
+        icon: <AlertTriangle />
       });
     } finally {
       setSaving(false);
@@ -96,74 +97,103 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
   
   const isChanged = template ? (formData.subject !== template.Subject || formData.body !== template.Body) : (formData.subject !== '' || formData.body !== '');
 
-  const loadingContent = React.createElement('div', { className: 'space-y-4' },
-    React.createElement(Skeleton, { className: 'h-10 w-1/3' }),
-    React.createElement(Skeleton, { className: 'h-32 w-full' })
+  const loadingContent = (
+    <div className='space-y-4'>
+      <Skeleton className='h-10 w-1/3' />
+      <Skeleton className='h-32 w-full' />
+    </div>
   );
 
-  const loadedContent = React.createElement(React.Fragment, null,
-    React.createElement('div', { className: 'space-y-2' },
-      React.createElement(Label, { htmlFor: `subject-${templateType.key}` }, 'Subject'),
-      React.createElement(Input, {
-        id: `subject-${templateType.key}`,
-        value: formData.subject,
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setFormData(p => ({ ...p, subject: e.target.value })),
-        placeholder: "Email subject",
-        disabled: saving
-      })
-    ),
-    React.createElement('div', { className: 'space-y-2' },
-      React.createElement(Label, { htmlFor: `body-${templateType.key}` }, 'Body'),
-      React.createElement(Textarea, {
-        id: `body-${templateType.key}`,
-        value: formData.body,
-        onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(p => ({ ...p, body: e.target.value })),
-        placeholder: "Email body. You can use HTML.",
-        rows: 15,
-        className: "min-h-[300px]",
-        disabled: saving
-      }),
-       React.createElement('p', { className: 'text-xs text-muted-foreground' }, "You can use variables like {{.Username}}, {{.ResetLink}}, etc. (check API docs for available variables for each template).")
-    )
+  const loadedContent = (
+    <>
+      <div className='space-y-2'>
+        <Label htmlFor={`subject-${templateType.key}`}>Subject</Label>
+        <Input
+          id={`subject-${templateType.key}`}
+          value={formData.subject}
+          onChange={(e) => setFormData(p => ({ ...p, subject: e.target.value }))}
+          placeholder="Email subject"
+          disabled={saving}
+        />
+      </div>
+      <div className='space-y-2'>
+        <Label>Body</Label>
+        <Tabs defaultValue="visual" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="visual">
+              <Eye className="mr-2 h-4 w-4" />
+              Visual Editor
+            </TabsTrigger>
+            <TabsTrigger value="html">
+              <Code className="mr-2 h-4 w-4" />
+              HTML Source
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="visual" className="mt-2">
+            <RichTextEditor
+              value={formData.body}
+              onChange={(value) => setFormData(p => ({ ...p, body: value }))}
+              readOnly={saving}
+            />
+          </TabsContent>
+          <TabsContent value="html" className="mt-2">
+            <Textarea
+              id={`body-html-${templateType.key}`}
+              value={formData.body}
+              onChange={(e) => setFormData(p => ({ ...p, body: e.target.value }))}
+              placeholder="Enter raw HTML here."
+              rows={15}
+              className="min-h-[300px] font-mono text-sm"
+              disabled={saving}
+            />
+          </TabsContent>
+        </Tabs>
+        <p className='text-xs text-muted-foreground'>You can use variables like {`{{.Username}}`}, {`{{.ResetLink}}`}, etc. (check API docs for available variables for each template).</p>
+      </div>
+    </>
   );
 
-  return React.createElement(Card, { className: "shadow-md border-0" },
-    React.createElement(CardHeader, null,
-      React.createElement(CardTitle, null, templateType.name),
-      React.createElement(CardDescription, null, `Edit the content for the ${templateType.name.toLowerCase()} email.`)
-    ),
-    React.createElement(CardContent, { className: "space-y-4" },
-      loading ? loadingContent : loadedContent
-    ),
-    React.createElement(CardFooter, { className: "border-t pt-6" },
-      React.createElement(Button, { onClick: handleSave, disabled: saving || loading || !isChanged },
-        React.createElement(Save, { className: "mr-2 h-4 w-4" }),
-        saving ? 'Saving...' : 'Save Template'
-      )
-    )
+  return (
+    <Card className="shadow-md border-0">
+      <CardHeader>
+        <CardTitle>{templateType.name}</CardTitle>
+        <CardDescription>Edit the content for the {templateType.name.toLowerCase()} email.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? loadingContent : loadedContent}
+      </CardContent>
+      <CardFooter className="border-t pt-6">
+        <Button onClick={handleSave} disabled={saving || loading || !isChanged}>
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? 'Saving...' : 'Save Template'}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
 
 export default function EmailTemplatesPage() {
-  return React.createElement('div', { className: 'space-y-6' },
-    React.createElement('div', { className: 'flex items-center gap-3' },
-      React.createElement(Mail, { className: "h-8 w-8 text-primary" }),
-      React.createElement('div', null,
-        React.createElement('h1', { className: "text-3xl font-bold tracking-tight" }, 'Email Templates'),
-        React.createElement('p', { className: "text-muted-foreground mt-1" }, 'Customize system-generated emails.')
-      )
-    ),
-    React.createElement(Tabs, { defaultValue: TEMPLATE_TYPES[0].key, className: "w-full" },
-      React.createElement(TabsList, { className: "grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-4" },
-        TEMPLATE_TYPES.map(t => (
-          React.createElement(TabsTrigger, { key: t.key, value: t.key }, t.name)
-        ))
-      ),
-      TEMPLATE_TYPES.map(t => (
-        React.createElement(TabsContent, { key: t.key, value: t.key, className: "mt-6" },
-          React.createElement(TemplateEditor, { templateType: t })
-        )
-      ))
-    )
+  return (
+    <div className='space-y-6'>
+      <div className='flex items-center gap-3'>
+        <Mail className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Email Templates</h1>
+          <p className="text-muted-foreground mt-1">Customize system-generated emails.</p>
+        </div>
+      </div>
+      <Tabs defaultValue={TEMPLATE_TYPES[0].key} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7">
+          {TEMPLATE_TYPES.map(t => (
+            <TabsTrigger key={t.key} value={t.key}>{t.name}</TabsTrigger>
+          ))}
+        </TabsList>
+        {TEMPLATE_TYPES.map(t => (
+          <TabsContent key={t.key} value={t.key} className="mt-6">
+            <TemplateEditor templateType={t} />
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
   )
 }
