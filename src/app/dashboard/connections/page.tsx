@@ -12,14 +12,16 @@ import { useToast } from "@/hooks/use-toast"
 import { 
   getOpenVPNConnection, updateOpenVPNConnection, deleteOpenVPNConnection,
   getLdapConnection, updateLdapConnection, deleteLdapConnection,
+  getSmtpConfig, updateSmtpConfig, deleteSmtpConfig,
   testOpenVPNConnection, testLdapConnection
 } from "@/lib/api"
 import { getCoreApiErrorMessage } from "@/lib/utils"
-import { Network, Save, AlertTriangle, CheckCircle, Shield, Building, Trash2, Activity, Power } from "lucide-react"
+import { Network, Save, AlertTriangle, CheckCircle, Shield, Building, Trash2, Activity, Power, Mail } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface ConnectionFormProps {
-  type: 'openvpn' | 'ldap'
+  type: 'openvpn' | 'ldap' | 'smtp'
   initialData: any
   onSave: (data: any) => Promise<any>
   onDelete: () => Promise<any>
@@ -47,7 +49,7 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
           username: initialData.Username,
           password: initialData.Password || '',
         });
-      } else { // ldap
+      } else if (type === 'ldap') {
         setFormData({
           id: initialData.ID,
           host: initialData.Host,
@@ -55,6 +57,16 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
           bindDN: initialData.BindDN,
           bindPassword: initialData.BindPassword || '',
           baseDN: initialData.BaseDN,
+        });
+      } else if (type === 'smtp') {
+         setFormData({
+          id: initialData.ID,
+          host: initialData.Host,
+          port: initialData.Port,
+          username: initialData.Username,
+          password: initialData.Password || '',
+          from: initialData.From,
+          tls: initialData.TLS ?? false,
         });
       }
     } else {
@@ -70,11 +82,14 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
     }))
   }
 
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData((prev: any) => ({ ...prev, [name]: checked }))
+  }
+
   const handleTest = async () => {
     setTesting(true);
     try {
-      const testFunction = type === 'openvpn' ? testOpenVPNConnection : testLdapConnection;
-      await testFunction();
+      await onTest();
       toast({
         title: "Connection Successful",
         description: `Successfully connected to the ${type.toUpperCase()} server.`,
@@ -101,8 +116,8 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
     setSaving(true)
     try {
       const dataToSave = { ...formData }
-      if (type === 'ldap' && dataToSave.port) {
-        dataToSave.port = Number(dataToSave.port)
+      if (type === 'ldap' || type === 'smtp') {
+        if(dataToSave.port) dataToSave.port = Number(dataToSave.port)
       }
 
       await onSave(dataToSave)
@@ -157,20 +172,46 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
     }
   }
   
-  const fields = type === 'openvpn' ?
-    [
-      { name: 'host', label: 'Host Address', placeholder: 'e.g., vpn.example.com' },
-      { name: 'port', label: 'Port', placeholder: 'e.g., 943' },
-      { name: 'username', label: 'Admin Username', placeholder: 'e.g., openvpn' },
-      { name: 'password', label: 'Admin Password', type: 'password', placeholder: 'Enter password' },
-    ] :
-    [
-      { name: 'host', label: 'LDAP Host', placeholder: 'e.g., ldap.example.com' },
-      { name: 'port', label: 'LDAP Port', placeholder: 'e.g., 389 or 636' },
-      { name: 'bindDN', label: 'Bind DN', placeholder: 'e.g., cn=admin,dc=example,dc=com' },
-      { name: 'bindPassword', label: 'Bind Password', type: 'password', placeholder: 'Enter bind password' },
-      { name: 'baseDN', label: 'Base DN', placeholder: 'e.g., dc=example,dc=com' },
-    ]
+  const getFields = () => {
+    switch (type) {
+      case 'openvpn':
+        return [
+          { name: 'host', label: 'Host Address', placeholder: 'e.g., vpn.example.com' },
+          { name: 'port', label: 'Port', placeholder: 'e.g., 943' },
+          { name: 'username', label: 'Admin Username', placeholder: 'e.g., openvpn' },
+          { name: 'password', label: 'Admin Password', type: 'password', placeholder: 'Enter password' },
+        ];
+      case 'ldap':
+        return [
+          { name: 'host', label: 'LDAP Host', placeholder: 'e.g., ldap.example.com' },
+          { name: 'port', label: 'LDAP Port', placeholder: 'e.g., 389 or 636' },
+          { name: 'bindDN', label: 'Bind DN', placeholder: 'e.g., cn=admin,dc=example,dc=com' },
+          { name: 'bindPassword', label: 'Bind Password', type: 'password', placeholder: 'Enter bind password' },
+          { name: 'baseDN', label: 'Base DN', placeholder: 'e.g., dc=example,dc=com' },
+        ];
+      case 'smtp':
+        return [
+          { name: 'host', label: 'SMTP Host', placeholder: 'e.g., smtp.example.com' },
+          { name: 'port', label: 'SMTP Port', placeholder: 'e.g., 587' },
+          { name: 'username', label: 'Username', placeholder: 'e.g., user@example.com' },
+          { name: 'password', label: 'Password', type: 'password', placeholder: 'Enter password' },
+          { name: 'from', label: 'From Address', placeholder: 'e.g., no-reply@example.com' },
+          { name: 'tls', label: 'Use TLS', type: 'checkbox' },
+        ];
+      default:
+        return [];
+    }
+  };
+  
+  const getIcon = () => {
+    switch(type) {
+      case 'openvpn': return <Shield className="mr-2 h-5 w-5 text-primary"/>;
+      case 'ldap': return <Building className="mr-2 h-5 w-5 text-primary"/>;
+      case 'smtp': return <Mail className="mr-2 h-5 w-5 text-primary"/>;
+    }
+  }
+
+  const fields = getFields();
 
   return (
     <>
@@ -178,7 +219,7 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
       <CardHeader>
         <div className="flex items-center justify-between">
             <CardTitle className="flex items-center text-xl">
-                {type === 'openvpn' ? <Shield className="mr-2 h-5 w-5 text-primary"/> : <Building className="mr-2 h-5 w-5 text-primary"/>}
+                {getIcon()}
                 {type.toUpperCase()} Connection
             </CardTitle>
             {connectionExists ? (
@@ -198,16 +239,31 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
       <CardContent className="space-y-4">
         {fields.map(field => (
           <div key={field.name} className="space-y-2">
-            <Label htmlFor={`${type}-${field.name}`}>{field.label}</Label>
-            <Input
-              id={`${type}-${field.name}`}
-              name={field.name}
-              value={formData[field.name] || ""}
-              onChange={handleChange}
-              type={field.type || 'text'}
-              placeholder={field.placeholder}
-              disabled={saving || testing}
-            />
+            {field.type === 'checkbox' ? (
+               <div className="flex items-center space-x-2 pt-2">
+                 <Checkbox
+                    id={`${type}-${field.name}`}
+                    name={field.name}
+                    checked={formData[field.name] || false}
+                    onCheckedChange={(checked) => handleCheckboxChange(field.name, Boolean(checked))}
+                    disabled={saving || testing}
+                 />
+                 <Label htmlFor={`${type}-${field.name}`} className="font-medium">{field.label}</Label>
+               </div>
+            ) : (
+              <>
+                <Label htmlFor={`${type}-${field.name}`}>{field.label}</Label>
+                <Input
+                  id={`${type}-${field.name}`}
+                  name={field.name}
+                  value={formData[field.name] || ""}
+                  onChange={handleChange}
+                  type={field.type || 'text'}
+                  placeholder={field.placeholder}
+                  disabled={saving || testing}
+                />
+              </>
+            )}
           </div>
         ))}
       </CardContent>
@@ -221,7 +277,7 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
           )}
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" onClick={handleTest} disabled={saving || testing || !connectionExists}>
+            <Button variant="outline" onClick={handleTest} disabled={saving || testing || !connectionExists || type === 'smtp'}>
               <Power className="mr-2 h-4 w-4" />
               {testing ? 'Testing...' : 'Test Connection'}
             </Button>
@@ -255,6 +311,7 @@ function ConnectionForm({ type, initialData, onSave, onDelete, onTest, onConfigC
 export default function ConnectionsPage() {
   const [openvpnConfig, setOpenvpnConfig] = useState(null)
   const [ldapConfig, setLdapConfig] = useState(null)
+  const [smtpConfig, setSmtpConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const router = useRouter()
@@ -262,15 +319,17 @@ export default function ConnectionsPage() {
   const fetchConfigs = useCallback(async () => {
     try {
       setLoading(true)
-      const [ovpnRes, ldapRes] = await Promise.allSettled([
+      const [ovpnRes, ldapRes, smtpRes] = await Promise.allSettled([
         getOpenVPNConnection(),
         getLdapConnection(),
+        getSmtpConfig(),
       ])
 
       if (ovpnRes.status === 'fulfilled') setOpenvpnConfig(ovpnRes.value)
       if (ldapRes.status === 'fulfilled') setLdapConfig(ldapRes.value)
+      if (smtpRes.status === 'fulfilled') setSmtpConfig(smtpRes.value)
       
-      const rejectedPromise = [ovpnRes, ldapRes].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      const rejectedPromise = [ovpnRes, ldapRes, smtpRes].find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
       if (rejectedPromise && rejectedPromise.reason.message === "ACCESS_DENIED") {
         router.push('/403');
         return;
@@ -307,15 +366,19 @@ export default function ConnectionsPage() {
       </div>
       
       <Tabs defaultValue="openvpn" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="openvpn">OpenVPN Server</TabsTrigger>
           <TabsTrigger value="ldap">LDAP Server</TabsTrigger>
+          <TabsTrigger value="smtp">SMTP Server</TabsTrigger>
         </TabsList>
         <TabsContent value="openvpn" className="mt-6">
             {loading ? <p>Loading...</p> : <ConnectionForm type="openvpn" initialData={openvpnConfig} onSave={updateOpenVPNConnection} onDelete={deleteOpenVPNConnection} onTest={testOpenVPNConnection} onConfigChange={fetchConfigs} />}
         </TabsContent>
         <TabsContent value="ldap" className="mt-6">
             {loading ? <p>Loading...</p> : <ConnectionForm type="ldap" initialData={ldapConfig} onSave={updateLdapConnection} onDelete={deleteLdapConnection} onTest={testLdapConnection} onConfigChange={fetchConfigs} />}
+        </TabsContent>
+        <TabsContent value="smtp" className="mt-6">
+            {loading ? <p>Loading...</p> : <ConnectionForm type="smtp" initialData={smtpConfig} onSave={updateSmtpConfig} onDelete={deleteSmtpConfig} onTest={() => Promise.reject(new Error("Test not available for SMTP"))} onConfigChange={fetchConfigs} />}
         </TabsContent>
       </Tabs>
     </div>

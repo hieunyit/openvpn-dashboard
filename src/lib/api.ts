@@ -688,6 +688,59 @@ export async function deleteLdapConnection() {
     return await response.json();
 }
 
+export async function getSmtpConfig() {
+  const response = await fetchWithAuth(`api/portal/connections/smtp`);
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw await handleApiError(response, "fetch SMTP config");
+  }
+  return parseApiResponse(await response.json());
+}
+
+export async function updateSmtpConfig(config: any) {
+  const method = config.id ? 'PUT' : 'POST';
+  const response = await fetchWithAuth(`api/portal/connections/smtp`, {
+    method,
+    body: JSON.stringify(config),
+  });
+  if (!response.ok) {
+    throw await handleApiError(response, "update SMTP config");
+  }
+  return await response.json();
+}
+
+export async function deleteSmtpConfig() {
+  const response = await fetchWithAuth(`api/portal/connections/smtp`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw await handleApiError(response, "delete SMTP config");
+  }
+  return await response.json();
+}
+
+// --- Email Templates ---
+export async function getEmailTemplate(action: string) {
+  const response = await fetchWithAuth(`api/portal/connections/templates/${action}`);
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw await handleApiError(response, `fetch email template for ${action}`);
+  }
+  return parseApiResponse(await response.json());
+}
+
+export async function updateEmailTemplate(action: string, templateData: { subject: string, body: string }) {
+  const response = await fetchWithAuth(`api/portal/connections/templates/${action}`, {
+    method: 'PUT',
+    body: JSON.stringify(templateData),
+  });
+  if (!response.ok) {
+    throw await handleApiError(response, `update email template for ${action}`);
+  }
+  return await response.json();
+}
+
+
 // --- Portal Users ---
 export async function getPortalUsers(page = 1, limit = 10, searchTerm = "") {
   const queryParams = new URLSearchParams({

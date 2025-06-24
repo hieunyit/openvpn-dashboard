@@ -45,6 +45,7 @@ import {
   Shield,
   Search,
   KeyRound,
+  Mail,
 } from "lucide-react"
 
 interface NavSubItem {
@@ -88,6 +89,7 @@ const navConfig: NavItemConfig[] = [
       { title: "Portal Groups", href: "/dashboard/portal-groups", icon: Users },
       { title: "Portal Permissions", href: "/dashboard/portal-permissions", icon: KeyRound },
       { title: "Connections", href: "/dashboard/connections", icon: Network },
+      { title: "Email Templates", href: "/dashboard/settings/templates", icon: Mail },
       { title: "Audit Logs", href: "/dashboard/audit-logs", icon: History },
     ]
   }
