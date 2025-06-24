@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import * as React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,14 +26,14 @@ interface TemplateData {
 }
 
 function TemplateEditor({ templateType }: { templateType: { key: string, name: string } }) {
-  const [template, setTemplate] = useState<TemplateData | null>(null);
-  const [formData, setFormData] = useState({ subject: '', body: '' });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [template, setTemplate] = React.useState<TemplateData | null>(null);
+  const [formData, setFormData] = React.useState({ subject: '', body: '' });
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  const fetchTemplate = useCallback(async () => {
+  const fetchTemplate = React.useCallback(async () => {
     setLoading(true);
     try {
       const data = await getEmailTemplate(templateType.key);
@@ -52,14 +51,14 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
         title: `Error fetching ${templateType.name} template`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
-        icon: <AlertTriangle />
+        icon: React.createElement(AlertTriangle)
       });
     } finally {
       setLoading(false);
     }
   }, [templateType.key, templateType.name, toast, router]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchTemplate();
   }, [fetchTemplate]);
 
@@ -71,7 +70,7 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
         title: "Template Saved",
         description: `The ${templateType.name} template has been updated.`,
         variant: "success",
-        icon: <CheckCircle />
+        icon: React.createElement(CheckCircle)
       });
       fetchTemplate(); // Re-fetch to confirm save
     } catch (error: any) {
@@ -83,7 +82,7 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
         title: `Error saving ${templateType.name} template`,
         description: getCoreApiErrorMessage(error),
         variant: "destructive",
-        icon: <AlertTriangle />
+        icon: React.createElement(AlertTriangle)
       });
     } finally {
       setSaving(false);
@@ -92,54 +91,52 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
   
   const isChanged = template ? (formData.subject !== template.Subject || formData.body !== template.Body) : (formData.subject !== '' || formData.body !== '');
 
-  return (
-    <Card className="shadow-md border-0">
-      <CardHeader>
-        <CardTitle>{templateType.name}</CardTitle>
-        <CardDescription>Edit the content for the {templateType.name.toLowerCase()} email.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-1/3" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor={`subject-${templateType.key}`}>Subject</Label>
-              <Input
-                id={`subject-${templateType.key}`}
-                value={formData.subject}
-                onChange={(e) => setFormData(p => ({ ...p, subject: e.target.value }))}
-                placeholder="Email subject"
-                disabled={saving}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`body-${templateType.key}`}>Body</Label>
-              <Textarea
-                id={`body-${templateType.key}`}
-                value={formData.body}
-                onChange={(e) => setFormData(p => ({ ...p, body: e.target.value }))}
-                placeholder="Email body. You can use HTML."
-                rows={15}
-                className="min-h-[300px]"
-                disabled={saving}
-              />
-               <p className="text-xs text-muted-foreground">You can use variables like `{{.Username}}`, `{{.ResetLink}}`, etc. (check API docs for available variables for each template).</p>
-            </div>
-          </>
-        )}
-      </CardContent>
-      <CardFooter className="border-t pt-6">
-        <Button onClick={handleSave} disabled={saving || loading || !isChanged}>
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? 'Saving...' : 'Save Template'}
-        </Button>
-      </CardFooter>
-    </Card>
-  )
+  const loadingContent = React.createElement('div', { className: 'space-y-4' },
+    React.createElement(Skeleton, { className: 'h-10 w-1/3' }),
+    React.createElement(Skeleton, { className: 'h-32 w-full' })
+  );
+
+  const loadedContent = React.createElement(React.Fragment, null,
+    React.createElement('div', { className: 'space-y-2' },
+      React.createElement(Label, { htmlFor: `subject-${templateType.key}` }, 'Subject'),
+      React.createElement(Input, {
+        id: `subject-${templateType.key}`,
+        value: formData.subject,
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setFormData(p => ({ ...p, subject: e.target.value })),
+        placeholder: "Email subject",
+        disabled: saving
+      })
+    ),
+    React.createElement('div', { className: 'space-y-2' },
+      React.createElement(Label, { htmlFor: `body-${templateType.key}` }, 'Body'),
+      React.createElement(Textarea, {
+        id: `body-${templateType.key}`,
+        value: formData.body,
+        onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(p => ({ ...p, body: e.target.value })),
+        placeholder: "Email body. You can use HTML.",
+        rows: 15,
+        className: "min-h-[300px]",
+        disabled: saving
+      }),
+       React.createElement('p', { className: 'text-xs text-muted-foreground' }, "You can use variables like {{.Username}}, {{.ResetLink}}, etc. (check API docs for available variables for each template).")
+    )
+  );
+
+  return React.createElement(Card, { className: "shadow-md border-0" },
+    React.createElement(CardHeader, null,
+      React.createElement(CardTitle, null, templateType.name),
+      React.createElement(CardDescription, null, `Edit the content for the ${templateType.name.toLowerCase()} email.`)
+    ),
+    React.createElement(CardContent, { className: "space-y-4" },
+      loading ? loadingContent : loadedContent
+    ),
+    React.createElement(CardFooter, { className: "border-t pt-6" },
+      React.createElement(Button, { onClick: handleSave, disabled: saving || loading || !isChanged },
+        React.createElement(Save, { className: "mr-2 h-4 w-4" }),
+        saving ? 'Saving...' : 'Save Template'
+      )
+    )
+  );
 }
 
 export default function EmailTemplatesPage() {
