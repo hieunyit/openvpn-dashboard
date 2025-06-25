@@ -29,18 +29,18 @@ import { Pagination } from "@/components/pagination"
 import Link from "next/link"
 
 interface Permission {
-  ID: string
-  Action: string
-  Resource: string
-  Description: string
+  id: string
+  action: string
+  resource: string
+  description: string
 }
 
 interface PortalGroup {
-  ID: string
-  Name: string
-  DisplayName: string
-  IsActive: boolean
-  Permissions?: Permission[]
+  id: string
+  name: string
+  displayName: string
+  isActive: boolean
+  permissions?: Permission[]
 }
 
 function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { group: PortalGroup, open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
@@ -54,7 +54,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   useEffect(() => {
     if (open) {
       setLoading(true)
-      setGroupPermissions((group.Permissions || []).map((p: Permission) => p.ID))
+      setGroupPermissions((group.permissions || []).map((p: Permission) => p.id))
 
       getPermissions()
         .then((allPerms) => {
@@ -78,7 +78,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateGroupPermissions(group.ID, groupPermissions)
+      await updateGroupPermissions(group.id, groupPermissions)
       toast({ title: "Success", description: "Permissions updated successfully.", variant: "success" })
       onSuccess()
       onOpenChange(false)
@@ -104,7 +104,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Manage Permissions for {group.DisplayName}</DialogTitle>
+          <DialogTitle>Manage Permissions for {group.displayName}</DialogTitle>
           <DialogDescription>Select the permissions this group should have.</DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -116,13 +116,13 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
                         <h4 className="font-semibold text-base mb-2 capitalize border-b pb-1">{resource}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {perms.map(perm => (
-                            <div key={perm.ID} className="flex items-center space-x-2">
+                            <div key={perm.id} className="flex items-center space-x-2">
                             <Checkbox
-                                id={`perm-${perm.ID}`}
-                                checked={groupPermissions.includes(perm.ID)}
-                                onCheckedChange={(checked) => handlePermissionChange(perm.ID, Boolean(checked))}
+                                id={`perm-${perm.id}`}
+                                checked={groupPermissions.includes(perm.id)}
+                                onCheckedChange={(checked) => handlePermissionChange(perm.id, Boolean(checked))}
                             />
-                            <Label htmlFor={`perm-${perm.ID}`} className="capitalize font-normal">{perm.Action}</Label>
+                            <Label htmlFor={`perm-${perm.id}`} className="capitalize font-normal">{perm.action}</Label>
                             </div>
                         ))}
                         </div>
@@ -142,7 +142,7 @@ function ManagePermissionsDialog({ group, open, onOpenChange, onSuccess }: { gro
 }
 
 function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalGroup | null, open: boolean, onOpenChange: (open: boolean) => void, onSuccess: () => void }) {
-  const [formData, setFormData] = useState({ Name: "", DisplayName: "" })
+  const [formData, setFormData] = useState({ Name: "", displayName: "" })
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
@@ -151,9 +151,9 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
 
   useEffect(() => {
     if (group && open) {
-      setFormData({ Name: group.Name, DisplayName: group.DisplayName })
+      setFormData({ Name: group.name, displayName: group.displayName })
     } else if (!group && open) {
-      setFormData({ Name: "", DisplayName: "" })
+      setFormData({ Name: "", displayName: "" })
     }
   }, [group, open])
 
@@ -162,11 +162,11 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
     setSaving(true)
     try {
       if (isEditing && group) {
-        await updatePortalGroup(group.ID, { Name: formData.Name, DisplayName: formData.DisplayName })
+        await updatePortalGroup(group.id, { Name: formData.Name, displayName: formData.displayName })
       } else {
         await createPortalGroup(formData)
       }
-      toast({ title: "Success", description: `Group ${formData.DisplayName} has been ${isEditing ? 'updated' : 'created'}.`, variant: "success", icon: <CheckCircle /> })
+      toast({ title: "Success", description: `Group ${formData.displayName} has been ${isEditing ? 'updated' : 'created'}.`, variant: "success", icon: <CheckCircle /> })
       onSuccess()
       onOpenChange(false)
     } catch (err: any) {
@@ -184,7 +184,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? `Edit Group: ${group?.DisplayName}` : "Create New Portal Group"}</DialogTitle>
+          <DialogTitle>{isEditing ? `Edit Group: ${group?.displayName}` : "Create New Portal Group"}</DialogTitle>
           <DialogDescription>
             {isEditing ? "Update the details for this portal group." : "Create a new group to assign permissions to portal users."}
           </DialogDescription>
@@ -192,7 +192,7 @@ function GroupDialog({ group, open, onOpenChange, onSuccess }: { group?: PortalG
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name *</Label>
-                <Input id="displayName" value={formData.DisplayName} onChange={e => setFormData(p => ({...p, DisplayName: e.target.value}))} required />
+                <Input id="displayName" value={formData.displayName} onChange={e => setFormData(p => ({...p, displayName: e.target.value}))} required />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="name">Unique Name *</Label>
@@ -260,7 +260,7 @@ export default function PortalGroupsPage() {
   };
   
   const handleSelectAll = (checked: boolean) => {
-    setSelectedGroups(checked ? groups.map(g => g.ID) : []);
+    setSelectedGroups(checked ? groups.map(g => g.id) : []);
   };
 
   const handleEdit = (group: PortalGroup) => {
@@ -288,15 +288,15 @@ export default function PortalGroupsPage() {
     
     let actionPromise: Promise<any>;
     switch (action) {
-      case 'delete': actionPromise = deletePortalGroup(group.ID); break;
-      case 'activate': actionPromise = updatePortalGroup(group.ID, { IsActive: true }); break;
-      case 'deactivate': actionPromise = updatePortalGroup(group.ID, { IsActive: false }); break;
+      case 'delete': actionPromise = deletePortalGroup(group.id); break;
+      case 'activate': actionPromise = updatePortalGroup(group.id, { isActive: true }); break;
+      case 'deactivate': actionPromise = updatePortalGroup(group.id, { isActive: false }); break;
       default: return;
     }
     
     try {
       await actionPromise
-      toast({ title: "Success", description: `Action '${action}' completed for group ${group.DisplayName}.`, variant: "success" })
+      toast({ title: "Success", description: `Action '${action}' completed for group ${group.displayName}.`, variant: "success" })
       fetchGroups()
     } catch (err: any) {
       if (err.message === "ACCESS_DENIED") {
@@ -317,8 +317,8 @@ export default function PortalGroupsPage() {
     for (const groupId of selectedGroups) {
         try {
             switch(action) {
-                case 'activate': await updatePortalGroup(groupId, {IsActive: true}); break;
-                case 'deactivate': await updatePortalGroup(groupId, {IsActive: false}); break;
+                case 'activate': await updatePortalGroup(groupId, {isActive: true}); break;
+                case 'deactivate': await updatePortalGroup(groupId, {isActive: false}); break;
                 case 'delete': await deletePortalGroup(groupId); break;
             }
             successCount++;
@@ -428,23 +428,23 @@ export default function PortalGroupsPage() {
                   </TableRow>
                 ) : (
                   groups.map((group) => (
-                    <TableRow key={group.ID}>
-                       <TableCell className="px-4">
+                    <TableRow key={group.id}>
+                      <TableCell className="px-4">
                         <Checkbox
-                          checked={selectedGroups.includes(group.ID)}
-                          onCheckedChange={(checked) => handleSelectGroup(group.ID, Boolean(checked))}
-                          aria-label={`Select group ${group.DisplayName}`}
+                          checked={selectedGroups.includes(group.id)}
+                          onCheckedChange={(checked) => handleSelectGroup(group.id, Boolean(checked))}
+                          aria-label={`Select group ${group.displayName}`}
                         />
                       </TableCell>
                       <TableCell>
-                        <Link href={`/dashboard/portal-groups/${group.ID}`} className="font-medium text-primary hover:underline">
-                          {group.DisplayName}
+                        <Link href={`/dashboard/portal-groups/${group.id}`} className="font-medium text-primary hover:underline">
+                          {group.displayName}
                         </Link>
                       </TableCell>
-                      <TableCell>{group.Name}</TableCell>
+                      <TableCell>{group.name}</TableCell>
                       <TableCell>
-                        <Badge variant={group.IsActive ? "default" : "secondary"} className={group.IsActive ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
-                          {group.IsActive ? "Active" : "Inactive"}
+                        <Badge variant={group.isActive ? "default" : "secondary"} className={group.isActive ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
+                          {group.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -452,7 +452,7 @@ export default function PortalGroupsPage() {
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu for {group.DisplayName}</span>
+                              <span className="sr-only">Open menu for {group.displayName}</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -463,7 +463,7 @@ export default function PortalGroupsPage() {
                             <DropdownMenuItem onClick={() => handleEdit(group)}>
                               <Edit className="mr-2 h-4 w-4" /> Edit
                             </DropdownMenuItem>
-                            {group.IsActive ? (
+                            {group.isActive ? (
                               <DropdownMenuItem onClick={() => handleAction(group, 'deactivate')}>
                                 <PowerOff className="mr-2 h-4 w-4" />
                                 Deactivate
@@ -516,7 +516,7 @@ export default function PortalGroupsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action will '{groupToAction?.action}' the group "{groupToAction?.group.DisplayName}".
+              This action will '{groupToAction?.action}' the group "{groupToAction?.group.displayName}".
                {groupToAction?.action === 'delete' && " This cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>

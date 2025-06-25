@@ -20,18 +20,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
 interface Permission {
-  ID: string
-  Action: string
-  Resource: string
-  Description: string
+  id: string
+  action: string
+  resource: string
+  description: string
 }
 
 interface PortalGroup {
-  ID: string
-  Name: string
-  DisplayName: string
-  IsActive: boolean
-  Permissions?: Permission[]
+  id: string
+  name: string
+  displayName: string
+  isActive: boolean
+  permissions?: Permission[]
 }
 
 export default function PortalGroupDetailPage() {
@@ -47,7 +47,7 @@ export default function PortalGroupDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [formData, setFormData] = useState({ DisplayName: "", Name: "" })
+  const [formData, setFormData] = useState({ displayName: "", Name: "" })
 
   const fetchGroupData = async () => {
     try {
@@ -55,9 +55,9 @@ export default function PortalGroupDetailPage() {
       const groupData = await getPortalGroup(id)
       
       setGroup(groupData)
-      setFormData({ DisplayName: groupData.DisplayName, Name: groupData.Name })
-      
-      const permIds = (groupData.Permissions || []).map((p: Permission) => p.ID)
+      setFormData({ displayName: groupData.displayName, Name: groupData.name })
+
+      const permIds = (groupData.permissions || []).map((p: Permission) => p.id)
       setInitialGroupPermissions(permIds)
       setSelectedPermissions(permIds)
     } catch (error) {
@@ -97,7 +97,7 @@ export default function PortalGroupDetailPage() {
     if (!group) return
     setSaving(true)
     try {
-      await updatePortalGroup(id, { Name: formData.Name, DisplayName: formData.DisplayName })
+      await updatePortalGroup(id, { Name: formData.Name, displayName: formData.displayName })
       toast({ title: "Success", description: "Group details updated.", variant: "success", icon: <CheckCircle /> })
       setEditing(false)
       fetchGroupData()
@@ -134,7 +134,7 @@ export default function PortalGroupDetailPage() {
     if (!group) return
     setSaving(true)
     try {
-        await updatePortalGroup(id, { IsActive: activate });
+        await updatePortalGroup(id, { isActive: activate });
         toast({ title: "Success", description: `Group has been ${activate ? 'activated' : 'deactivated'}.`, variant: "success" });
         fetchGroupData();
     } catch (error) {
@@ -186,11 +186,11 @@ export default function PortalGroupDetailPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center">
               <Users className="mr-3 h-7 w-7 text-primary" />
-              {group.DisplayName}
+              {group.displayName}
             </h1>
             <div className="mt-1.5">
-               <Badge variant={group.IsActive ? "default" : "secondary"} className={group.IsActive ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
-                {group.IsActive ? "Active" : "Inactive"}
+               <Badge variant={group.isActive ? "default" : "secondary"} className={group.isActive ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" : ""}>
+                {group.isActive ? "Active" : "Inactive"}
               </Badge>
             </div>
           </div>
@@ -217,7 +217,7 @@ export default function PortalGroupDetailPage() {
             <CardContent className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="displayName">Display Name</Label>
-                    <Input id="displayName" value={formData.DisplayName} onChange={(e) => setFormData(p => ({...p, DisplayName: e.target.value}))} disabled={!editing || saving} />
+                    <Input id="displayName" value={formData.displayName} onChange={(e) => setFormData(p => ({...p, displayName: e.target.value}))} disabled={!editing || saving} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="name">Unique Name (Identifier)</Label>
@@ -238,15 +238,15 @@ export default function PortalGroupDetailPage() {
                         <h4 className="font-semibold text-base mb-2 capitalize border-b pb-1">{resource}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
                             {perms.map(perm => (
-                                <div key={perm.ID} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={`perm-${perm.ID}`} 
-                                        checked={selectedPermissions.includes(perm.ID)}
+                                <div key={perm.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`perm-${perm.id}`}
+                                        checked={selectedPermissions.includes(perm.id)}
                                         onCheckedChange={(checked) => {
-                                            setSelectedPermissions(prev => checked ? [...prev, perm.ID] : prev.filter(id => id !== perm.ID))
+                                            setSelectedPermissions(prev => checked ? [...prev, perm.id] : prev.filter(id => id !== perm.id))
                                         }}
                                     />
-                                    <Label htmlFor={`perm-${perm.ID}`} className="font-normal cursor-pointer capitalize">{perm.Action}</Label>
+                                    <Label htmlFor={`perm-${perm.id}`} className="font-normal cursor-pointer capitalize">{perm.action}</Label>
                                 </div>
                             ))}
                         </div>
@@ -267,7 +267,7 @@ export default function PortalGroupDetailPage() {
                     <CardTitle className="flex items-center"><Settings className="mr-2 h-5 w-5 text-primary"/>Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    {group.IsActive ? (
+                    {group.isActive ? (
                         <Button variant="outline" className="w-full justify-start text-red-600 hover:bg-red-50" onClick={() => handleActivation(false)} disabled={saving}>
                             <PowerOff className="mr-2 h-4 w-4" /> Deactivate Group
                         </Button>

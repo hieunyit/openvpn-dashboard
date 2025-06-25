@@ -29,8 +29,8 @@ interface PortalUser {
 }
 
 interface PortalGroup {
-  ID: string
-  DisplayName: string
+  id: string
+  displayName: string
 }
 
 export default function PortalUserDetailPage() {
@@ -240,11 +240,11 @@ export default function PortalUserDetailPage() {
                                 <SelectTrigger id="group"><SelectValue placeholder="Select a group" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">No Group</SelectItem>
-                                    {groups.map(g => <SelectItem key={g.ID} value={g.ID}>{g.DisplayName}</SelectItem>)}
+                                    {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.displayName}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         ) : (
-                             <Input id="group-display" value={groups.find(g => g.ID === user.groupId)?.DisplayName || "No Group"} disabled />
+                             <Input id="group-display" value={groups.find(g => g.id === user.groupId)?.displayName || "No Group"} disabled />
                         )}
                     </div>
                 </div>
