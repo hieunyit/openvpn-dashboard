@@ -186,40 +186,35 @@ export async function GET(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  const { params } = await context
-  return proxyRequest(request, params, "GET");
+  return proxyRequest(request, context.params, "GET");
 }
 
 export async function POST(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  const { params } = await context
-  return proxyRequest(request, params, "POST");
+  return proxyRequest(request, context.params, "POST");
 }
 
 export async function PUT(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  const { params } = await context
-  return proxyRequest(request, params, "PUT");
+  return proxyRequest(request, context.params, "PUT");
 }
 
 export async function DELETE(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  const { params } = await context
-  return proxyRequest(request, params, "DELETE");
+  return proxyRequest(request, context.params, "DELETE");
 }
 
 export async function PATCH(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  const { params } = await context
-  return proxyRequest(request, params, "PATCH");
+  return proxyRequest(request, context.params, "PATCH");
 }
 
 

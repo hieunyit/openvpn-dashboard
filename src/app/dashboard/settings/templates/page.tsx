@@ -27,8 +27,8 @@ const TEMPLATE_TYPES = [
 ]
 
 interface TemplateData {
-  Subject: string
-  Body: string
+  subject: string
+  body: string
 }
 
 function TemplateEditor({ templateType }: { templateType: { key: string, name: string } }) {
@@ -45,8 +45,8 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
       const data = await getEmailTemplate(templateType.key);
       setTemplate(data);
       setFormData({
-        subject: data?.Subject || '',
-        body: data?.Body || ''
+        subject: data?.subject || '',
+        body: data?.body || ''
       });
     } catch (error: any) {
       if (error.message === "ACCESS_DENIED") {
@@ -95,7 +95,9 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
     }
   };
   
-  const isChanged = template ? (formData.subject !== template.Subject || formData.body !== template.Body) : (formData.subject !== '' || formData.body !== '');
+  const isChanged = template
+    ? formData.subject !== template.subject || formData.body !== template.body
+    : formData.subject !== '' || formData.body !== '';
 
   const loadingContent = (
     <div className='space-y-4'>
