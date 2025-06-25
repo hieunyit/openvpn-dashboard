@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 import { Pagination } from "@/components/pagination"
+import PageHeader from "@/components/page-header"
 import Link from "next/link"
 
 interface Permission {
@@ -341,13 +342,11 @@ export default function PortalGroupsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="h-8 w-8 text-primary flex-shrink-0" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Portal Groups & Permissions</h1>
-            <p className="text-muted-foreground mt-1">Define user groups and assign granular permissions.</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Portal Groups & Permissions"
+          description="Define user groups and assign granular permissions."
+          icon={<Users className="h-8 w-8 text-primary" />}
+        />
         <Button onClick={handleAdd}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Group

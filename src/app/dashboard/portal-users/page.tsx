@@ -16,6 +16,7 @@ import {
   activatePortalUser, deactivatePortalUser, resetPortalUserPassword, getPortalGroups 
 } from "@/lib/api"
 import { BookUser, PlusCircle, MoreHorizontal, Edit, Trash2, KeyRound, CheckCircle, AlertTriangle, UserCheck, UserX, FileText, Power, PowerOff, Search } from "lucide-react"
+import PageHeader from "@/components/page-header"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -289,13 +290,11 @@ export default function PortalUsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BookUser className="h-8 w-8 text-primary flex-shrink-0" />
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Portal Users</h1>
-            <p className="text-muted-foreground mt-1">Manage users who can access this System Portal.</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Portal Users"
+          description="Manage users who can access this System Portal."
+          icon={<BookUser className="h-8 w-8 text-primary" />}
+        />
         <Button onClick={handleAdd}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add User

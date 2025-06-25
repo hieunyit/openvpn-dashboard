@@ -5,14 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { ShieldCheck, UserCog, Settings, BookUser, Network, History } from "lucide-react"
 import Link from "next/link"
+import PageHeader from "@/components/page-header"
 
 export default function PortalDashboardPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">System Portal Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome! Select a module from the sidebar to manage system components.</p>
-      </div>
+      <PageHeader
+        title="System Portal Dashboard"
+        description="Welcome! Select a module from the sidebar to manage system components."
+      />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-sm hover:shadow-md transition-shadow">

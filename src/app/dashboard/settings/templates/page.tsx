@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Mail, Save, AlertTriangle, CheckCircle, Eye, Code } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { RichTextEditor } from '@/components/rich-text-editor'
+import PageHeader from '@/components/page-header'
 
 const TEMPLATE_TYPES = [
   { key: 'enable_user', name: 'Enable User' },
@@ -177,13 +178,11 @@ function TemplateEditor({ templateType }: { templateType: { key: string, name: s
 export default function EmailTemplatesPage() {
   return (
     <div className='space-y-6'>
-      <div className='flex items-center gap-3'>
-        <Mail className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Email Templates</h1>
-          <p className="text-muted-foreground mt-1">Customize system-generated emails.</p>
-        </div>
-      </div>
+      <PageHeader
+        title='Email Templates'
+        description='Customize system-generated emails.'
+        icon={<Mail className="h-8 w-8 text-primary" />}
+      />
       <Tabs defaultValue={TEMPLATE_TYPES[0].key} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7">
           {TEMPLATE_TYPES.map(t => (

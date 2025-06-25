@@ -6,9 +6,9 @@ import { type NextRequest, NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 // Cập nhật URL API mới
-  params: { path: string[] },
+  pathSegments: string[],
 ) {
-  // Access `params` inside the function body so that Next.js can resolve it
+  const path = pathSegments.join("/")
   // before we reference its properties, avoiding warnings about sync usage.
   // Await the context object so that Next.js treats the params as asynchronous
   // and does not warn about synchronous access to dynamic route parameters.
@@ -186,35 +186,35 @@ export async function GET(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params, "GET");
+  return proxyRequest(request, context.params.path, "GET");
 }
 
 export async function POST(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params, "POST");
+  return proxyRequest(request, context.params.path, "POST");
 }
 
 export async function PUT(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params, "PUT");
+  return proxyRequest(request, context.params.path, "PUT");
 }
 
 export async function DELETE(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params, "DELETE");
+  return proxyRequest(request, context.params.path, "DELETE");
 }
 
 export async function PATCH(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params, "PATCH");
+  return proxyRequest(request, context.params.path, "PATCH");
 }
 
 
