@@ -730,11 +730,10 @@ export async function getEmailTemplate(action: string) {
 }
 
 export async function updateEmailTemplate(action: string, templateData: { subject: string, body: string }) {
-  // The backend expects capitalized keys (Subject/Body) but the editor uses
-  // lowercase field names. Map the values here before sending the request.
+  // API specification expects lowercase keys for the template fields
   const payload = {
-    Subject: templateData.subject,
-    Body: templateData.body,
+    subject: templateData.subject,
+    body: templateData.body,
   };
 
   const response = await fetchWithAuth(`api/portal/connections/templates/${action}`, {
@@ -854,18 +853,27 @@ export async function getPortalGroup(id: string) {
 
 
 export async function createPortalGroup(groupData: { Name: string, DisplayName: string }) {
+  // Convert UI PascalCase fields to the API's camelCase expectations
+  const payload = {
+    name: groupData.Name,
+    displayName: groupData.DisplayName,
+  };
   const response = await fetchWithAuth(`api/portal/groups`, {
     method: "POST",
-    body: JSON.stringify({ Name: groupData.Name, DisplayName: groupData.DisplayName }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) throw await handleApiError(response, "create portal group");
   return await response.json();
 }
 
 export async function updatePortalGroup(id: string, groupData: Partial<{ Name: string, DisplayName: string, IsActive: boolean }>) {
+  const payload: Record<string, any> = {};
+  if (groupData.Name !== undefined) payload.name = groupData.Name;
+  if (groupData.DisplayName !== undefined) payload.displayName = groupData.DisplayName;
+  if (groupData.IsActive !== undefined) payload.isActive = groupData.IsActive;
   const response = await fetchWithAuth(`api/portal/groups/${id}`, {
     method: "PUT",
-    body: JSON.stringify(groupData),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) throw await handleApiError(response, "update portal group");
   return await response.json();
