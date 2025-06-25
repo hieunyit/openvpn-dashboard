@@ -6,7 +6,7 @@ import { type NextRequest, NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 // Cập nhật URL API mới
-const API_URL = "https://rnqej-1-55-252-133.a.free.pinggy.link"
+const API_URL = "http://localhost:8080"
 
 async function proxyRequest(
   request: NextRequest,
