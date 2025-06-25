@@ -37,11 +37,19 @@ const formats = [
 const ReactQuill = dynamic(async () => {
   const mod = await import('react-quill');
   const RQ = (mod as any).default || mod;
+
+  // Polyfill ReactDOM.findDOMNode for libraries that still call it
+  const ReactDOM = await import('react-dom');
+  if (!(ReactDOM as any).findDOMNode) {
+    (ReactDOM as any).findDOMNode = () => null;
+  }
+
   if (RQ && RQ.prototype && typeof RQ.prototype.getEditingArea === 'function') {
     RQ.prototype.getEditingArea = function getEditingArea() {
       return (this as any).editor;
     };
   }
+
   return RQ;
 }, {
   ssr: false,

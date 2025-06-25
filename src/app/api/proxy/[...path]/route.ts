@@ -1,6 +1,8 @@
 
 import { type NextRequest, NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 // Cập nhật URL API mới
   pathSegments: string[],
 ) {
