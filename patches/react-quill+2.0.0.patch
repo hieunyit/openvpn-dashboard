@@ -1,12 +1,11 @@
-patch-package
 --- a/node_modules/react-quill/lib/index.js
 +++ b/node_modules/react-quill/lib/index.js
-@@ -587,7 +587,7 @@
+@@ -320,7 +320,7 @@
  	},
  
- 	getEditorNode: function getEditorNode() {
--		return ReactDOM.findDOMNode(this.editor);
-+		return this.editor.getDOMNode();
+ 	getEditingArea: function getEditingArea() {
+-		return _reactDom2.default.findDOMNode(this.editor);
++		return this.editor;
  	},
  
- 	getEditor: function getEditor() {
+ 	getEditorConfig: function getEditorConfig() {
