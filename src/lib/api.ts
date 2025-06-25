@@ -730,9 +730,16 @@ export async function getEmailTemplate(action: string) {
 }
 
 export async function updateEmailTemplate(action: string, templateData: { subject: string, body: string }) {
+  // The backend expects capitalized keys (Subject/Body) but the editor uses
+  // lowercase field names. Map the values here before sending the request.
+  const payload = {
+    Subject: templateData.subject,
+    Body: templateData.body,
+  };
+
   const response = await fetchWithAuth(`api/portal/connections/templates/${action}`, {
     method: 'PUT',
-    body: JSON.stringify(templateData),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw await handleApiError(response, `update email template for ${action}`);

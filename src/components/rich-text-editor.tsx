@@ -34,7 +34,16 @@ const formats = [
   'link', 'image', 'video'
 ];
 
-const ReactQuill = dynamic(() => import('react-quill'), { 
+const ReactQuill = dynamic(async () => {
+  const mod = await import('react-quill');
+  const RQ = (mod as any).default || mod;
+  if (RQ && RQ.prototype && typeof RQ.prototype.getEditingArea === 'function') {
+    RQ.prototype.getEditingArea = function getEditingArea() {
+      return (this as any).editor;
+    };
+  }
+  return RQ;
+}, {
   ssr: false,
   loading: () => <Skeleton className="h-[300px] w-full rounded-md" />,
 });
