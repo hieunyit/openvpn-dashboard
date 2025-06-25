@@ -1,10 +1,23 @@
 
 import { type NextRequest, NextResponse } from "next/server"
 
+// Next.js caches dynamic route handlers by default. Force this route to always
+// be evaluated on demand since the target path is determined at runtime.
+export const dynamic = "force-dynamic"
+
 // Cập nhật URL API mới
 const API_URL = "https://rnqej-1-55-252-133.a.free.pinggy.link"
 
-async function proxyRequest(request: NextRequest, { params }: { params: { path: string[] } }, method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH") {
+async function proxyRequest(
+  request: NextRequest,
+  context: { params: { path: string[] } },
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+) {
+  // Access `params` inside the function body so that Next.js can resolve it
+  // before we reference its properties, avoiding warnings about sync usage.
+  // Await the context object so that Next.js treats the params as asynchronous
+  // and does not warn about synchronous access to dynamic route parameters.
+  const { params } = await context
   const path = params.path.join("/")
   let requestUrl = `${API_URL}/${path}`
   
@@ -174,24 +187,39 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
 }
 
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, { params }, "GET");
+export async function GET(
+  request: NextRequest,
+  context: { params: { path: string[] } },
+) {
+  return proxyRequest(request, context, "GET");
 }
 
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, { params }, "POST");
+export async function POST(
+  request: NextRequest,
+  context: { params: { path: string[] } },
+) {
+  return proxyRequest(request, context, "POST");
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, { params }, "PUT");
+export async function PUT(
+  request: NextRequest,
+  context: { params: { path: string[] } },
+) {
+  return proxyRequest(request, context, "PUT");
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, { params }, "DELETE");
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { path: string[] } },
+) {
+  return proxyRequest(request, context, "DELETE");
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxyRequest(request, { params }, "PATCH");
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { path: string[] } },
+) {
+  return proxyRequest(request, context, "PATCH");
 }
 
 
