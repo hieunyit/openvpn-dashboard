@@ -10,10 +10,12 @@ const PROXY_ROUTE_PREFIX = "/api/proxy";
 export async function fetchWithAuth(backendRelativePath: string, options: RequestInit = {}) {
   let token = getAccessToken();
 
-  const isAuthPath = backendRelativePath.startsWith('auth/');
-  const isTemplatePath = backendRelativePath.includes('/template');
+  // Define public paths that do not require authentication
+  const publicPaths = ['auth/login', 'auth/refresh'];
+  const isPublicPath = publicPaths.includes(backendRelativePath);
 
-  if (!token && !isAuthPath && !isTemplatePath) {
+  // If no token and not a public path, session has expired
+  if (!token && !isPublicPath) {
     await logout();
     throw new Error("SESSION_EXPIRED");
   }
@@ -43,14 +45,12 @@ export async function fetchWithAuth(backendRelativePath: string, options: Reques
     });
     
     if (response.status === 403) {
-      // Don't redirect on auth paths like login
-      if (!isAuthPath) {
-        // Throw an error to stop further processing. The UI will catch this and redirect.
+      if (!isPublicPath) {
         throw new Error("ACCESS_DENIED");
       }
     }
 
-    if (response.status === 401 && !isAuthPath) {
+    if (response.status === 401 && !isPublicPath) {
       const refreshed = await refreshToken();
       if (refreshed) {
         token = getAccessToken();
