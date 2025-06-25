@@ -17,6 +17,7 @@ import {
 } from "@/lib/api"
 import { getCoreApiErrorMessage } from "@/lib/utils"
 import { Network, Save, AlertTriangle, CheckCircle, Shield, Building, Trash2, Activity, Power, Mail } from "lucide-react"
+import PageHeader from "@/components/page-header"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -357,13 +358,11 @@ export default function ConnectionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-         <Network className="h-8 w-8 text-primary flex-shrink-0" />
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">System Connections</h1>
-            <p className="text-muted-foreground mt-1">Manage external service connections for the portal.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="System Connections"
+        description="Manage external service connections for the portal."
+        icon={<Network className="h-8 w-8 text-primary" />}
+      />
       
       <Tabs defaultValue="openvpn" className="w-full">
         <TabsList className="grid w-full grid-cols-3">

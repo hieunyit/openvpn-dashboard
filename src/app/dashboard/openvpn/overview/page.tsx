@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getUserExpirations, getUsers, getGroups, getVPNStatus, getServerInfo, type ServerInfo } from "@/lib/api"
 import { Users, UserCheck, UserX, FolderKanban, AlertTriangle, Clock, BarChart3, CalendarDays, Wifi, PlusCircle, Settings, ExternalLink, Activity, Search, Server, CheckCircle, Info } from "lucide-react"
+import PageHeader from "@/components/page-header"
 import Link from "next/link"
 import { formatDateForDisplay, getCoreApiErrorMessage } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -256,10 +257,11 @@ export default function OpenVPNOverviewPage() {
   return (
     <div className="space-y-6 lg:space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">OpenVPN Overview</h1>
-          <p className="text-muted-foreground">Key metrics and insights for your VPN server.</p>
-        </div>
+        <PageHeader
+          title="OpenVPN Overview"
+          description="Key metrics and insights for your VPN server."
+          icon={<Wifi className="h-8 w-8 text-primary" />}
+        />
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Link href="/dashboard/users?action=new">
