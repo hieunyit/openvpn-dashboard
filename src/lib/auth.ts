@@ -1,4 +1,6 @@
 
+"use client"
+
 import { jwtDecode } from "jwt-decode"
 
 const API_URL = "/api/proxy/auth"
@@ -75,7 +77,6 @@ export async function logout() {
   localStorage.removeItem("accessToken")
   localStorage.removeItem("refreshToken")
   localStorage.removeItem("user")
-  window.location.href = '/login'; 
 }
 
 export function getUser(): UserInfo | null {
