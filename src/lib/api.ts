@@ -7,6 +7,9 @@ import { formatDateForAPI } from "./utils";
 // This constant is the prefix for our Next.js API proxy route.
 const PROXY_ROUTE_PREFIX = "/api/proxy";
 
+// Simple in-memory cache for email templates to reduce network requests
+const emailTemplateCache: Map<string, { subject: string; body: string }> = new Map();
+
 export async function fetchWithAuth(backendRelativePath: string, options: RequestInit = {}) {
   let token = getAccessToken();
 
@@ -721,12 +724,20 @@ export async function deleteSmtpConfig() {
 
 // --- Email Templates ---
 export async function getEmailTemplate(action: string) {
+  // Check cache first to avoid unnecessary network requests
+  if (emailTemplateCache.has(action)) {
+    return emailTemplateCache.get(action)!;
+  }
+
   const response = await fetchWithAuth(`api/portal/connections/templates/${action}`);
   if (!response.ok) {
     if (response.status === 404) return null;
     throw await handleApiError(response, `fetch email template for ${action}`);
   }
-  return parseApiResponse(await response.json());
+  const template = parseApiResponse(await response.json());
+  // Store in cache for subsequent calls during the session
+  emailTemplateCache.set(action, template);
+  return template;
 }
 
 export async function updateEmailTemplate(action: string, templateData: { subject: string, body: string }) {
@@ -743,7 +754,10 @@ export async function updateEmailTemplate(action: string, templateData: { subjec
   if (!response.ok) {
     throw await handleApiError(response, `update email template for ${action}`);
   }
-  return await response.json();
+  const updated = await response.json();
+  // Update cache so subsequent reads return the latest template
+  emailTemplateCache.set(action, payload);
+  return updated;
 }
 
 

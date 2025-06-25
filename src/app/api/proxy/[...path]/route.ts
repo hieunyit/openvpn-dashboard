@@ -1,10 +1,6 @@
 
 import { type NextRequest, NextResponse } from "next/server"
 
-// Next.js caches dynamic route handlers by default. Force this route to always
-// be evaluated on demand since the target path is determined at runtime.
-export const dynamic = "force-dynamic"
-
 // Cập nhật URL API mới
   pathSegments: string[],
 ) {
@@ -186,35 +182,40 @@ export async function GET(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params.path, "GET");
+  const { path } = context.params;
+  return proxyRequest(request, path, "GET");
 }
 
 export async function POST(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params.path, "POST");
+  const { path } = context.params;
+  return proxyRequest(request, path, "POST");
 }
 
 export async function PUT(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params.path, "PUT");
+  const { path } = context.params;
+  return proxyRequest(request, path, "PUT");
 }
 
 export async function DELETE(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params.path, "DELETE");
+  const { path } = context.params;
+  return proxyRequest(request, path, "DELETE");
 }
 
 export async function PATCH(
   request: NextRequest,
   context: { params: { path: string[] } },
 ) {
-  return proxyRequest(request, context.params.path, "PATCH");
+  const { path } = context.params;
+  return proxyRequest(request, path, "PATCH");
 }
 
 
